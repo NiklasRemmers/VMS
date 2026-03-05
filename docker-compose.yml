@@ -1,0 +1,65 @@
+services:
+  # ─── PostgreSQL Database ───
+  db:
+    image: postgres:16-alpine
+    container_name: contract_maker_db
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin
+      POSTGRES_DB: contract_maker
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U admin -d contract_maker" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─── Flask Application (Gunicorn) ───
+  app:
+    build: .
+    container_name: contract_maker_app
+    env_file: .env
+    environment:
+      - DATABASE_URL=postgresql://admin:admin@db:5432/contract_maker
+      - FLASK_ENV=production
+      - GUNICORN_BIND=0.0.0.0:8000
+      - GUNICORN_WORKERS=2
+      - GUNICORN_ACCESS_LOG=-
+      - GUNICORN_ERROR_LOG=-
+      - KMS_MASTER_KEY_PATH=/etc/contract_maker/master.key
+    volumes:
+      - kms_data:/etc/contract_maker
+      - app_secrets:/app/secrets_store
+      - app_signatures:/app/signatures
+      - app_static_signatures:/app/static/signatures
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    expose:
+      - "8000"
+
+  # ─── Nginx Reverse Proxy ───
+  nginx:
+    image: nginx:alpine
+    container_name: contract_maker_nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/nginx-docker.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./static:/app/static:ro
+    depends_on:
+      - app
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  kms_data:
+  app_secrets:
+  app_signatures:
+  app_static_signatures:

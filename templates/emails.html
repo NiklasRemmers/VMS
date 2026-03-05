@@ -1,0 +1,1268 @@
+<!DOCTYPE html>
+<html lang="de">
+
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>Leihanfragen aus Mails - Anlagenreferat</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f5f3ff',
+                            100: '#ede9fe',
+                            200: '#ddd6fe',
+                            300: '#c4b5fd',
+                            400: '#a78bfa',
+                            500: '#8b5cf6',
+                            600: '#7c3aed',
+                            700: '#6d28d9',
+                            800: '#5b21b6',
+                            900: '#4c1d95',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+    <script src="/static/theme.js"></script>
+</head>
+
+<body class="bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
+    <div class="flex h-screen">
+
+        <!-- Sidebar -->
+        <!-- Sidebar -->
+        {% include '_sidebar.html' %}
+
+        <!-- Main Content -->
+        <div class="flex flex-col flex-1 w-full">
+            {% include '_navbar.html' %}
+
+            <main class="h-full overflow-y-auto">
+                <div class="container px-6 mx-auto py-8">
+
+                    <!-- Header with Actions -->
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+                        <div>
+                            <h2 class="text-2xl font-semibold text-gray-700 dark:text-gray-200">Anfragen</h2>
+                            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                                {% if last_sync %}
+                                Letzter Sync: {{ last_sync[:16].replace('T', ' ') }}
+                                {% else %}
+                                Noch nicht synchronisiert
+                                {% endif %}
+                            </p>
+                        </div>
+
+                        <button onclick="syncEmails()" id="syncButton"
+                            class="inline-flex items-center px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg transition-colors duration-150">
+                            <svg id="syncIcon" class="w-4 h-4 mr-2" fill="none" stroke="currentColor"
+                                viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15">
+                                </path>
+                            </svg>
+                            <span id="syncText">Synchronisieren</span>
+                        </button>
+                    </div>
+
+                    <!-- Flash Messages -->
+                    <div id="flashMessages"></div>
+
+                    <!-- Email List Container (AJAX refreshable) -->
+                    <div id="email-list-container">
+                        <!-- Open Candidates Table -->
+                        <div class="mb-8">
+                            <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-4">Offene Anfragen</h3>
+                            <div
+                                class="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden">
+                                <table class="w-full">
+                                    <thead class="bg-gray-50 dark:bg-gray-700">
+                                        <tr>
+                                            <th
+                                                class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                                Name / Veranstaltung</th>
+                                            <th
+                                                class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                                Datum</th>
+                                            <th
+                                                class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                                Tags</th>
+                                            <th
+                                                class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                                Aktionen</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                                        {% for c in open_candidates %}
+                                        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50" data-id="{{ c.id }}"
+                                            data-datum="{{ c.datum or '' }}">
+                                            <td class="px-6 py-4">
+                                                <div class="text-sm font-medium text-gray-900 dark:text-gray-100">{{
+                                                    c.vorname_nachname or 'Unbekannt' }}</div>
+                                                <div class="text-sm text-gray-500 dark:text-gray-400">{{
+                                                    c.veranstaltungsname or
+                                                    'Keine Veranstaltung' }}</div>
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap">
+                                                <div class="text-sm text-gray-500 dark:text-gray-400">
+                                                    {{ c.datum or '-' }}
+                                                    {% if c.end_date_display %}
+                                                    - {{ c.end_date_display }}
+                                                    {% endif %}
+                                                </div>
+
+                                                {% if c.has_conflict %}
+                                                <span
+                                                    class="ml-2 inline-flex items-center px-2 py-0.5 text-xs rounded-full bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-400"
+                                                    title="Potentieller Konflikt: Weitere Anfragen am selben Tag">
+                                                    ⚠️ Konflikt
+                                                </span>
+                                                {% endif %}
+                                            </td>
+                                            <td class="px-6 py-4">
+                                                <div class="flex flex-wrap gap-1">
+                                                    {% if c.tags %}
+                                                    {% for tag in c.tags %}
+                                                    <span
+                                                        class="inline-flex px-2 py-0.5 text-xs rounded bg-primary-100 dark:bg-primary-900/30 text-primary-800 dark:text-primary-400">{{
+                                                        tag }}</span>
+                                                    {% endfor %}
+                                                    {% else %}
+                                                    <span class="text-xs text-gray-400">Keine Tags</span>
+                                                    {% endif %}
+                                                </div>
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm space-x-2">
+                                                <button onclick="editCandidate({{ c.id }})"
+                                                    class="text-primary-600 hover:text-primary-800 dark:text-primary-400">
+                                                    <svg class="w-5 h-5 inline" fill="none" stroke="currentColor"
+                                                        viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                                            stroke-width="2"
+                                                            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z">
+                                                        </path>
+                                                    </svg>
+                                                </button>
+                                                <button onclick="deleteCandidate({{ c.id }})"
+                                                    class="text-red-600 hover:text-red-800 dark:text-red-400">
+                                                    <svg class="w-5 h-5 inline" fill="none" stroke="currentColor"
+                                                        viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                                            stroke-width="2"
+                                                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16">
+                                                        </path>
+                                                    </svg>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                        {% else %}
+                                        <tr>
+                                            <td colspan="4"
+                                                class="px-6 py-8 text-center text-gray-500 dark:text-gray-400">
+                                                Keine offenen Anfragen. Klicke "E-Mails synchronisieren" um neue
+                                                Anfragen zu
+                                                importieren.
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Processed Candidates Table -->
+                        {% if processed_candidates %}
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-4">Erledigte Anfragen
+                            </h3>
+                            <div
+                                class="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden">
+                                <table class="w-full">
+                                    <thead class="bg-gray-50 dark:bg-gray-700">
+                                        <tr>
+                                            <th
+                                                class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                                Name / Veranstaltung</th>
+                                            <th
+                                                class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                                Datum</th>
+                                            <th
+                                                class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                                Tags</th>
+                                            <th
+                                                class="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                                Vertrag</th>
+                                            <th
+                                                class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                                Aktionen</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                                        {% for c in processed_candidates %}
+                                        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 opacity-75"
+                                            data-id="{{ c.id }}">
+                                            <td class="px-6 py-4">
+                                                <div class="text-sm font-medium text-gray-900 dark:text-gray-100">{{
+                                                    c.vorname_nachname or 'Unbekannt' }}</div>
+                                                <div class="text-sm text-gray-500 dark:text-gray-400">{{
+                                                    c.veranstaltungsname or
+                                                    'Keine Veranstaltung' }}</div>
+                                            </td>
+                                            <td
+                                                class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                                                {{ c.datum or '-' }}
+                                                {% if c.end_date_display %}
+                                                - {{ c.end_date_display }}
+                                                {% endif %}
+                                            </td>
+
+                                            <td class="px-6 py-4">
+                                                <div class="flex flex-wrap gap-1">
+                                                    {% if c.tags %}
+                                                    {% for tag in c.tags %}
+                                                    <span
+                                                        class="inline-flex px-2 py-0.5 text-xs rounded bg-primary-100 dark:bg-primary-900/30 text-primary-800 dark:text-primary-400">{{
+                                                        tag }}</span>
+                                                    {% endfor %}
+                                                    {% else %}
+                                                    <span class="text-xs text-gray-400">Keine Tags</span>
+                                                    {% endif %}
+                                                </div>
+                                            </td>
+                                            <td class="px-6 py-4 text-center">
+                                                {% if c.contract_created %}
+                                                <button onclick="toggleContractStatus({{ c.id }}, false)"
+                                                    class="text-green-600 hover:text-green-800 dark:text-green-400"
+                                                    title="Vertrag erstellt (Klicken zum Entfernen)">
+                                                    <svg class="w-6 h-6 inline" fill="none" stroke="currentColor"
+                                                        viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                                            stroke-width="2"
+                                                            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                                    </svg>
+                                                </button>
+                                                {% else %}
+                                                <button onclick="toggleContractStatus({{ c.id }}, true)"
+                                                    class="text-gray-300 hover:text-green-600 dark:text-gray-600 dark:hover:text-green-400"
+                                                    title="Vertrag noch nicht erstellt (Klicken zum Markieren)">
+                                                    <svg class="w-6 h-6 inline" fill="none" stroke="currentColor"
+                                                        viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                                            stroke-width="2"
+                                                            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                                    </svg>
+                                                </button>
+                                                {% endif %}
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm space-x-2">
+                                                {% if c.status == 'processed' %}
+                                                <!-- Contract status handled in separate column -->
+                                                {% endif %}
+                                                <button onclick="editCandidate({{ c.id }})"
+                                                    class="text-primary-600 hover:text-primary-800 dark:text-primary-400">
+                                                    <svg class="w-5 h-5 inline" fill="none" stroke="currentColor"
+                                                        viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                                            stroke-width="2"
+                                                            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z">
+                                                        </path>
+                                                    </svg>
+                                                </button>
+                                                <button onclick="deleteCandidate({{ c.id }})"
+                                                    class="text-red-600 hover:text-red-800 dark:text-red-400">
+                                                    <svg class="w-5 h-5 inline" fill="none" stroke="currentColor"
+                                                        viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                                            stroke-width="2"
+                                                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16">
+                                                        </path>
+                                                    </svg>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <!-- Archive Section -->
+                        <div class="mt-8 border-t border-gray-200 dark:border-gray-700 pt-8">
+                            <details class="group" id="archiveDetails">
+                                <summary
+                                    class="flex items-center justify-between cursor-pointer list-none p-4 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800">
+                                    <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200">Vergangene
+                                        Anfragen (Archiv)</h3>
+                                    <span class="transition group-open:rotate-180">
+                                        <svg class="w-6 h-6 text-gray-500" fill="none" stroke="currentColor"
+                                            viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M19 9l-7 7-7-7"></path>
+                                        </svg>
+                                    </span>
+                                </summary>
+
+                                <div class="mt-4 px-2">
+                                    <!-- Filters -->
+                                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                                        <input type="text" id="archiveSearch" placeholder="Suchen (Name, Event)..."
+                                            oninput="debounceLoadArchive()"
+                                            class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm">
+
+                                        <input type="date" id="archiveDate" onchange="loadArchive(1)"
+                                            class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm">
+
+                                        <select id="archiveTag" onchange="loadArchive(1)"
+                                            class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm">
+                                            <option value="">Alle Tags</option>
+                                            {% if materials and materials.materials %}
+                                            {% for tag_name in materials.materials.keys() %}
+                                            <option value="{{ tag_name }}">{{ tag_name }}</option>
+                                            {% endfor %}
+                                            {% endif %}
+                                        </select>
+
+                                        <button onclick="clearArchiveFilters()"
+                                            class="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg text-sm hover:bg-gray-300 dark:hover:bg-gray-600">
+                                            Filter zurücksetzen
+                                        </button>
+                                    </div>
+
+                                    <!-- Table -->
+                                    <div
+                                        class="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden">
+                                        <table class="w-full">
+                                            <thead class="bg-gray-50 dark:bg-gray-700">
+                                                <tr>
+                                                    <th
+                                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                                        Name / Veranstaltung</th>
+                                                    <th
+                                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                                        Datum</th>
+                                                    <th
+                                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                                        Tags</th>
+                                                    <th
+                                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                                        Status</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="archiveBody"
+                                                class="divide-y divide-gray-200 dark:divide-gray-700">
+                                                <!-- Rows loaded via JS -->
+                                                <tr>
+                                                    <td colspan="4" class="px-6 py-4 text-center text-sm text-gray-500">
+                                                        Lade Daten...</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+
+                                    <!-- Pagination -->
+                                    <div class="flex justify-between items-center mt-4">
+                                        <button id="prevArchive" onclick="changeArchivePage(-1)" disabled
+                                            class="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 disabled:opacity-50 text-sm">
+                                            Zurück
+                                        </button>
+                                        <span id="archivePageInfo"
+                                            class="text-sm text-gray-600 dark:text-gray-400">Seite 1</span>
+                                        <button id="nextArchive" onclick="changeArchivePage(1)" disabled
+                                            class="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 disabled:opacity-50 text-sm">
+                                            Weiter
+                                        </button>
+                                    </div>
+                                </div>
+                            </details>
+                        </div>
+
+                    </div><!-- /email-list-container -->
+
+                    <script>
+                        // Archive Logic
+                        let archivePage = 1;
+                        let archiveLimit = 10;
+                        let archiveTotalPages = 1;
+                        let archiveDebounceTimer;
+
+                        // Auto-load on open
+                        document.getElementById('archiveDetails').addEventListener('toggle', function (e) {
+                            if (this.open) {
+                                loadArchive(1);
+                            }
+                        });
+
+                        function debounceLoadArchive() {
+                            clearTimeout(archiveDebounceTimer);
+                            archiveDebounceTimer = setTimeout(() => loadArchive(1), 300);
+                        }
+
+                        function clearArchiveFilters() {
+                            document.getElementById('archiveSearch').value = '';
+                            document.getElementById('archiveDate').value = '';
+                            document.getElementById('archiveTag').value = '';
+                            loadArchive(1);
+                        }
+
+                        async function loadArchive(page) {
+                            archivePage = page;
+                            const q = document.getElementById('archiveSearch').value;
+                            const date = document.getElementById('archiveDate').value;
+                            const tag = document.getElementById('archiveTag').value;
+
+                            const tbody = document.getElementById('archiveBody');
+                            tbody.innerHTML = '<tr><td colspan="4" class="px-6 py-4 text-center text-sm text-gray-500">Lade Daten...</td></tr>';
+
+                            // Build URL
+                            let url = `/api/emails/archive?page=${page}&limit=${archiveLimit}`;
+                            if (q) url += `&q=${encodeURIComponent(q)}`;
+                            if (date) url += `&date=${encodeURIComponent(date)}`;
+                            if (tag) url += `&tag=${encodeURIComponent(tag)}`;
+
+                            try {
+                                const res = await fetch(url);
+                                const data = await res.json();
+
+                                renderArchiveTable(data.items);
+
+                                // Update Pagination
+                                archiveTotalPages = data.pages;
+                                document.getElementById('archivePageInfo').textContent = `Seite ${data.page} von ${data.pages || 1} (${data.total} Einträge)`;
+                                document.getElementById('prevArchive').disabled = data.page <= 1;
+                                document.getElementById('nextArchive').disabled = data.page >= data.pages;
+
+                            } catch (e) {
+                                console.error(e);
+                                tbody.innerHTML = '<tr><td colspan="4" class="px-6 py-4 text-center text-red-500">Fehler beim Laden.</td></tr>';
+                            }
+                        }
+
+                        function changeArchivePage(delta) {
+                            const newPage = archivePage + delta;
+                            if (newPage >= 1 && newPage <= archiveTotalPages) {
+                                loadArchive(newPage);
+                            }
+                        }
+
+                        function renderArchiveTable(items) {
+                            const tbody = document.getElementById('archiveBody');
+                            if (!items || items.length === 0) {
+                                tbody.innerHTML = '<tr><td colspan="4" class="px-6 py-8 text-center text-sm text-gray-500">Keine vergangenen Anfragen gefunden.</td></tr>';
+                                return;
+                            }
+
+                            tbody.innerHTML = items.map(c => `
+                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer" onclick="viewArchivedCandidate(${c.id})">
+                    <td class="px-6 py-4">
+                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">${c.vorname_nachname || 'Unbekannt'}</div>
+                        <div class="text-sm text-gray-500 dark:text-gray-400">${c.veranstaltungsname || 'Keine Veranstaltung'}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                        ${c.datum || '-'}
+                    </td>
+                    <td class="px-6 py-4">
+                        <div class="flex flex-wrap gap-1">
+                            ${(c.tags || []).map(tag =>
+                                `<span class="inline-flex px-2 py-0.5 text-xs rounded bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">${tag}</span>`
+                            ).join('')}
+                            ${(!c.tags || c.tags.length === 0) ? '<span class="text-xs text-gray-400">-</span>' : ''}
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
+                         ${c.contract_created ?
+                                    '<span class="text-green-600 dark:text-green-400">Vertrag erstellt</span>' :
+                                    '<span class="text-gray-400">Archiviert</span>'}
+                    </td>
+                </tr>
+            `).join('');
+                        }
+
+                        async function viewArchivedCandidate(id) {
+                            try {
+                                // Reuse fetch logic or get from loaded items? Fetch is safer/fuller.
+                                // We can use the existing /api/emails/candidates endpoint which returns all usually, 
+                                // but checking if we can get a single one would be better.
+                                // Actually the current endpoint returns ALL. Let's see if we can find it in the archive list first?
+                                // The archive list 'items' variable isn't global.
+                                // Let's just fetch all candidates again or add a single fetch endpoint? 
+                                // Wait, existing editCandidate fetches ALL and finds. That's inefficient but works for now.
+                                // BUT archived candidates might NOT be in the "open" list returned by `get_candidates` if it filters?
+                                // `get_candidates` filters by status='pending' by default? 
+                                // No, the endpoint `/api/emails/candidates` returns `get_candidates('pending')` usually?
+                                // Let's check app.py.
+
+                                // Let's fetch from the archive API again just for this item? No, pagination.
+                                // Let's implement a direct fetch for one candidate in JS or assume we can reuse `editCandidate` logic 
+                                // BUT disable everything.
+
+                                // Construct a specialized fetch because the generic one might not have it.
+                                // Actually app.py: `candidates = get_candidates(status_filter='ALL', user_id=current_user.id)` 
+                                // seems to be what /api/emails/candidates returns?
+                                // app.py:
+                                // @app.route('/api/emails/candidates', methods=['GET'])
+                                // def get_candidates_route():
+                                //    status = request.args.get('status', 'ALL') 
+                                //    ...
+
+                                const response = await fetch('/api/emails/candidates?status=ALL');
+                                const candidates = await response.json();
+                                const candidate = candidates.find(c => c.id === id);
+
+                                if (!candidate) {
+                                    showFlash('Eintrag nicht gefunden', 'error');
+                                    return;
+                                }
+
+                                // Populate Modal (reuse existing logic manually to avoid conflicts)
+                                document.getElementById('editName').value = candidate.vorname_nachname || '';
+                                document.getElementById('editEvent').value = candidate.veranstaltungsname || '';
+                                document.getElementById('editLocation').value = candidate.veranstaltungsort || '';
+                                document.getElementById('editEmail').value = candidate.email_address || '';
+                                document.getElementById('editPersons').value = candidate.personenzahl || '';
+                                document.getElementById('editAnschrift').value = (() => { let a = (candidate.anschrift || '').replace(/\\n/g, '\n'); let l = a.split('\n').map(s => s.trim()).filter(s => s); if (l.length === 1 && l[0].includes(',')) l = l[0].split(',').map(s => s.trim()).filter(s => s); return l.join('\n'); })();
+                                document.getElementById('rawContent').value = candidate.raw_content || '';
+
+                                // Dates
+                                currentCandidateDate = candidate.datum;
+                                document.getElementById('startDate').value = convertToIsoDate(candidate.datum);
+                                document.getElementById('endDate').value = convertToIsoDate(candidate.end_date);
+
+                                // Tags
+                                selectedTags = candidate.tags || [];
+                                renderSelectedTags();
+                                updateTagDropdownOptions();
+
+                                // Set Read-Only State
+                                setModalReadOnly(true);
+
+                                // Show Modal
+                                const modal = document.getElementById('editModal');
+                                modal.classList.remove('hidden');
+                                modal.querySelector('h3').textContent = 'Anfrage ansehen (Archiv)';
+
+                            } catch (e) {
+                                console.error(e);
+                                showFlash('Fehler beim Laden: ' + e.message, 'error');
+                            }
+                        }
+
+                        function setModalReadOnly(isReadOnly) {
+                            const modal = document.getElementById('editModal');
+
+                            // Disable Inputs
+                            const inputs = modal.querySelectorAll('input, select, textarea');
+                            inputs.forEach(input => input.disabled = isReadOnly);
+
+                            // Hide/Show Buttons
+                            document.getElementById('saveTaskBtn').style.display = isReadOnly ? 'none' : 'inline-flex';
+                            const unmarkBtn = document.getElementById('unmarkDoneBtn');
+                            if (unmarkBtn) unmarkBtn.style.display = 'none'; // Always hide in read-only
+
+                            // Tag removal buttons
+                            const removeBtns = modal.querySelectorAll('#selectedTagsContainer button');
+                            removeBtns.forEach(btn => btn.style.display = isReadOnly ? 'none' : 'inline-block');
+
+                            // Add Tag Button
+                            const addTagBtn = modal.querySelector('button[onclick="addSelectedTag()"]');
+                            if (addTagBtn) addTagBtn.style.display = isReadOnly ? 'none' : 'inline-flex';
+
+                            // Change "Cancel" to "Close"
+                            const cancelBtn = modal.querySelector('button[onclick="closeEditModal()"]');
+                            cancelBtn.textContent = isReadOnly ? 'Schließen' : 'Abbrechen';
+                        }
+
+                        function closeEditModal() {
+                            document.getElementById('editModal').classList.add('hidden');
+                            // Reset to default state
+                            setModalReadOnly(false);
+                            document.querySelector('#editModal h3').textContent = 'Leihanfrage bearbeiten';
+                            currentCandidateId = null;
+                        }
+                    </script>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Edit Modal -->
+    <div id="editModal" class="fixed inset-0 z-50 hidden">
+        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" onclick="closeEditModal()"></div>
+        <div class="relative flex items-center justify-center min-h-screen p-4 pointer-events-none">
+            <div
+                class="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 border border-gray-200 dark:border-gray-700 pointer-events-auto">
+                <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-4">Leihanfrage bearbeiten</h3>
+
+                <!-- Editable Details -->
+                <div class="grid grid-cols-2 gap-4 mb-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-1">Name</label>
+                        <input type="text" id="editName"
+                            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-1">Anschrift</label>
+                        <textarea id="editAnschrift" rows="2"
+                            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm resize-y"></textarea>
+                    </div>
+                    <div>
+                        <label
+                            class="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-1">Veranstaltung</label>
+                        <input type="text" id="editEvent"
+                            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm">
+                    </div>
+                    <div>
+                        <label
+                            class="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-1">Veranstaltungsort</label>
+                        <input type="text" id="editLocation"
+                            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-1">E-Mail</label>
+                        <input type="email" id="editEmail"
+                            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm">
+                    </div>
+                    <div>
+                        <label
+                            class="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-1">Personenzahl</label>
+                        <input type="text" id="editPersons"
+                            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm">
+                    </div>
+                    <div>
+                        <label
+                            class="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-1">Startdatum</label>
+                        <input type="date" id="startDate"
+                            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-1">Enddatum
+                            (optional)</label>
+                        <input type="date" id="endDate"
+                            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm">
+                    </div>
+                </div>
+
+
+                <!-- Tags Selection -->
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-2">Material
+                        (Tags)</label>
+
+                    <!-- Ausgewählte Tags als Pillen -->
+                    <div id="selectedTagsContainer"
+                        class="flex flex-wrap gap-2 p-3 min-h-[48px] border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700/50 mb-3">
+                        <!-- Pills werden per JS hinzugefügt -->
+                    </div>
+
+                    <!-- Tag hinzufügen -->
+                    <div class="flex gap-2">
+                        <select id="tagSelect"
+                            class="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm">
+                            <option value="">Tag auswählen...</option>
+                            {% if materials.materials %}
+                            {% for tag_name, tag_desc in materials.materials.items() %}
+                            <option value="{{ tag_name }}">{{ tag_name }}</option>
+                            {% endfor %}
+                            {% endif %}
+                        </select>
+                        <button type="button" onclick="addSelectedTag()"
+                            class="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors"
+                            title="Tag hinzufügen">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M12 4v16m8-8H4"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Description Editor -->
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-2">Inhalt
+                        (bearbeitbar)</label>
+                    <textarea id="rawContent" rows="12"
+                        class="w-full p-3 bg-gray-100 dark:bg-gray-900 rounded-lg text-sm text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 focus:ring-primary-500 focus:border-primary-500 font-mono"></textarea>
+                </div>
+
+
+
+                <div class="flex justify-end space-x-3">
+                    <button type="button" onclick="closeEditModal()"
+                        class="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-sm font-medium rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700">
+                        Abbrechen
+                    </button>
+                    <button type="button" onclick="unmarkDone()" id="unmarkDoneBtn"
+                        class="hidden px-4 py-2 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 text-sm font-medium rounded-lg hover:bg-red-200 dark:hover:bg-red-900/50">
+                        Vertrag nicht erstellen
+                    </button>
+                    <button type="button" onclick="saveTask()" id="saveTaskBtn"
+                        class="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg">
+                        Task erstellen
+                    </button>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Modal -->
+    <div id="deleteModal" class="fixed inset-0 z-50 hidden">
+        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" onclick="closeDeleteModal()"></div>
+        <div class="relative flex items-center justify-center min-h-screen p-4 pointer-events-none">
+            <div
+                class="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-sm w-full p-6 border border-gray-200 dark:border-gray-700 pointer-events-auto">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">Löschen bestätigen</h3>
+                <p class="text-gray-600 dark:text-gray-400 mb-6">Möchtest du diese Anfrage wirklich löschen? Diese
+                    Aktion kann nicht rückgängig gemacht werden.</p>
+                <div class="flex justify-end gap-3">
+                    <button onclick="closeDeleteModal()"
+                        class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600">
+                        Abbrechen
+                    </button>
+                    <button onclick="confirmDelete()"
+                        class="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700">
+                        Löschen
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mark Done Confirmation Modal -->
+    <div id="markDoneModal" class="fixed inset-0 z-50 hidden">
+        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" onclick="closeMarkDoneModal()"></div>
+        <div class="relative flex items-center justify-center min-h-screen p-4 pointer-events-none">
+            <div
+                class="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-sm w-full p-6 border border-gray-200 dark:border-gray-700 pointer-events-auto">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">Vertrag erstellt?</h3>
+                <p class="text-gray-600 dark:text-gray-400 mb-6">Möchtest du diese Anfrage als "Vertrag erstellt"
+                    markieren?</p>
+                <div class="flex justify-end gap-3">
+                    <button onclick="closeMarkDoneModal()"
+                        class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600">
+                        Abbrechen
+                    </button>
+                    <button onclick="confirmMarkDone()"
+                        class="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700">
+                        Bestätigen
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Unmark Done Confirmation Modal -->
+    <div id="unmarkDoneModal" class="fixed inset-0 z-50 hidden">
+        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" onclick="closeUnmarkDoneModal()"></div>
+        <div class="relative flex items-center justify-center min-h-screen p-4 pointer-events-none">
+            <div
+                class="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-sm w-full p-6 border border-gray-200 dark:border-gray-700 pointer-events-auto">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">Vertrag nicht erstellen?</h3>
+                <p class="text-gray-600 dark:text-gray-400 mb-6">Möchtest du diese Anfrage wirklich ändern? Der Status
+                    wird auf "Bearbeitet" zurückgesetzt.</p>
+                <div class="flex justify-end gap-3">
+                    <button onclick="closeUnmarkDoneModal()"
+                        class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600">
+                        Abbrechen
+                    </button>
+                    <button onclick="confirmUnmarkDone()"
+                        class="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700">
+                        Bestätigen
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentCandidateContractCreated = false;
+        let deleteCandidateId = null;
+
+        let currentCandidateDate = null;
+        let selectedTags = [];
+        const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+        const tagsUsedByDate = {{ tags_by_date | tojson }};
+
+        // Helper to convert DD.MM.YYYY to YYYY-MM-DD
+        function convertToIsoDate(dateStr) {
+            if (!dateStr) return '';
+            if (dateStr.includes('-')) return dateStr; // Already ISO?
+            const parts = dateStr.split('.');
+            if (parts.length === 3) {
+                return `${parts[2]}-${parts[1]}-${parts[0]}`;
+            }
+            return '';
+        }
+
+        // Tag Pill Functions
+
+        function addSelectedTag() {
+            const select = document.getElementById('tagSelect');
+            const tag = select.value;
+            if (tag && !selectedTags.includes(tag)) {
+                selectedTags.push(tag);
+                renderSelectedTags();
+                updateTagDropdownOptions();
+            }
+            select.value = '';
+        }
+
+        function removeTag(tag) {
+            selectedTags = selectedTags.filter(t => t !== tag);
+            renderSelectedTags();
+            updateTagDropdownOptions();
+        }
+
+        function renderSelectedTags() {
+            const container = document.getElementById('selectedTagsContainer');
+            if (selectedTags.length === 0) {
+                container.innerHTML = '<span class="text-sm text-gray-400 dark:text-gray-500">Keine Tags ausgewählt</span>';
+                return;
+            }
+            container.innerHTML = selectedTags.map(tag => `
+                <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-primary-100 dark:bg-primary-900/30 text-primary-800 dark:text-primary-400 text-sm">
+                    ${tag}
+                    <button type="button" onclick="removeTag('${tag.replace(/'/g, "\\'")}')"
+                        class="hover:text-primary-600 dark:hover:text-primary-300 ml-1">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </span>
+            `).join('');
+        }
+
+        function updateTagDropdownOptions() {
+            const select = document.getElementById('tagSelect');
+            const usedTags = currentCandidateDate ? (tagsUsedByDate[currentCandidateDate] || []) : [];
+
+            // Update all options
+            Array.from(select.options).forEach(opt => {
+                if (opt.value) {
+                    // Store original text if not already stored
+                    if (!opt.dataset.originalText) {
+                        opt.dataset.originalText = opt.text;
+                    }
+
+                    // Check if this tag is already selected for current request
+                    const isAlreadySelected = selectedTags.includes(opt.value);
+
+                    // Check if this tag is used by OTHER requests on the same date
+                    const isUsedByOthers = usedTags.includes(opt.value) && !selectedTags.includes(opt.value);
+
+                    if (isAlreadySelected) {
+                        opt.disabled = true;
+                        opt.text = opt.dataset.originalText + ' (ausgewählt)';
+                    } else if (isUsedByOthers) {
+                        opt.disabled = true;
+                        opt.text = opt.dataset.originalText + ' (bereits vergeben)';
+                    } else {
+                        opt.disabled = false;
+                        opt.text = opt.dataset.originalText;
+                    }
+                }
+            });
+        }
+
+
+
+        function toggleProfileMenu() {
+            document.getElementById('profileDropdown').classList.toggle('hidden');
+        }
+
+        document.addEventListener('click', function (event) {
+            const dropdown = document.getElementById('profileDropdown');
+            const button = document.getElementById('profileButton');
+            if (button && !button.contains(event.target) && !dropdown.contains(event.target)) {
+                dropdown.classList.add('hidden');
+            }
+        });
+
+        function showFlash(message, type = 'success') {
+            const container = document.getElementById('flashMessages');
+            const colorClass = type === 'error'
+                ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800'
+                : 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 border-green-200 dark:border-green-800';
+
+            container.innerHTML = `<div class="mb-4 px-4 py-3 rounded-lg text-sm border ${colorClass}">${message}</div>`;
+            setTimeout(() => container.innerHTML = '', 5000);
+        }
+
+        async function syncEmails() {
+            const button = document.getElementById('syncButton');
+            const icon = document.getElementById('syncIcon');
+            const text = document.getElementById('syncText');
+
+            button.disabled = true;
+            icon.classList.add('animate-spin');
+            text.textContent = 'Synchronisiere...';
+
+            try {
+                const response = await fetch('/api/emails/sync', {
+                    method: 'POST',
+                    headers: { 'X-CSRFToken': csrfToken }
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    // Update last sync text
+                    if (data.last_sync) {
+                        const syncInfo = document.querySelector('.text-sm.text-gray-500.dark\\:text-gray-400.mt-1');
+                        if (syncInfo) {
+                            const date = new Date(data.last_sync);
+                            const pad = n => String(n).padStart(2, '0');
+                            syncInfo.textContent = `Letzter Sync: ${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
+                        }
+                    }
+
+                    let message = `${data.new} neue E-Mail-Anfragen`;
+                    if (data.kanboard_created > 0 || data.kanboard_updated > 0) {
+                        message += `, Kanboard: ${data.kanboard_created} neu, ${data.kanboard_updated} aktualisiert`;
+                    }
+                    showFlash(message);
+                    if (data.new > 0 || data.kanboard_created > 0 || data.kanboard_updated > 0) {
+                        setTimeout(() => {
+                            refreshEmailList();
+                        }, 1000);
+                    }
+
+                } else {
+                    showFlash(data.error || 'Sync fehlgeschlagen', 'error');
+                }
+            } catch (error) {
+                showFlash('Fehler: ' + error.message, 'error');
+            } finally {
+                button.disabled = false;
+                icon.classList.remove('animate-spin');
+                text.textContent = 'Synchronisieren';
+            }
+        }
+
+        async function editCandidate(id) {
+            currentCandidateId = id;
+
+            try {
+                const response = await fetch('/api/emails/candidates');
+                const candidates = await response.json();
+                const candidate = candidates.find(c => c.id === id);
+
+                if (!candidate) {
+                    showFlash('Kandidat nicht gefunden', 'error');
+                    return;
+                }
+
+                // Fill editable fields
+                document.getElementById('editName').value = candidate.vorname_nachname || '';
+                document.getElementById('editEvent').value = candidate.veranstaltungsname || '';
+                document.getElementById('editLocation').value = candidate.veranstaltungsort || '';
+                document.getElementById('editEmail').value = candidate.email_address || '';
+                document.getElementById('editPersons').value = candidate.personenzahl || '';
+                document.getElementById('editAnschrift').value = (() => { let a = (candidate.anschrift || '').replace(/\\n/g, '\n'); let l = a.split('\n').map(s => s.trim()).filter(s => s); if (l.length === 1 && l[0].includes(',')) l = l[0].split(',').map(s => s.trim()).filter(s => s); return l.join('\n'); })();
+
+                // Fill raw content (editable textarea)
+                document.getElementById('rawContent').value = candidate.raw_content || '';
+
+                // Store candidate date for tag filtering
+                currentCandidateDate = candidate.datum || null;
+                currentCandidateStatus = candidate.status;
+
+                // Set Date Inputs
+                const isoDate = convertToIsoDate(candidate.datum);
+                document.getElementById('startDate').value = isoDate;
+                document.getElementById('endDate').value = candidate.end_date || '';
+
+                // Update Button Text
+                const saveBtn = document.getElementById('saveTaskBtn');
+                if (candidate.status === 'processed' || candidate.status === 'done') {
+                    saveBtn.textContent = 'Speichern';
+                } else {
+                    saveBtn.textContent = 'Task erstellen';
+                }
+
+                // Load existing tags into pill system
+                selectedTags = [...(candidate.tags || [])];
+                renderSelectedTags();
+
+                // Filter tag dropdown based on already-used tags for this date
+                updateTagDropdownOptions();
+
+                // Toggle "Unmark Done" button based on contract_created
+                const unmarkBtn = document.getElementById('unmarkDoneBtn');
+                currentCandidateContractCreated = candidate.contract_created;
+
+                if (currentCandidateContractCreated) {
+                    unmarkBtn.classList.remove('hidden');
+                } else {
+                    unmarkBtn.classList.add('hidden');
+                }
+
+                document.getElementById('editModal').classList.remove('hidden');
+
+            } catch (error) {
+                showFlash('Fehler: ' + error.message, 'error');
+            }
+        }
+
+        function closeEditModal() {
+            document.getElementById('editModal').classList.add('hidden');
+            currentCandidateId = null;
+            currentCandidateStatus = null;
+        }
+
+        async function saveTask() {
+            if (!currentCandidateId) return;
+
+            if (currentCandidateStatus === 'processed' || currentCandidateStatus === 'done') {
+                await updateTask();
+            } else {
+                await createTask();
+            }
+        }
+
+        async function toggleContractStatus(id, newStatus) {
+            const endpoint = newStatus ? 'mark-done' : 'mark-processed';
+            try {
+                const response = await fetch(`/api/emails/candidates/${id}/${endpoint}`, {
+                    method: 'PUT',
+                    headers: { 'X-CSRFToken': csrfToken }
+                });
+
+                if (response.ok) {
+                    refreshEmailList();
+                    showFlash(newStatus ? 'Vertrag als erstellt markiert.' : 'Markierung "Vertrag erstellt" entfernt.', 'success');
+                } else {
+                    showFlash('Aktion fehlgeschlagen', 'error');
+                }
+            } catch (error) {
+                showFlash('Fehler: ' + error.message, 'error');
+            }
+        }
+
+        function unmarkDone() {
+            document.getElementById('unmarkDoneModal').classList.remove('hidden');
+        }
+
+        function closeUnmarkDoneModal() {
+            document.getElementById('unmarkDoneModal').classList.add('hidden');
+        }
+
+        async function confirmUnmarkDone() {
+            if (!currentCandidateId) return;
+
+            try {
+                const response = await fetch(`/api/emails/candidates/${currentCandidateId}/mark-processed`, {
+                    method: 'PUT',
+                    headers: { 'X-CSRFToken': csrfToken }
+                });
+
+                if (response.ok) {
+                    showFlash('Markierung entfernt.', 'success');
+                    closeUnmarkDoneModal();
+                    closeEditModal();
+                    refreshEmailList();
+                } else {
+                    showFlash('Fehler beim Entfernen der Markierung', 'error');
+                }
+            } catch (error) {
+                showFlash('Fehler: ' + error.message, 'error');
+            }
+        }
+
+        async function updateTask() {
+            const tags = selectedTags;
+            const description = document.getElementById('rawContent').value;
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            const vorname_nachname = document.getElementById('editName').value;
+            const veranstaltungsname = document.getElementById('editEvent').value;
+            const veranstaltungsort = document.getElementById('editLocation').value;
+            const email_address = document.getElementById('editEmail').value;
+            const personenzahl = document.getElementById('editPersons').value;
+            const anschrift = document.getElementById('editAnschrift').value;
+
+            try {
+                const response = await fetch(`/api/emails/candidates/${currentCandidateId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({
+                        tags,
+                        description,
+                        start_date: startDate,
+                        end_date: endDate,
+                        vorname_nachname,
+                        veranstaltungsname,
+                        veranstaltungsort,
+                        email_address,
+                        personenzahl,
+                        anschrift
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showFlash('Anfrage erfolgreich aktualisiert!');
+                    closeEditModal();
+                    refreshEmailList();
+                } else {
+                    showFlash(data.error || 'Fehler beim Aktualisieren', 'error');
+                }
+            } catch (error) {
+                showFlash('Fehler: ' + error.message, 'error');
+            }
+        }
+
+        async function createTask() {
+            if (!currentCandidateId) return;
+
+            const tags = selectedTags;
+            const description = document.getElementById('rawContent').value;
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            const vorname_nachname = document.getElementById('editName').value;
+            const veranstaltungsname = document.getElementById('editEvent').value;
+            const veranstaltungsort = document.getElementById('editLocation').value;
+            const email_address = document.getElementById('editEmail').value;
+            const personenzahl = document.getElementById('editPersons').value;
+            const anschrift = document.getElementById('editAnschrift').value;
+
+            try {
+                const response = await fetch(`/api/emails/candidates/${currentCandidateId}/create-task`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({
+                        tags,
+                        description,
+                        start_date: startDate,
+                        end_date: endDate,
+                        vorname_nachname,
+                        veranstaltungsname,
+                        veranstaltungsort,
+                        email_address,
+                        personenzahl,
+                        anschrift
+                    })
+                });
+
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showFlash('Task erfolgreich erstellt!');
+                    closeEditModal();
+                    refreshEmailList();
+                } else {
+                    showFlash(data.error || 'Fehler beim Erstellen', 'error');
+                }
+            } catch (error) {
+                showFlash('Fehler: ' + error.message, 'error');
+            }
+        }
+
+        let markDoneCandidateId = null;
+
+        function markContractDone(id) {
+            markDoneCandidateId = id;
+            document.getElementById('markDoneModal').classList.remove('hidden');
+        }
+
+        function closeMarkDoneModal() {
+            document.getElementById('markDoneModal').classList.add('hidden');
+            markDoneCandidateId = null;
+        }
+
+        async function confirmMarkDone() {
+            if (!markDoneCandidateId) return;
+            try {
+                const response = await fetch(`/api/emails/candidates/${markDoneCandidateId}/mark-done`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken }
+                });
+                if (response.ok) {
+                    showFlash('Vertrag als erstellt markiert!');
+                    closeMarkDoneModal();
+                    refreshEmailList();
+                } else {
+                    const data = await response.json();
+                    showFlash(data.error || 'Fehler', 'error');
+                }
+            } catch (error) {
+                showFlash('Fehler: ' + error.message, 'error');
+            }
+        }
+
+        function deleteCandidate(id) {
+            deleteCandidateId = id;
+            document.getElementById('deleteModal').classList.remove('hidden');
+        }
+
+        function closeDeleteModal() {
+            document.getElementById('deleteModal').classList.add('hidden');
+            deleteCandidateId = null;
+        }
+
+        async function confirmDelete() {
+            if (!deleteCandidateId) return;
+
+            try {
+                const response = await fetch(`/api/emails/candidates/${deleteCandidateId}`, {
+                    method: 'DELETE',
+                    headers: { 'X-CSRFToken': csrfToken }
+                });
+
+                if (response.ok) {
+                    refreshEmailList();
+                } else {
+                    const data = await response.json();
+                    showFlash(data.error || 'Fehler beim Löschen', 'error');
+                }
+            } catch (error) {
+                showFlash('Fehler: ' + error.message, 'error');
+            }
+            closeDeleteModal();
+        }
+        async function refreshEmailList() {
+            try {
+                const response = await fetch('/api/emails/list-html');
+                if (response.ok) {
+                    const html = await response.text();
+                    document.getElementById('email-list-container').innerHTML = html;
+                    // Update last sync text
+                    const syncInfo = document.querySelector('.text-sm.text-gray-500.dark\\:text-gray-400.mt-1');
+                    if (syncInfo) {
+                        const now = new Date();
+                        const pad = n => String(n).padStart(2, '0');
+                        syncInfo.textContent = `Letzter Sync: ${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to refresh email list:', error);
+            }
+        }
+    </script>
+</body>
+
+</html>

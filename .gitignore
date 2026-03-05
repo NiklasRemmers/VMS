@@ -1,0 +1,13 @@
+# Secrets
+.env
+secrets.enc
+*.key
+kms_local/
+
+# Python
+venv/
+__pycache__/
+*.pyc
+
+# Logs
+*.log

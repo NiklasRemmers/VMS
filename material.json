@@ -1,0 +1,88 @@
+{
+    "materials": {
+        "Beamer": "Beamer Epson EB-X51",
+        "Lautsprecher": "PA-Lautsprecher JBL",
+        "Mikrofon": "Funkmikrofon Shure",
+        "Mischpult": "Mischpult Behringer X32",
+        "Kabel": "Diverse Kabel (HDMI, XLR, Strom)",
+        "Leinwand": "Leinwand 3x2m",
+        "Scheinwerfer": "LED-Scheinwerfer 50W",
+        "Stativ": "Kamerastativ Manfrotto 190X",
+        "Bluetooth-Hyde": "Everse Bluetooth Box",
+        "Bluetooth-Jekyll": "Everse Bluetooth Box",
+        "Tripars 1": "1x Case TriPars",
+        "SM58": "Micro",
+        "Scarlett 2i2": "Scarlett",
+        "Verlängerungskabel": "Kabel",
+        "klinke": "klinke",
+        "Koffer MA112": "Koffer",
+        "MA Sub": "Ma",
+        "MA112": "Ma",
+        "Tripars 2": "1x Case TriPars",
+        "Amprack 1": "Rack"
+    },
+    "packages": {
+        "Basis-Set": [
+            {
+                "count": 1,
+                "text": "Beamer"
+            },
+            {
+                "count": 1,
+                "text": "Leinwand"
+            },
+            {
+                "count": 1,
+                "text": "Kabel"
+            }
+        ],
+        "Audio-Set": [
+            {
+                "count": 2,
+                "text": "Lautsprecher"
+            },
+            {
+                "count": 1,
+                "text": "Mikrofon"
+            },
+            {
+                "count": 1,
+                "text": "Mischpult"
+            },
+            {
+                "count": 1,
+                "text": "Kabel"
+            }
+        ],
+        "Komplett-Set": [
+            {
+                "count": 1,
+                "text": "Beamer"
+            },
+            {
+                "count": 1,
+                "text": "Leinwand"
+            },
+            {
+                "count": 2,
+                "text": "Lautsprecher"
+            },
+            {
+                "count": 2,
+                "text": "Mikrofon"
+            },
+            {
+                "count": 1,
+                "text": "Mischpult"
+            },
+            {
+                "count": 4,
+                "text": "Scheinwerfer"
+            },
+            {
+                "count": 1,
+                "text": "Kabel"
+            }
+        ]
+    }
+}

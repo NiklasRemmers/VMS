@@ -1,0 +1,134 @@
+<!-- Shared Confirm/Alert Modal -->
+<div id="confirmModal" class="fixed inset-0 z-[60] hidden">
+    <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" onclick="closeConfirmModal()"></div>
+    <div class="relative flex items-center justify-center min-h-screen p-4 pointer-events-none">
+        <div
+            class="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-sm w-full p-6 border border-gray-200 dark:border-gray-700 pointer-events-auto">
+            <!-- Icon -->
+            <div id="confirmModalIconContainer"
+                class="mx-auto flex items-center justify-center h-12 w-12 rounded-full mb-4">
+            </div>
+            <h3 id="confirmModalTitle" class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2 text-center">
+            </h3>
+            <p id="confirmModalMessage" class="text-sm text-gray-600 dark:text-gray-400 mb-6 text-center"></p>
+            <div id="confirmModalActions" class="flex justify-end gap-3">
+                <!-- Buttons injected by JS -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let _confirmModalCallback = null;
+
+    /**
+     * Show a styled confirm/alert dialog.
+     * @param {string} title - Dialog title
+     * @param {string} message - Dialog message
+     * @param {Function|null} onConfirm - Callback on confirm. If null, shows as alert (OK only).
+     * @param {Object} options - { confirmText, cancelText, type: 'danger'|'warning'|'info'|'success' }
+     */
+    function showConfirmDialog(title, message, onConfirm = null, options = {}) {
+        const {
+            confirmText = 'Bestätigen',
+            cancelText = 'Abbrechen',
+            type = 'danger'
+        } = options;
+
+        document.getElementById('confirmModalTitle').textContent = title;
+        document.getElementById('confirmModalMessage').textContent = message;
+
+        // Icon
+        const iconContainer = document.getElementById('confirmModalIconContainer');
+        const iconColors = {
+            danger: 'bg-red-100 dark:bg-red-900/30',
+            warning: 'bg-yellow-100 dark:bg-yellow-900/30',
+            info: 'bg-blue-100 dark:bg-blue-900/30',
+            success: 'bg-green-100 dark:bg-green-900/30'
+        };
+        const iconSvgs = {
+            danger: `<svg class="h-6 w-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/></svg>`,
+            warning: `<svg class="h-6 w-6 text-yellow-600 dark:text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/></svg>`,
+            info: `<svg class="h-6 w-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`,
+            success: `<svg class="h-6 w-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>`
+        };
+        iconContainer.className = `mx-auto flex items-center justify-center h-12 w-12 rounded-full mb-4 ${iconColors[type] || iconColors.danger}`;
+        iconContainer.innerHTML = iconSvgs[type] || iconSvgs.danger;
+
+        // Buttons
+        const actionsDiv = document.getElementById('confirmModalActions');
+        const confirmBtnColors = {
+            danger: 'bg-red-600 hover:bg-red-700',
+            warning: 'bg-yellow-600 hover:bg-yellow-700',
+            info: 'bg-blue-600 hover:bg-blue-700',
+            success: 'bg-green-600 hover:bg-green-700'
+        };
+
+        if (onConfirm) {
+            _confirmModalCallback = onConfirm;
+            actionsDiv.innerHTML = `
+                <button onclick="closeConfirmModal()"
+                    class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
+                    ${cancelText}
+                </button>
+                <button onclick="_confirmModalConfirm()"
+                    class="px-4 py-2 text-sm font-medium text-white ${confirmBtnColors[type] || confirmBtnColors.danger} rounded-lg transition-colors">
+                    ${confirmText}
+                </button>
+            `;
+        } else {
+            _confirmModalCallback = null;
+            actionsDiv.innerHTML = `
+                <button onclick="closeConfirmModal()"
+                    class="px-4 py-2 text-sm font-medium text-white ${confirmBtnColors[type] || confirmBtnColors.info} rounded-lg transition-colors">
+                    OK
+                </button>
+            `;
+        }
+
+        document.getElementById('confirmModal').classList.remove('hidden');
+    }
+
+    function _confirmModalConfirm() {
+        closeConfirmModal();
+        if (_confirmModalCallback) _confirmModalCallback();
+    }
+
+    function closeConfirmModal() {
+        document.getElementById('confirmModal').classList.add('hidden');
+        _confirmModalCallback = null;
+    }
+
+    /**
+     * Show a toast notification (non-blocking).
+     * @param {string} message
+     * @param {'success'|'error'|'info'} type
+     */
+    function showToast(message, type = 'success') {
+        const existing = document.getElementById('globalToast');
+        if (existing) existing.remove();
+
+        const colors = {
+            success: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 border-green-300 dark:border-green-800',
+            error: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 border-red-300 dark:border-red-800',
+            info: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border-blue-300 dark:border-blue-800'
+        };
+
+        const icons = {
+            success: `<svg class="w-5 h-5 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>`,
+            error: `<svg class="w-5 h-5 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`,
+            info: `<svg class="w-5 h-5 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`
+        };
+
+        const toast = document.createElement('div');
+        toast.id = 'globalToast';
+        toast.className = `fixed bottom-6 left-1/2 -translate-x-1/2 z-[70] flex items-center px-4 py-3 rounded-lg border shadow-lg text-sm font-medium transition-all duration-300 ${colors[type] || colors.info}`;
+        toast.innerHTML = `${icons[type] || icons.info}<span>${message}</span>`;
+        document.body.appendChild(toast);
+
+        setTimeout(() => {
+            toast.style.opacity = '0';
+            setTimeout(() => toast.remove(), 300);
+        }, 4000);
+    }
+</script>

@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="de" class="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>Anlagenreferat</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f5f3ff',
+                            100: '#ede9fe',
+                            200: '#ddd6fe',
+                            300: '#c4b5fd',
+                            400: '#a78bfa',
+                            500: '#8b5cf6',
+                            600: '#7c3aed',
+                            700: '#6d28d9',
+                            800: '#5b21b6',
+                            900: '#4c1d95',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        [hidden] {
+            display: none !important;
+        }
+    </style>
+    <script src="/static/theme.js"></script>
+</head>
+
+<body class="bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
+    <div class="flex h-screen">
+
+        <!-- Sidebar -->
+        {% include '_sidebar.html' %}
+
+        <!-- Main Content Wrapper -->
+        <div class="flex flex-col flex-1 w-full">
+
+            <!-- Header -->
+            {% include '_navbar.html' %}
+
+            <!-- Main Content -->
+            <main class="h-full overflow-y-auto">
+                <div class="container px-6 mx-auto py-8">
+
+                    <!-- Page Header -->
+                    <h2 class="text-2xl font-semibold text-gray-700 dark:text-gray-200 mb-6">
+                        Neuer Leihvertrag
+                    </h2>
+
+                    <form id="contractForm" class="space-y-6">
+
+                        <!-- Import from Candidates Section -->
+                        <div
+                            class="p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700">
+                            <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-4 flex items-center">
+                                <svg class="w-5 h-5 mr-2 text-primary-500" fill="none" stroke="currentColor"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z">
+                                    </path>
+                                </svg>
+                                Leihanfrage auswählen
+                            </h3>
+                            <div class="flex flex-wrap gap-3 items-center">
+                                <select id="taskSelect"
+                                    class="flex-1 min-w-[200px] px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500">
+                                    <option value="">Leihanfrage auswählen...</option>
+                                </select>
+                                <button type="button" id="fillFormBtn"
+                                    class="inline-flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors duration-150">
+                                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M5 13l4 4L19 7"></path>
+                                    </svg>
+                                    Übernehmen
+                                </button>
+                            </div>
+                            <div id="importStatus" class="hidden mt-3 px-4 py-2 rounded-lg text-sm"></div>
+                        </div>
+
+                        <!-- Personal Information Section -->
+                        <div
+                            class="p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700">
+                            <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-4 flex items-center">
+                                <svg class="w-5 h-5 mr-2 text-primary-500" fill="none" stroke="currentColor"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                                </svg>
+                                Persönliche Daten
+                            </h3>
+                            <div class="space-y-4">
+                                <div>
+                                    <label for="vorname_nachname"
+                                        class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Vor- und
+                                        Nachname</label>
+                                    <input type="text" id="vorname_nachname" name="vorname_nachname" required
+                                        placeholder="Max Mustermann"
+                                        class="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-700 dark:text-gray-300 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                                </div>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label for="privatanschrift"
+                                            class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Privatanschrift</label>
+                                        <textarea id="privatanschrift" name="privatanschrift" rows="3" required
+                                            placeholder="Musterstraße 1&#10;12345 Musterstadt"
+                                            class="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-700 dark:text-gray-300 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-y"></textarea>
+                                    </div>
+                                    <div>
+                                        <label for="rechnungsanschrift"
+                                            class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Rechnungsanschrift
+                                            (falls abweichend)</label>
+                                        <textarea id="rechnungsanschrift" name="rechnungsanschrift" rows="3"
+                                            placeholder="Firmenname GmbH&#10;Firmenstraße 2&#10;12345 Firmenstadt"
+                                            class="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-700 dark:text-gray-300 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-y"></textarea>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Dates & Times Section -->
+                        <div
+                            class="p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700">
+                            <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-4 flex items-center">
+                                <svg class="w-5 h-5 mr-2 text-primary-500" fill="none" stroke="currentColor"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z">
+                                    </path>
+                                </svg>
+                                Ausleihdaten
+                            </h3>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <!-- Pickup -->
+                                <div>
+                                    <label for="abholdatum"
+                                        class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Abholdatum</label>
+                                    <input type="date" id="abholdatum" name="abholdatum" required
+                                        class="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                                </div>
+                                <div>
+                                    <label
+                                        class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Abholzeit</label>
+                                    <div class="flex items-center space-x-2">
+                                        <select id="abholzeit_stunde"
+                                            class="flex-1 px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500">
+                                            <option value="">Std</option>
+                                        </select>
+                                        <span class="text-gray-500 dark:text-gray-400 font-bold">:</span>
+                                        <select id="abholzeit_minute"
+                                            class="flex-1 px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500">
+                                            <option value="">Min</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <!-- Return -->
+                                <div>
+                                    <label for="rueckgabedatum"
+                                        class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Rückgabedatum</label>
+                                    <input type="date" id="rueckgabedatum" name="rueckgabedatum" required
+                                        class="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                                </div>
+                                <div>
+                                    <label
+                                        class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Rückgabezeit</label>
+                                    <div class="flex items-center space-x-2">
+                                        <select id="rueckgabezeit_stunde"
+                                            class="flex-1 px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500">
+                                            <option value="">Std</option>
+                                        </select>
+                                        <span class="text-gray-500 dark:text-gray-400 font-bold">:</span>
+                                        <select id="rueckgabezeit_minute"
+                                            class="flex-1 px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500">
+                                            <option value="">Min</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Event Details Section -->
+                        <div
+                            class="p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700">
+                            <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-4 flex items-center">
+                                <svg class="w-5 h-5 mr-2 text-primary-500" fill="none" stroke="currentColor"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4">
+                                    </path>
+                                </svg>
+                                Veranstaltungsdaten
+                            </h3>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div class="md:col-span-2">
+                                    <label for="veranstaltungsname"
+                                        class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Name der
+                                        Veranstaltung</label>
+                                    <input type="text" id="veranstaltungsname" name="veranstaltungsname" required
+                                        placeholder="Sommerfest 2026"
+                                        class="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-700 dark:text-gray-300 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                                </div>
+                                <div>
+                                    <label for="veranstaltungsdatum"
+                                        class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Datum
+                                        der
+                                        Veranstaltung</label>
+                                    <input type="date" id="veranstaltungsdatum" name="veranstaltungsdatum" required
+                                        class="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                                </div>
+                                <div>
+                                    <label for="veranstaltungsort"
+                                        class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Ort der
+                                        Veranstaltung</label>
+                                    <input type="text" id="veranstaltungsort" name="veranstaltungsort" required
+                                        placeholder="Stadthalle Musterstadt"
+                                        class="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-700 dark:text-gray-300 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Material Selection Section -->
+                        <div
+                            class="p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700">
+                            <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-4 flex items-center">
+                                <svg class="w-5 h-5 mr-2 text-primary-500" fill="none" stroke="currentColor"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+                                </svg>
+                                Material
+                            </h3>
+
+                            <!-- Package Selection -->
+                            <div class="mb-6">
+                                <label for="packageSelect"
+                                    class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Paket
+                                    auswählen (optional)</label>
+                                <div class="flex gap-2">
+                                    <select id="packageSelect"
+                                        class="flex-1 px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500">
+                                        <option value="">Kein Paket ausgewählt...</option>
+                                    </select>
+                                    <button type="button" id="loadPackageBtn"
+                                        class="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg transition-colors duration-150">
+                                        Hinzufügen
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="space-y-6">
+                                <!-- Einzelne Teile Section -->
+                                <div>
+                                    <h4
+                                        class="text-md font-semibold text-gray-700 dark:text-gray-200 mb-3 flex items-center">
+                                        <svg class="w-5 h-5 mr-2 text-primary-500" fill="none" stroke="currentColor"
+                                            viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z">
+                                            </path>
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                        </svg>
+                                        Einzelne Teile
+                                    </h4>
+
+                                    <div id="equipmentContainer" class="space-y-3 mb-3">
+                                        <!-- Rows will be added here -->
+                                    </div>
+                                    <button type="button" id="addEquipmentBtn"
+                                        class="w-full inline-flex justify-center items-center px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 text-sm font-medium rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors duration-150">
+                                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                                        </svg>
+                                        Weiteres Equipment
+                                    </button>
+                                </div>
+
+                                <!-- Separator -->
+                                <hr class="border-gray-200 dark:border-gray-700">
+
+                                <!-- Cases Section -->
+                                <div>
+                                    <h4
+                                        class="text-md font-semibold text-gray-700 dark:text-gray-200 mb-3 flex items-center">
+                                        <svg class="w-5 h-5 mr-2 text-indigo-500" fill="none" stroke="currentColor"
+                                            viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10">
+                                            </path>
+                                        </svg>
+                                        Cases
+                                    </h4>
+                                    <!-- Cases Dynamic Rows -->
+                                    <div id="casesContainer" class="space-y-3 mb-3">
+                                        <!-- Rows will be added here -->
+                                    </div>
+                                    <button type="button" id="addCaseBtn"
+                                        class="w-full inline-flex justify-center items-center px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 text-sm font-medium rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors duration-150">
+                                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                                        </svg>
+                                        Weiteres Case
+                                    </button>
+                                </div>
+
+                                <!-- Separator -->
+                                <hr class="border-gray-200 dark:border-gray-700">
+
+                                <div class="flex gap-3 mt-4">
+                                    <button type="button" id="addCustomMaterialBtn"
+                                        class="flex-1 inline-flex justify-center items-center px-4 py-2 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-sm font-medium rounded-lg hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-colors duration-150">
+                                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z">
+                                            </path>
+                                        </svg>
+                                        Eigenes Material
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+
+
+                        <!-- Signature Section -->
+                        <div
+                            class="p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700">
+                            <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-4 flex items-center">
+                                <svg class="w-5 h-5 mr-2 text-primary-500" fill="none" stroke="currentColor"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z">
+                                    </path>
+                                </svg>
+                                Unterschrift
+                            </h3>
+
+                            <div class="space-y-4">
+                                <div id="signaturePreview"
+                                    class="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-150 relative min-h-[150px]">
+                                    <div class="text-center text-gray-500 dark:text-gray-400">
+                                        <svg class="w-10 h-10 mx-auto mb-2 opacity-50" fill="none" stroke="currentColor"
+                                            viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12">
+                                            </path>
+                                        </svg>
+                                        <p class="text-sm">PNG-Datei hierher ziehen oder klicken zum Auswählen</p>
+                                    </div>
+                                </div>
+                                <input type="file" id="signatureInput" accept="image/png" class="hidden">
+
+                                <div class="flex justify-end">
+                                    <button type="button" id="clearSignatureBtn"
+                                        class="hidden text-red-600 hover:text-red-700 text-sm font-medium">
+                                        Unterschrift entfernen
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Submit Button -->
+                        <div
+                            class="p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 flex flex-col items-center space-y-4">
+                            <div class="text-sm text-gray-600 dark:text-gray-400">
+                                <p>Bitte überprüfen Sie alle Angaben vor dem Erstellen.</p>
+                            </div>
+                            <button type="submit" id="generateBtn"
+                                class="w-full md:w-auto px-8 py-3 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center transform hover:-translate-y-0.5">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+                                    </path>
+                                </svg>
+                                Vertrag erstellen (PDF)
+                            </button>
+                            <div id="loadingIndicator"
+                                class="hidden flex items-center space-x-2 text-gray-500 dark:text-gray-400">
+                                <svg class="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
+                                        stroke-width="4">
+                                    </circle>
+                                    <path class="opacity-75" fill="currentColor"
+                                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                                    </path>
+                                </svg>
+                                <span>PDF wird generiert...</span>
+                            </div>
+                        </div>
+                    </form>
+
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Custom Material Modal -->
+    <div id="customMaterialModal" class="fixed inset-0 z-50 hidden">
+        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" id="customMaterialBackdrop"></div>
+        <div class="relative flex items-center justify-center min-h-screen p-4 pointer-events-none">
+            <div
+                class="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-lg w-full p-6 border border-gray-200 dark:border-gray-700 pointer-events-auto">
+                <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">
+                    Eigenes Material hinzufügen
+                </h3>
+                <div class="space-y-4">
+                    <div>
+                        <label for="customMaterialName"
+                            class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Bezeichnung
+                            (Kurz)</label>
+                        <input type="text" id="customMaterialName"
+                            class="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500">
+                    </div>
+                    <div>
+                        <label for="customMaterialText"
+                            class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Beschreibung
+                            (für Vertrag)</label>
+                        <textarea id="customMaterialText" rows="3"
+                            class="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 resize-y"></textarea>
+                    </div>
+                    <div>
+                        <label for="customMaterialCount"
+                            class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Anzahl</label>
+                        <input type="number" id="customMaterialCount" min="1" value="1"
+                            class="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500">
+                    </div>
+                    <div class="flex items-center">
+                        <input id="saveToJson" type="checkbox"
+                            class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 dark:border-gray-600 rounded">
+                        <label for="saveToJson" class="ml-2 block text-sm text-gray-700 dark:text-gray-300">
+                            Dauerhaft speichern?
+                        </label>
+                    </div>
+                </div>
+                <div class="flex justify-end space-x-3 mt-6">
+                    <button type="button" id="cancelCustomMaterial"
+                        class="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-sm font-medium rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                        Abbrechen
+                    </button>
+                    <button type="button" id="confirmCustomMaterial"
+                        class="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg transition-colors">
+                        Hinzufügen
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tag Mapping Modal -->
+    <div id="tagMappingModal" class="fixed inset-0 z-50 hidden">
+        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" id="tagMappingBackdrop"></div>
+        <div class="relative flex items-center justify-center min-h-screen p-4 pointer-events-none">
+            <div
+                class="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full p-6 border border-gray-200 dark:border-gray-700 pointer-events-auto">
+                <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-2">Unbekannter Tag: <span
+                        id="tagMappingTagName" class="text-primary-500"></span></h3>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Dieser Tag ist noch nicht in der Materialliste
+                    hinterlegt. Bitte gib die Beschreibung ein:</p>
+                <div class="mb-4">
+                    <label for="tagMappingDescription"
+                        class="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-1">Beschreibung</label>
+                    <textarea id="tagMappingDescription" rows="3" placeholder="z.B. Shure SM58 Mikrofon"
+                        class="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-700 dark:text-gray-300 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 resize-y"></textarea>
+                </div>
+                <div class="flex justify-end space-x-3">
+                    <button type="button" id="skipTagMapping"
+                        class="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-sm font-medium rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-150">
+                        Überspringen
+                    </button>
+                    <button type="button" id="confirmTagMapping"
+                        class="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg transition-colors duration-150">
+                        Speichern & Hinzufügen
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Error Toast -->
+    <div id="errorToast"
+        class="fixed bottom-4 left-1/2 transform -translate-x-1/2 translate-y-full transition-transform duration-300 z-50 hidden">
+        <div
+            class="flex items-center space-x-2 px-4 py-3 bg-white dark:bg-gray-800 border border-red-200 dark:border-red-800 rounded-lg shadow-lg">
+            <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            <span id="errorMessage" class="text-sm text-gray-700 dark:text-gray-300"></span>
+        </div>
+    </div>
+
+    <script src="/static/app.js?v={{ range(100000) | random }}"></script>
+</body>
+
+</html>

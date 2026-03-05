@@ -1,0 +1,848 @@
+<!DOCTYPE html>
+<html lang="de" class="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lagerbestand - Contract Maker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f5f3ff',
+                            100: '#ede9fe',
+                            200: '#ddd6fe',
+                            300: '#c4b5fd',
+                            400: '#a78bfa',
+                            500: '#8b5cf6',
+                            600: '#7c3aed',
+                            700: '#6d28d9',
+                            800: '#5b21b6',
+                            900: '#4c1d95',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <script>
+        if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+    <script src="/static/theme.js"></script>
+</head>
+
+<body class="bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-200 transition-colors duration-200">
+    <div class="flex h-screen overflow-hidden">
+        <!-- Sidebar -->
+        <!-- Sidebar -->
+        {% include '_sidebar.html' %}
+
+        <!-- Main Content -->
+        <div class="flex flex-col flex-1 w-full">
+            {% include '_navbar.html' %}
+
+            <main class="h-full overflow-y-auto">
+                <div class="container px-6 mx-auto grid">
+                    <h2 class="my-6 text-2xl font-semibold text-gray-700 dark:text-gray-200">
+                        Lagerbestand
+                    </h2>
+
+                    <!-- Flash Messages -->
+                    <div id="flashMessages"></div>
+
+                    <!-- Tabs -->
+                    <div class="mb-4 border-b border-gray-200 dark:border-gray-700">
+                        <ul class="flex flex-wrap -mb-px text-sm font-medium text-center" id="inventoryTabs"
+                            role="tablist">
+                            <li class="mr-2" role="presentation">
+                                <button
+                                    class="inline-block p-4 border-b-2 rounded-t-lg hover:text-gray-600 hover:border-gray-300 dark:hover:text-gray-300 active-tab border-purple-600 text-purple-600 dark:text-purple-500"
+                                    id="equipment-tab" data-tabs-target="#equipment" type="button" role="tab"
+                                    aria-controls="equipment" aria-selected="true">Equipment</button>
+                            </li>
+                            <li class="mr-2" role="presentation">
+                                <button
+                                    class="inline-block p-4 border-b-2 border-transparent rounded-t-lg hover:text-gray-600 hover:border-gray-300 dark:hover:text-gray-300 text-gray-500 dark:text-gray-400"
+                                    id="cases-tab" data-tabs-target="#cases" type="button" role="tab"
+                                    aria-controls="cases" aria-selected="false">Cases</button>
+                            </li>
+                            <li class="mr-2" role="presentation">
+                                <button
+                                    class="inline-block p-4 border-b-2 border-transparent rounded-t-lg hover:text-gray-600 hover:border-gray-300 dark:hover:text-gray-300 text-gray-500 dark:text-gray-400"
+                                    id="bundles-tab" data-tabs-target="#bundles" type="button" role="tab"
+                                    aria-controls="bundles" aria-selected="false">Bundles</button>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <div id="tabContent">
+                        <!-- Equipment Tab -->
+                        <div class="p-4" id="equipment" role="tabpanel" aria-labelledby="equipment-tab">
+                            <div class="flex justify-end mb-4">
+                                <button onclick="openEquipmentModal()"
+                                    class="px-4 py-2 text-sm font-medium leading-5 text-white transition-colors duration-150 bg-purple-600 border border-transparent rounded-lg active:bg-purple-600 hover:bg-purple-700 focus:outline-none focus:shadow-outline-purple">
+                                    + Equipment hinzufügen
+                                </button>
+                            </div>
+
+                            <div class="w-full overflow-hidden rounded-lg shadow-xs">
+                                <div class="w-full overflow-x-auto">
+                                    <table class="w-full whitespace-no-wrap">
+                                        <thead>
+                                            <tr
+                                                class="text-xs font-semibold tracking-wide text-left text-gray-500 uppercase border-b dark:border-gray-700 bg-gray-50 dark:text-gray-400 dark:bg-gray-800">
+                                                <th class="px-4 py-3">Name</th>
+                                                <th class="px-4 py-3">Vertragstext</th>
+                                                <th class="px-4 py-3">Aktionen</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="equipmentTableBody"
+                                            class="bg-white divide-y dark:divide-gray-700 dark:bg-gray-800">
+                                            <!-- Skeleton Loader -->
+                                            <tr class="animate-pulse">
+                                                <td class="px-4 py-3">
+                                                    <div class="h-4 bg-gray-200 rounded dark:bg-gray-700 w-3/4"></div>
+                                                </td>
+                                                <td class="px-4 py-3">
+                                                    <div class="h-4 bg-gray-200 rounded dark:bg-gray-700 w-1/2"></div>
+                                                </td>
+                                                <td class="px-4 py-3">
+                                                    <div class="h-8 bg-gray-200 rounded dark:bg-gray-700 w-24"></div>
+                                                </td>
+                                            </tr>
+                                            <tr class="animate-pulse">
+                                                <td class="px-4 py-3">
+                                                    <div class="h-4 bg-gray-200 rounded dark:bg-gray-700 w-3/4"></div>
+                                                </td>
+                                                <td class="px-4 py-3">
+                                                    <div class="h-4 bg-gray-200 rounded dark:bg-gray-700 w-1/2"></div>
+                                                </td>
+                                                <td class="px-4 py-3">
+                                                    <div class="h-8 bg-gray-200 rounded dark:bg-gray-700 w-24"></div>
+                                                </td>
+                                            </tr>
+                                            <tr class="animate-pulse">
+                                                <td class="px-4 py-3">
+                                                    <div class="h-4 bg-gray-200 rounded dark:bg-gray-700 w-3/4"></div>
+                                                </td>
+                                                <td class="px-4 py-3">
+                                                    <div class="h-4 bg-gray-200 rounded dark:bg-gray-700 w-1/2"></div>
+                                                </td>
+                                                <td class="px-4 py-3">
+                                                    <div class="h-8 bg-gray-200 rounded dark:bg-gray-700 w-24"></div>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Cases Tab -->
+                        <div class="hidden p-4" id="cases" role="tabpanel" aria-labelledby="cases-tab">
+                            <div class="flex justify-end mb-4">
+                                <button onclick="openCaseModal()"
+                                    class="px-4 py-2 text-sm font-medium leading-5 text-white transition-colors duration-150 bg-purple-600 border border-transparent rounded-lg active:bg-purple-600 hover:bg-purple-700 focus:outline-none focus:shadow-outline-purple">
+                                    + Case hinzufügen
+                                </button>
+                            </div>
+
+                            <div class="w-full overflow-hidden rounded-lg shadow-xs">
+                                <div class="w-full overflow-x-auto">
+                                    <table class="w-full whitespace-no-wrap">
+                                        <thead>
+                                            <tr
+                                                class="text-xs font-semibold tracking-wide text-left text-gray-500 uppercase border-b dark:border-gray-700 bg-gray-50 dark:text-gray-400 dark:bg-gray-800">
+                                                <th class="px-4 py-3">Name</th>
+                                                <th class="px-4 py-3">Vertragstext</th>
+                                                <th class="px-4 py-3">Aktionen</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="casesTableBody"
+                                            class="bg-white divide-y dark:divide-gray-700 dark:bg-gray-800">
+                                            <!-- Skeleton Loader -->
+                                            <tr class="animate-pulse">
+                                                <td class="px-4 py-3">
+                                                    <div class="h-4 bg-gray-200 rounded dark:bg-gray-700 w-3/4"></div>
+                                                </td>
+                                                <td class="px-4 py-3">
+                                                    <div class="h-4 bg-gray-200 rounded dark:bg-gray-700 w-1/2"></div>
+                                                </td>
+                                                <td class="px-4 py-3">
+                                                    <div class="h-8 bg-gray-200 rounded dark:bg-gray-700 w-24"></div>
+                                                </td>
+                                            </tr>
+                                            <tr class="animate-pulse">
+                                                <td class="px-4 py-3">
+                                                    <div class="h-4 bg-gray-200 rounded dark:bg-gray-700 w-3/4"></div>
+                                                </td>
+                                                <td class="px-4 py-3">
+                                                    <div class="h-4 bg-gray-200 rounded dark:bg-gray-700 w-1/2"></div>
+                                                </td>
+                                                <td class="px-4 py-3">
+                                                    <div class="h-8 bg-gray-200 rounded dark:bg-gray-700 w-24"></div>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Bundles Tab -->
+                        <div class="hidden p-4" id="bundles" role="tabpanel" aria-labelledby="bundles-tab">
+                            <div class="flex justify-end mb-4">
+                                <button onclick="openBundleModal()"
+                                    class="px-4 py-2 text-sm font-medium leading-5 text-white transition-colors duration-150 bg-purple-600 border border-transparent rounded-lg active:bg-purple-600 hover:bg-purple-700 focus:outline-none focus:shadow-outline-purple">
+                                    + Bundle hinzufügen
+                                </button>
+                            </div>
+
+                            <div class="w-full overflow-hidden rounded-lg shadow-xs">
+                                <div class="w-full overflow-x-auto">
+                                    <table class="w-full whitespace-no-wrap">
+                                        <thead>
+                                            <tr
+                                                class="text-xs font-semibold tracking-wide text-left text-gray-500 uppercase border-b dark:border-gray-700 bg-gray-50 dark:text-gray-400 dark:bg-gray-800">
+                                                <th class="px-4 py-3">Name</th>
+                                                <th class="px-4 py-3">Inhalt</th>
+                                                <th class="px-4 py-3">Aktionen</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="bundlesTableBody"
+                                            class="bg-white divide-y dark:divide-gray-700 dark:bg-gray-800">
+                                            <!-- Skeleton Loader -->
+                                            <tr class="animate-pulse">
+                                                <td class="px-4 py-3">
+                                                    <div class="h-4 bg-gray-200 rounded dark:bg-gray-700 w-3/4"></div>
+                                                </td>
+                                                <td class="px-4 py-3">
+                                                    <div class="h-4 bg-gray-200 rounded dark:bg-gray-700 w-1/2"></div>
+                                                </td>
+                                                <td class="px-4 py-3">
+                                                    <div class="h-8 bg-gray-200 rounded dark:bg-gray-700 w-24"></div>
+                                                </td>
+                                            </tr>
+                                            <tr class="animate-pulse">
+                                                <td class="px-4 py-3">
+                                                    <div class="h-4 bg-gray-200 rounded dark:bg-gray-700 w-3/4"></div>
+                                                </td>
+                                                <td class="px-4 py-3">
+                                                    <div class="h-4 bg-gray-200 rounded dark:bg-gray-700 w-1/2"></div>
+                                                </td>
+                                                <td class="px-4 py-3">
+                                                    <div class="h-8 bg-gray-200 rounded dark:bg-gray-700 w-24"></div>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Equipment Modal -->
+    <div id="equipmentModal" class="fixed inset-0 z-50 hidden">
+        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" onclick="closeEquipmentModal()"></div>
+        <div class="relative flex items-center justify-center min-h-screen p-4 pointer-events-none">
+            <div
+                class="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-lg w-full p-6 border border-gray-200 dark:border-gray-700 pointer-events-auto">
+                <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4" id="equipmentModalTitle">
+                    Neues Equipment</h3>
+                <div class="space-y-4">
+                    <input type="hidden" id="equipmentId">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Name</label>
+                        <input type="text" id="equipmentName"
+                            class="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500">
+                    </div>
+                    <div>
+                        <label
+                            class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Vertragstext</label>
+                        <textarea id="equipmentDescription" rows="3"
+                            class="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 resize-y"></textarea>
+                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Text, der im PDF erscheint.</p>
+                    </div>
+                </div>
+                <div class="flex justify-end space-x-3 mt-6">
+                    <button type="button" onclick="closeEquipmentModal()"
+                        class="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-sm font-medium rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">Abbrechen</button>
+                    <button type="button" onclick="saveEquipment()"
+                        class="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg transition-colors">Speichern</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Case Modal -->
+    <div id="caseModal" class="fixed inset-0 z-50 hidden">
+        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" onclick="closeCaseModal()"></div>
+        <div class="relative flex items-center justify-center min-h-screen p-4 pointer-events-none">
+            <div
+                class="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 border border-gray-200 dark:border-gray-700 pointer-events-auto">
+                <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4" id="caseModalTitle">Neues Case
+                </h3>
+                <div class="space-y-4">
+                    <input type="hidden" id="caseId">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Name</label>
+                        <input type="text" id="caseName"
+                            class="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500">
+                    </div>
+
+                    <!-- Content Selection -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Inhalt
+                            hinzufügen</label>
+                        <div class="flex gap-2 mb-3">
+                            <select id="caseItemSelect"
+                                class="flex-1 px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500">
+                                <option value="">Gegenstand auswählen...</option>
+                            </select>
+                            <button type="button" onclick="addCaseItem()"
+                                class="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg transition-colors">Hinzufügen</button>
+                        </div>
+
+                        <div class="border border-gray-200 dark:border-gray-600 rounded-lg overflow-hidden">
+                            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                                <thead class="bg-gray-50 dark:bg-gray-700">
+                                    <tr>
+                                        <th
+                                            class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                            Gegenstand</th>
+                                        <th
+                                            class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-24">
+                                            Anzahl</th>
+                                        <th
+                                            class="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-20">
+                                            Aktion</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="caseItemsTableBody"
+                                    class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex justify-end space-x-3 mt-6">
+                    <button type="button" onclick="closeCaseModal()"
+                        class="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-sm font-medium rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">Abbrechen</button>
+                    <button type="button" onclick="saveCase()"
+                        class="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg transition-colors">Speichern</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bundle Modal -->
+    <div id="bundleModal" class="fixed inset-0 z-50 hidden">
+        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" onclick="closeBundleModal()"></div>
+        <div class="relative flex items-center justify-center min-h-screen p-4 pointer-events-none">
+            <div
+                class="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 border border-gray-200 dark:border-gray-700 pointer-events-auto">
+                <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4" id="bundleModalTitle">Neues
+                    Bundle</h3>
+                <div class="space-y-4">
+                    <input type="hidden" id="bundleId">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Name</label>
+                        <input type="text" id="bundleName"
+                            class="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500">
+                    </div>
+
+                    <!-- Equipment Selection -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Equipment
+                            hinzufügen</label>
+                        <div class="flex gap-2 mb-3">
+                            <select id="bundleEquipmentSelect"
+                                class="flex-1 px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500">
+                                <option value="">Equipment auswählen...</option>
+                            </select>
+                            <button type="button" onclick="addBundleItem('equipment')"
+                                class="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg transition-colors">Hinzufügen</button>
+                        </div>
+                    </div>
+
+                    <!-- Cases Selection -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Cases
+                            hinzufügen</label>
+                        <div class="flex gap-2 mb-3">
+                            <select id="bundleCaseSelect"
+                                class="flex-1 px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500">
+                                <option value="">Case auswählen...</option>
+                            </select>
+                            <button type="button" onclick="addBundleItem('case')"
+                                class="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg transition-colors">Hinzufügen</button>
+                        </div>
+                    </div>
+
+                    <!-- Bundle Items Table -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Inhalt</label>
+                        <div class="border border-gray-200 dark:border-gray-600 rounded-lg overflow-hidden">
+                            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                                <thead class="bg-gray-50 dark:bg-gray-700">
+                                    <tr>
+                                        <th
+                                            class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                            Gegenstand</th>
+                                        <th
+                                            class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-20">
+                                            Typ</th>
+                                        <th
+                                            class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-24">
+                                            Anzahl</th>
+                                        <th
+                                            class="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-20">
+                                            Aktion</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="bundleItemsTableBody"
+                                    class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex justify-end space-x-3 mt-6">
+                    <button type="button" onclick="closeBundleModal()"
+                        class="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-sm font-medium rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">Abbrechen</button>
+                    <button type="button" onclick="saveBundle()"
+                        class="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg transition-colors">Speichern</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% include '_confirm_modal.html' %}
+
+    <script>
+        const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+        let allItems = []; // Store fetched items
+        let currentCaseItems = []; // Temporary storage for Case modal
+        let currentBundleItems = []; // Temporary storage for Bundle modal
+
+        // Tabs Logic
+        const tabs = document.querySelectorAll('[role="tab"]');
+        const tabContents = document.querySelectorAll('[role="tabpanel"]');
+
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                tabs.forEach(t => {
+                    t.classList.remove('text-purple-600', 'dark:text-purple-500', 'border-purple-600', 'active-tab');
+                    t.classList.add('text-gray-500', 'dark:text-gray-400', 'border-transparent');
+                    t.setAttribute('aria-selected', false);
+                });
+                tab.classList.add('text-purple-600', 'dark:text-purple-500', 'border-purple-600', 'active-tab');
+                tab.classList.remove('text-gray-500', 'dark:text-gray-400', 'border-transparent');
+                tab.setAttribute('aria-selected', true);
+
+                tabContents.forEach(tc => tc.classList.add('hidden'));
+                document.querySelector(tab.dataset.tabsTarget).classList.remove('hidden');
+            });
+        });
+
+        // --- Fetch Data ---
+
+        async function fetchItems() {
+            try {
+                const response = await fetch('/api/inventory/items');
+                if (!response.ok) throw new Error('Netzwerkfehler');
+                allItems = await response.json();
+                renderInventoryTables(allItems);
+                populateItemSelects();
+            } catch (error) {
+                console.error('Error fetching items:', error);
+                showTableError('equipmentTableBody');
+                showTableError('casesTableBody');
+            }
+        }
+
+        async function fetchBundles() {
+            try {
+                const response = await fetch('/api/inventory/bundles');
+                if (!response.ok) throw new Error('Netzwerkfehler');
+                const bundles = await response.json();
+                renderBundlesTable(bundles);
+            } catch (error) {
+                console.error('Error fetching bundles:', error);
+                showTableError('bundlesTableBody');
+            }
+        }
+
+        function populateItemSelects() {
+            const equipment = allItems.filter(i => i.type === 'equipment');
+            const cases = allItems.filter(i => i.type === 'case');
+
+            // Case modal: only equipment can be added
+            const equipmentOptions = '<option value="">Equipment auswählen...</option>' +
+                equipment.map(i => `<option value="${i.id}">${i.name}</option>`).join('');
+
+            const caseSelect = document.getElementById('caseItemSelect');
+            if (caseSelect) caseSelect.innerHTML = equipmentOptions;
+
+            // Bundle modal: separate dropdowns for equipment and cases
+            const bundleEquipmentSelect = document.getElementById('bundleEquipmentSelect');
+            if (bundleEquipmentSelect) bundleEquipmentSelect.innerHTML = equipmentOptions;
+
+            const caseOptions = '<option value="">Case auswählen...</option>' +
+                cases.map(i => `<option value="${i.id}">${i.name}</option>`).join('');
+
+            const bundleCaseSelect = document.getElementById('bundleCaseSelect');
+            if (bundleCaseSelect) bundleCaseSelect.innerHTML = caseOptions;
+        }
+
+        function showTableError(tbodyId) {
+            const tbody = document.getElementById(tbodyId);
+            if (tbody) tbody.innerHTML = `<tr><td colspan="3" class="px-4 py-3 text-center text-red-500">Fehler beim Laden der Daten. Bitte Seite neu laden.</td></tr>`;
+        }
+
+        function renderInventoryTables(items) {
+            if (!items) return;
+            const equipment = items.filter(i => i.type === 'equipment');
+            const cases = items.filter(i => i.type === 'case');
+
+            renderTable(equipment, 'equipmentTableBody', 'Kein Equipment vorhanden');
+            renderTable(cases, 'casesTableBody', 'Keine Cases vorhanden');
+        }
+
+        function renderTable(items, tbodyId, emptyMsg) {
+            const tbody = document.getElementById(tbodyId);
+            if (!tbody) return;
+
+            if (items.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="3" class="px-4 py-3 text-center text-gray-500 dark:text-gray-400">${emptyMsg}</td></tr>`;
+                return;
+            }
+            tbody.innerHTML = items.map(item => `
+                <tr class="text-gray-700 dark:text-gray-400">
+                    <td class="px-4 py-3 text-sm font-semibold">${item.name}</td>
+                    <td class="px-4 py-3 text-sm truncate max-w-xs" title="${item.description}">${item.description ? item.description.replace(/\n/g, '<br>') : ''}</td>
+                    <td class="px-4 py-3 text-sm">
+                        <button onclick="editItem(${item.id}, '${item.type}')" class="px-2 py-1 font-semibold leading-tight text-gray-700 bg-gray-100 rounded-full dark:text-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600">Edit</button>
+                        <button onclick="deleteItem(${item.id})" class="ml-2 px-2 py-1 font-semibold leading-tight text-red-700 bg-red-100 rounded-full dark:text-red-100 dark:bg-red-700 hover:bg-red-200 dark:hover:bg-red-600">Delete</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function renderBundlesTable(bundles) {
+            const tbody = document.getElementById('bundlesTableBody');
+            if (bundles.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="3" class="px-4 py-3 text-center text-gray-500 dark:text-gray-400">Keine Bundles vorhanden</td></tr>`;
+                return;
+            }
+            tbody.innerHTML = bundles.map(bundle => {
+                const contents = bundle.items.map(i => `${i.count}x ${i.item_name}`).join(', ');
+                return `
+                <tr class="text-gray-700 dark:text-gray-400">
+                    <td class="px-4 py-3 text-sm font-semibold">${bundle.name}</td>
+                    <td class="px-4 py-3 text-sm">${contents}</td>
+                    <td class="px-4 py-3 text-sm">
+                        <button onclick='editBundle(${JSON.stringify(bundle).replace(/'/g, "&#39;")})' class="px-2 py-1 font-semibold leading-tight text-gray-700 bg-gray-100 rounded-full dark:text-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600">Edit</button>
+                        <button onclick="deleteBundle(${bundle.id})" class="ml-2 px-2 py-1 font-semibold leading-tight text-red-700 bg-red-100 rounded-full dark:text-red-100 dark:bg-red-700 hover:bg-red-200 dark:hover:bg-red-600">Delete</button>
+                    </td>
+                </tr>
+            `}).join('');
+        }
+
+        // --- Equipment Actions ---
+
+        function openEquipmentModal(item = null) {
+            document.getElementById('equipmentId').value = item ? item.id : '';
+            document.getElementById('equipmentName').value = item ? item.name : '';
+            document.getElementById('equipmentDescription').value = item ? item.description : '';
+            document.getElementById('equipmentModalTitle').textContent = item ? 'Equipment bearbeiten' : 'Neues Equipment';
+            document.getElementById('equipmentModal').classList.remove('hidden');
+        }
+
+        function closeEquipmentModal() {
+            document.getElementById('equipmentModal').classList.add('hidden');
+        }
+
+        async function saveEquipment() {
+            const id = document.getElementById('equipmentId').value;
+            const name = document.getElementById('equipmentName').value;
+            const description = document.getElementById('equipmentDescription').value;
+
+            const method = id ? 'PUT' : 'POST';
+            const url = id ? `/api/inventory/items/${id}` : '/api/inventory/items';
+
+            try {
+                const response = await fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                    body: JSON.stringify({ name, description, type: 'equipment' })
+                });
+
+                if (response.ok) {
+                    closeEquipmentModal();
+                    fetchItems();
+                    showToast('Equipment gespeichert!');
+                } else {
+                    const data = await response.json();
+                    showToast(data.error || 'Fehler beim Speichern', 'error');
+                }
+            } catch (error) { console.error(error); }
+        }
+
+        // --- Case Actions ---
+
+        function openCaseModal(item = null) {
+            document.getElementById('caseId').value = item ? item.id : '';
+            document.getElementById('caseName').value = item ? item.name : '';
+            document.getElementById('caseModalTitle').textContent = item ? 'Case bearbeiten' : 'Neues Case';
+
+            // Populate items from item.contents if editing, else empty
+            currentCaseItems = item && item.contents ? item.contents.map(c => ({ id: c.item_id, name: c.item_name, count: c.count })) : [];
+            renderCaseItems();
+
+            document.getElementById('caseModal').classList.remove('hidden');
+        }
+
+        function closeCaseModal() {
+            document.getElementById('caseModal').classList.add('hidden');
+        }
+
+        function addCaseItem() {
+            const select = document.getElementById('caseItemSelect');
+            const id = parseInt(select.value);
+            if (!id) return;
+            const name = select.options[select.selectedIndex].text;
+
+            const existing = currentCaseItems.find(i => i.id === id);
+            if (existing) {
+                existing.count++;
+            } else {
+                currentCaseItems.push({ id, name, count: 1 });
+            }
+            renderCaseItems();
+            select.value = '';
+        }
+
+        function removeCaseItem(index) {
+            currentCaseItems.splice(index, 1);
+            renderCaseItems();
+        }
+
+        function updateCaseItemCount(index, newCount) {
+            if (newCount < 1) return;
+            currentCaseItems[index].count = parseInt(newCount);
+        }
+
+        function renderCaseItems() {
+            const tbody = document.getElementById('caseItemsTableBody');
+            tbody.innerHTML = currentCaseItems.map((item, index) => `
+                <tr>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">${item.name}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                        <input type="number" min="1" value="${item.count}" onchange="updateCaseItemCount(${index}, this.value)" class="w-16 p-1 border rounded dark:bg-gray-700 dark:text-white dark:border-gray-600">
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <button onclick="removeCaseItem(${index})" class="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300">Entfernen</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        async function saveCase() {
+            const id = document.getElementById('caseId').value;
+            const name = document.getElementById('caseName').value;
+            // Description is auto-generated backend for Cases
+
+            const method = id ? 'PUT' : 'POST';
+            const url = id ? `/api/inventory/items/${id}` : '/api/inventory/items';
+
+            const contents = currentCaseItems.map(i => ({ item_id: i.id, count: i.count }));
+
+            try {
+                const response = await fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                    body: JSON.stringify({ name, type: 'case', contents })
+                });
+
+                if (response.ok) {
+                    closeCaseModal();
+                    fetchItems();
+                    showToast('Case gespeichert!');
+                } else {
+                    const data = await response.json();
+                    showToast(data.error || 'Fehler beim Speichern', 'error');
+                }
+            } catch (error) { console.error(error); }
+        }
+
+        // --- Bundle Actions ---
+
+        function openBundleModal(bundle = null) {
+            document.getElementById('bundleId').value = bundle ? bundle.id : '';
+            document.getElementById('bundleName').value = bundle ? bundle.name : '';
+            document.getElementById('bundleModalTitle').textContent = bundle ? 'Bundle bearbeiten' : 'Neues Bundle';
+
+            currentBundleItems = bundle ? bundle.items.map(i => ({ id: i.item_id, name: i.item_name, count: i.count, type: i.item_type || 'equipment' })) : [];
+            renderBundleItems();
+
+            document.getElementById('bundleModal').classList.remove('hidden');
+        }
+
+        function closeBundleModal() {
+            document.getElementById('bundleModal').classList.add('hidden');
+        }
+
+        function addBundleItem(itemType) {
+            const selectId = itemType === 'case' ? 'bundleCaseSelect' : 'bundleEquipmentSelect';
+            const select = document.getElementById(selectId);
+            const id = parseInt(select.value);
+            if (!id) return;
+            const name = select.options[select.selectedIndex].text;
+
+            const existing = currentBundleItems.find(i => i.id === id);
+            if (existing) {
+                existing.count++;
+            } else {
+                currentBundleItems.push({ id, name, count: 1, type: itemType });
+            }
+            renderBundleItems();
+            select.value = '';
+        }
+
+        function removeBundleItem(index) {
+            currentBundleItems.splice(index, 1);
+            renderBundleItems();
+        }
+
+        function updateBundleItemCount(index, newCount) {
+            if (newCount < 1) return;
+            currentBundleItems[index].count = parseInt(newCount);
+        }
+
+        function renderBundleItems() {
+            const tbody = document.getElementById('bundleItemsTableBody');
+            if (currentBundleItems.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="4" class="px-4 py-3 text-center text-sm text-gray-500 dark:text-gray-400">Noch keine Gegenstände hinzugefügt</td></tr>`;
+                return;
+            }
+            tbody.innerHTML = currentBundleItems.map((item, index) => {
+                const typeBadge = item.type === 'case'
+                    ? '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">Case</span>'
+                    : '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400">Equipment</span>';
+                return `
+                <tr>
+                    <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">${item.name}</td>
+                    <td class="px-4 py-3 whitespace-nowrap text-sm">${typeBadge}</td>
+                    <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                        <input type="number" min="1" value="${item.count}" onchange="updateBundleItemCount(${index}, this.value)" class="w-16 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 dark:text-white text-sm">
+                    </td>
+                    <td class="px-4 py-3 whitespace-nowrap text-right text-sm font-medium">
+                        <button onclick="removeBundleItem(${index})" class="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300">Entfernen</button>
+                    </td>
+                </tr>
+            `}).join('');
+        }
+
+        async function saveBundle() {
+            const id = document.getElementById('bundleId').value;
+            const name = document.getElementById('bundleName').value;
+
+            const items = currentBundleItems.map(i => ({ item_id: i.id, count: i.count }));
+
+            const method = id ? 'PUT' : 'POST';
+            const url = id ? `/api/inventory/bundles/${id}` : '/api/inventory/bundles';
+
+            try {
+                const response = await fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                    body: JSON.stringify({ name, items })
+                });
+
+                if (response.ok) {
+                    closeBundleModal();
+                    fetchBundles();
+                    showToast('Bundle gespeichert!');
+                } else {
+                    const data = await response.json();
+                    showToast(data.error || 'Fehler beim Speichern', 'error');
+                }
+            } catch (error) { console.error(error); }
+        }
+
+        // --- General ---
+
+        function editItem(id, type) {
+            const item = allItems.find(i => i.id === id);
+            if (type === 'equipment') {
+                openEquipmentModal(item);
+            } else if (type === 'case') {
+                openCaseModal(item);
+            }
+        }
+
+        function editBundle(bundle) {
+            if (allItems.length === 0) fetchItems(); // Safety
+            openBundleModal(bundle);
+        }
+
+        function deleteItem(id) {
+            showConfirmDialog('Löschen bestätigen', 'Möchtest du dieses Equipment wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.', async () => {
+                try {
+                    const response = await fetch(`/api/inventory/items/${id}`, {
+                        method: 'DELETE',
+                        headers: { 'X-CSRFToken': csrfToken }
+                    });
+                    if (response.ok) {
+                        fetchItems();
+                        showToast('Erfolgreich gelöscht');
+                    }
+                } catch (error) { console.error(error); }
+            }, { confirmText: 'Löschen', type: 'danger' });
+        }
+
+        function deleteBundle(id) {
+            showConfirmDialog('Löschen bestätigen', 'Möchtest du dieses Bundle wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.', async () => {
+                try {
+                    const response = await fetch(`/api/inventory/bundles/${id}`, {
+                        method: 'DELETE',
+                        headers: { 'X-CSRFToken': csrfToken }
+                    });
+                    if (response.ok) {
+                        fetchBundles();
+                        showToast('Erfolgreich gelöscht');
+                    }
+                } catch (error) { console.error(error); }
+            }, { confirmText: 'Löschen', type: 'danger' });
+        }
+
+        function flashMessage(msg) {
+            showToast(msg);
+        }
+
+        // Initialize
+        fetchItems();
+        fetchBundles();
+    </script>
+</body>
+
+</html>
