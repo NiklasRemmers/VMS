@@ -254,15 +254,18 @@ function validateForm() {
     });
     if (!isValid) missingFields.push('Pflichtfelder');
 
-    // Check material selection
+    // Check material selection — either equipment OR case OR custom material
     const equipmentSelects = document.querySelectorAll('.equipment-select');
     const caseSelects = document.querySelectorAll('.case-select');
     const customTexts = document.querySelectorAll('.custom-text');
-    let hasMaterial = false;
-    equipmentSelects.forEach(sel => { if (sel.value) hasMaterial = true; });
-    caseSelects.forEach(sel => { if (sel.value) hasMaterial = true; });
-    customTexts.forEach(txt => { if (txt.value && txt.value.trim()) hasMaterial = true; });
-    if (!hasMaterial) missingFields.push('Material');
+    let hasEquipment = false;
+    let hasCase = false;
+    let hasCustom = false;
+    equipmentSelects.forEach(sel => { if (sel.value) hasEquipment = true; });
+    caseSelects.forEach(sel => { if (sel.value) hasCase = true; });
+    customTexts.forEach(txt => { if (txt.value && txt.value.trim()) hasCustom = true; });
+    const hasMaterial = hasEquipment || hasCase || hasCustom;
+    if (!hasMaterial) missingFields.push('Material oder Case');
 
     // Check signature
     if (!signatureData) missingFields.push('Unterschrift');
@@ -637,14 +640,16 @@ async function handleSubmit(e) {
         return;
     }
 
-    // Validate that at least one material is selected
-    const materialItems = document.querySelectorAll('.equipment-select, .case-select, .custom-text');
-    let hasMaterial = false;
-    materialItems.forEach(item => {
-        if (item.value && item.value.trim()) hasMaterial = true;
-    });
-    if (!hasMaterial) {
-        showError('Bitte mindestens ein Material auswählen.');
+    // Validate that at least one equipment OR case OR custom material is selected
+    const eqSelects = document.querySelectorAll('.equipment-select');
+    const csSelects = document.querySelectorAll('.case-select');
+    const ctTexts = document.querySelectorAll('.custom-text');
+    let hasAnyMaterial = false;
+    eqSelects.forEach(sel => { if (sel.value) hasAnyMaterial = true; });
+    csSelects.forEach(sel => { if (sel.value) hasAnyMaterial = true; });
+    ctTexts.forEach(txt => { if (txt.value && txt.value.trim()) hasAnyMaterial = true; });
+    if (!hasAnyMaterial) {
+        showError('Bitte mindestens ein Material oder Case auswählen.');
         return;
     }
 
