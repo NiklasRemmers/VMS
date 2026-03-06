@@ -23,7 +23,7 @@ def _get_fernet():
             kdf = PBKDF2HMAC(
                 algorithm=hashes.SHA256(),
                 length=32,
-                salt=b'contract_maker_kms_v1',
+                salt=b'vms_kms_v1',
                 iterations=200_000,
             )
             key = base64.urlsafe_b64encode(kdf.derive(master_key))
@@ -36,7 +36,7 @@ def _get_fernet():
         raise ValueError("SECRET_KEY must be set in Flask config")
 
     password = current_app.config['SECRET_KEY'].encode()
-    salt = b'contract_maker_static_salt'
+    salt = b'vms_static_salt'
 
     kdf = PBKDF2HMAC(
         algorithm=hashes.SHA256(),

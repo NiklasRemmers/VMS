@@ -1,5 +1,5 @@
 """
-Local Key Management Service (KMS) for Contract Maker.
+Local Key Management Service (KMS) for VMS.
 Manages master key loading and secret encryption/decryption.
 """
 import base64
@@ -10,7 +10,7 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
 # Default paths
-DEFAULT_MASTER_KEY_PATH = '/etc/contract_maker/master.key'
+DEFAULT_MASTER_KEY_PATH = '/etc/vms/master.key'
 DEFAULT_SECRETS_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'secrets.enc')
 
 # Cached state
@@ -18,7 +18,7 @@ _master_key = None
 _secrets = None
 
 
-def _derive_fernet_key(master_key: bytes, salt: bytes = b'contract_maker_kms_v1') -> Fernet:
+def _derive_fernet_key(master_key: bytes, salt: bytes = b'vms_kms_v1') -> Fernet:
     """Derive a Fernet encryption key from the master key."""
     kdf = PBKDF2HMAC(
         algorithm=hashes.SHA256(),

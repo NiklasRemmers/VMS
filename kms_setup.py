@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """
-KMS Setup CLI Tool for Contract Maker.
+KMS Setup CLI Tool for VMS.
 Generates master keys and encrypts application secrets.
 
 Usage:
-    python kms_setup.py generate [--path /etc/contract_maker/master.key]
+    python kms_setup.py generate [--path /etc/vms/master.key]
     python kms_setup.py encrypt [--env .env] [--output secrets.enc]
     python kms_setup.py verify
     python kms_setup.py show-keys
@@ -165,7 +165,7 @@ def show_keys():
 
 def main():
     parser = argparse.ArgumentParser(
-        description='Contract Maker KMS Setup Tool',
+        description='VMS KMS Setup Tool',
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
@@ -179,19 +179,19 @@ Examples:
 
     # Generate
     gen_parser = subparsers.add_parser('generate', help='Generate a new master key')
-    gen_parser.add_argument('--path', default='/etc/contract_maker/master.key',
+    gen_parser.add_argument('--path', default='/etc/vms/master.key',
                            help='Path to save the master key')
 
     # Encrypt
     enc_parser = subparsers.add_parser('encrypt', help='Encrypt secrets from .env')
     enc_parser.add_argument('--env', default='.env', help='Path to .env file')
     enc_parser.add_argument('--output', default='secrets.enc', help='Output file for encrypted secrets')
-    enc_parser.add_argument('--key-path', default='/etc/contract_maker/master.key',
+    enc_parser.add_argument('--key-path', default='/etc/vms/master.key',
                            help='Path to master key')
 
     # Verify
     ver_parser = subparsers.add_parser('verify', help='Verify encrypted secrets')
-    ver_parser.add_argument('--key-path', default='/etc/contract_maker/master.key',
+    ver_parser.add_argument('--key-path', default='/etc/vms/master.key',
                            help='Path to master key')
     ver_parser.add_argument('--secrets', default='secrets.enc', help='Path to encrypted secrets')
 

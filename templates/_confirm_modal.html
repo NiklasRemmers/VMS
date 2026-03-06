@@ -90,8 +90,9 @@
     }
 
     function _confirmModalConfirm() {
+        const callback = _confirmModalCallback;
         closeConfirmModal();
-        if (_confirmModalCallback) _confirmModalCallback();
+        if (callback) callback();
     }
 
     function closeConfirmModal() {

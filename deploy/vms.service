@@ -1,0 +1,50 @@
+# Systemd Service for VMS
+# Copy to: /etc/systemd/system/vms.service
+# Enable:  systemctl enable vms
+# Start:   systemctl start vms
+# Logs:    journalctl -u vms -f
+
+[Unit]
+Description=VMS - Leihvertrag Generator
+After=network.target
+Wants=network-online.target
+
+[Service]
+Type=notify
+User=vms
+Group=vms
+WorkingDirectory=/home/vms/vms
+
+# Environment
+Environment="FLASK_ENV=production"
+Environment="KMS_MASTER_KEY_PATH=/etc/vms/master.key"
+EnvironmentFile=/home/vms/vms/.env
+
+# Application
+ExecStart=/home/vms/vms/venv/bin/gunicorn \
+    --config gunicorn.conf.py \
+    app:app
+ExecReload=/bin/kill -s HUP $MAINPID
+
+# Restart policy
+Restart=on-failure
+RestartSec=10
+StartLimitBurst=5
+StartLimitIntervalSec=60
+
+# Security hardening
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/home/vms/vms/users.db
+ReadWritePaths=/home/vms/vms/static/signatures
+ReadWritePaths=/home/vms/vms/signatures
+ReadWritePaths=/var/log/vms
+
+# Resource limits
+LimitNOFILE=65536
+MemoryMax=512M
+
+[Install]
+WantedBy=multi-user.target

@@ -1,4 +1,4 @@
-# Contract Maker — Production Deployment Guide
+# VMS — Production Deployment Guide
 
 ## Prerequisites
 - Ubuntu/Debian server with root access
@@ -11,12 +11,12 @@
 
 ```bash
 # Create dedicated user
-sudo useradd -m -s /bin/bash contract_maker
+sudo useradd -m -s /bin/bash vms
 
 # Create directories
-sudo mkdir -p /etc/contract_maker
-sudo mkdir -p /var/log/contract_maker
-sudo chown contract_maker:contract_maker /var/log/contract_maker
+sudo mkdir -p /etc/vms
+sudo mkdir -p /var/log/vms
+sudo chown vms:vms /var/log/vms
 
 # Install system dependencies
 sudo apt update && sudo apt install -y python3-venv python3-pip nginx certbot python3-certbot-nginx
@@ -26,13 +26,13 @@ sudo apt update && sudo apt install -y python3-venv python3-pip nginx certbot py
 
 ```bash
 # Switch to app user
-sudo su - contract_maker
+sudo su - vms
 
 # Clone/copy application
-# (copy your project to /home/contract_maker/contract_maker/)
+# (copy your project to /home/vms/vms/)
 
 # Create virtual environment
-cd /home/contract_maker/contract_maker
+cd /home/vms/vms
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
@@ -45,9 +45,9 @@ pip install -r requirements.txt
 
 ```bash
 # Generate master key (as root or with sudo)
-sudo python3 kms_setup.py generate --path /etc/contract_maker/master.key
-sudo chown contract_maker:contract_maker /etc/contract_maker/master.key
-sudo chmod 600 /etc/contract_maker/master.key
+sudo python3 kms_setup.py generate --path /etc/vms/master.key
+sudo chown vms:vms /etc/vms/master.key
+sudo chmod 600 /etc/vms/master.key
 
 # Encrypt secrets from .env
 source venv/bin/activate
@@ -79,8 +79,8 @@ MAIL_DEFAULT_SENDER=jan-niklas.remmers@uni-ulm.de
 ## 4. Database Permissions
 
 ```bash
-chmod 600 /home/contract_maker/contract_maker/users.db
-chown contract_maker:contract_maker /home/contract_maker/contract_maker/users.db
+chmod 600 /home/vms/vms/users.db
+chown vms:vms /home/vms/vms/users.db
 ```
 
 ## 5. TLS/HTTPS with Let's Encrypt
@@ -97,16 +97,16 @@ sudo certbot --nginx -d YOUR_DOMAIN.de
 
 ```bash
 # Copy config
-sudo cp deploy/nginx.conf /etc/nginx/sites-available/contract_maker
+sudo cp deploy/nginx.conf /etc/nginx/sites-available/vms
 
 # Edit: replace YOUR_DOMAIN.de with your actual domain
-sudo nano /etc/nginx/sites-available/contract_maker
+sudo nano /etc/nginx/sites-available/vms
 
 # Edit: update the static files path
-# alias /home/contract_maker/contract_maker/static/;
+# alias /home/vms/vms/static/;
 
 # Enable
-sudo ln -s /etc/nginx/sites-available/contract_maker /etc/nginx/sites-enabled/
+sudo ln -s /etc/nginx/sites-available/vms /etc/nginx/sites-enabled/
 sudo rm -f /etc/nginx/sites-enabled/default
 
 # Test & reload
@@ -118,19 +118,19 @@ sudo systemctl reload nginx
 
 ```bash
 # Copy service file
-sudo cp deploy/contract_maker.service /etc/systemd/system/
+sudo cp deploy/vms.service /etc/systemd/system/
 
 # Edit paths if needed
-sudo nano /etc/systemd/system/contract_maker.service
+sudo nano /etc/systemd/system/vms.service
 
 # Enable & start
 sudo systemctl daemon-reload
-sudo systemctl enable contract_maker
-sudo systemctl start contract_maker
+sudo systemctl enable vms
+sudo systemctl start vms
 
 # Check status
-sudo systemctl status contract_maker
-sudo journalctl -u contract_maker -f
+sudo systemctl status vms
+sudo journalctl -u vms -f
 ```
 
 ## 8. Verify Deployment
@@ -148,31 +148,31 @@ curl -I https://YOUR_DOMAIN.de
 
 ### View Logs
 ```bash
-sudo journalctl -u contract_maker -f          # Application logs
-sudo tail -f /var/log/contract_maker/access.log  # Access logs
-sudo tail -f /var/log/contract_maker/error.log   # Error logs
+sudo journalctl -u vms -f          # Application logs
+sudo tail -f /var/log/vms/access.log  # Access logs
+sudo tail -f /var/log/vms/error.log   # Error logs
 ```
 
 ### Restart Application
 ```bash
-sudo systemctl restart contract_maker
+sudo systemctl restart vms
 ```
 
 ### Database Backup
 ```bash
 # Add to crontab: crontab -e
-0 2 * * * cp /home/contract_maker/contract_maker/users.db /home/contract_maker/backups/users_$(date +\%Y\%m\%d).db
+0 2 * * * cp /home/vms/vms/users.db /home/vms/backups/users_$(date +\%Y\%m\%d).db
 ```
 
 ### Update Application
 ```bash
-sudo su - contract_maker
-cd contract_maker
+sudo su - vms
+cd vms
 git pull  # or copy new files
 source venv/bin/activate
 pip install -r requirements.txt
 exit
-sudo systemctl restart contract_maker
+sudo systemctl restart vms
 ```
 
 ---
@@ -199,7 +199,7 @@ Internet
            ▼
 ┌────────────────────────┐
 │  Flask App             │
-│  ├── KMS (master.key)  │  /etc/contract_maker/
+│  ├── KMS (master.key)  │  /etc/vms/
 │  ├── secrets.enc       │  Encrypted secrets
 │  ├── users.db          │  bcrypt hashes + Fernet-encrypted creds
 │  └── .env              │  Non-sensitive config only

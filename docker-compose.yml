@@ -2,18 +2,18 @@ services:
   # ─── PostgreSQL Database ───
   db:
     image: postgres:16-alpine
-    container_name: contract_maker_db
+    container_name: vms_db
     environment:
       POSTGRES_USER: admin
       POSTGRES_PASSWORD: admin
-      POSTGRES_DB: contract_maker
+      POSTGRES_DB: vms
     ports:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     restart: unless-stopped
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U admin -d contract_maker" ]
+      test: [ "CMD-SHELL", "pg_isready -U admin -d vms" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -21,18 +21,18 @@ services:
   # ─── Flask Application (Gunicorn) ───
   app:
     build: .
-    container_name: contract_maker_app
+    container_name: vms_app
     env_file: .env
     environment:
-      - DATABASE_URL=postgresql://admin:admin@db:5432/contract_maker
+      - DATABASE_URL=postgresql://admin:admin@db:5432/vms
       - FLASK_ENV=production
       - GUNICORN_BIND=0.0.0.0:8000
       - GUNICORN_WORKERS=2
       - GUNICORN_ACCESS_LOG=-
       - GUNICORN_ERROR_LOG=-
-      - KMS_MASTER_KEY_PATH=/etc/contract_maker/master.key
+      - KMS_MASTER_KEY_PATH=/etc/vms/master.key
     volumes:
-      - kms_data:/etc/contract_maker
+      - kms_data:/etc/vms
       - app_secrets:/app/secrets_store
       - app_signatures:/app/signatures
       - app_static_signatures:/app/static/signatures
@@ -46,7 +46,7 @@ services:
   # ─── Nginx Reverse Proxy ───
   nginx:
     image: nginx:alpine
-    container_name: contract_maker_nginx
+    container_name: vms_nginx
     ports:
       - "80:80"
       - "443:443"

@@ -1,5 +1,5 @@
 """
-Contract Maker - Flask Application
+VMS - Flask Application
 Web interface for filling ODT templates and exporting to PDF.
 With secure user authentication.
 """
@@ -767,7 +767,7 @@ def csrf_exempt_api(response):
 
 if __name__ == '__main__':
     print("=" * 50)
-    print("Contract Maker - Leihvertrag Generator")
+    print("VMS - Leihvertrag Generator")
     print("=" * 50)
     print(f"Template: {TEMPLATE_PATH}")
     print(f"Material: {MATERIAL_PATH}")

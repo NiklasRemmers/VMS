@@ -1,5 +1,5 @@
 /**
- * Contract Maker - Frontend JavaScript
+ * VMS - Frontend JavaScript
  * Handles material selection, signature upload, and PDF generation
  */
 

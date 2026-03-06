@@ -1,5 +1,5 @@
 """
-Settings routes for Contract Maker.
+Settings routes for VMS.
 Handles user profile, email, and Kanboard configuration.
 Uses SQLAlchemy with PostgreSQL.
 """

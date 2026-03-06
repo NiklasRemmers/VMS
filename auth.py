@@ -1,5 +1,5 @@
 """
-Authentication Module for Contract Maker
+Authentication Module for VMS
 Secure user authentication with Flask-Login, bcrypt, and CSRF protection
 Extended with user management and invitation system
 Uses SQLAlchemy with PostgreSQL.

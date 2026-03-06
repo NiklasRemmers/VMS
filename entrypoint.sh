@@ -2,10 +2,10 @@
 set -e
 
 echo "═══════════════════════════════════════════"
-echo "  Contract Maker — Bootstrap"
+echo "  VMS — Bootstrap"
 echo "═══════════════════════════════════════════"
 
-KMS_DIR="/etc/contract_maker"
+KMS_DIR="/etc/vms"
 KMS_KEY="$KMS_DIR/master.key"
 SECRETS_FILE="/app/secrets.enc"
 
@@ -59,7 +59,7 @@ python -c "
 import time, os
 from sqlalchemy import create_engine, text
 
-url = os.environ.get('DATABASE_URL', 'postgresql://admin:admin@db:5432/contract_maker')
+url = os.environ.get('DATABASE_URL', 'postgresql://admin:admin@db:5432/vms')
 for i in range(30):
     try:
         engine = create_engine(url)

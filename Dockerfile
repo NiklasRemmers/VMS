@@ -34,7 +34,7 @@ COPY static/ ./static/
 COPY entrypoint.sh ./
 
 # Create necessary directories
-RUN mkdir -p signatures static/signatures /var/log/contract_maker /etc/contract_maker \
+RUN mkdir -p signatures static/signatures /var/log/vms /etc/vms \
     && chmod +x entrypoint.sh
 
 EXPOSE 8000

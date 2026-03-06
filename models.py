@@ -1,5 +1,5 @@
 """
-SQLAlchemy Models for Contract Maker.
+SQLAlchemy Models for VMS.
 Defines the database schema for PostgreSQL.
 """
 from datetime import datetime, timezone

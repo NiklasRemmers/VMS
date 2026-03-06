@@ -1,5 +1,5 @@
 """
-Centralized Database Management for Contract Maker.
+Centralized Database Management for VMS.
 Provides SQLAlchemy engine, session factory, and helper functions.
 Loads DATABASE_URL from KMS (production) or .env (development).
 """
@@ -32,7 +32,7 @@ def _get_database_url() -> str:
     # Fallback to .env
     _database_url = os.environ.get(
         'DATABASE_URL',
-        'postgresql://admin:admin@localhost:5432/contract_maker'
+        'postgresql://admin:admin@localhost:5432/vms'
     )
     return _database_url
 

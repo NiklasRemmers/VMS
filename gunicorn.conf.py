@@ -1,5 +1,5 @@
 """
-Gunicorn Configuration for Contract Maker
+Gunicorn Configuration for VMS
 Production WSGI server settings.
 """
 import multiprocessing
@@ -16,12 +16,12 @@ timeout = 120
 keepalive = 5
 
 # Logging
-accesslog = os.environ.get('GUNICORN_ACCESS_LOG', '/var/log/contract_maker/access.log')
-errorlog = os.environ.get('GUNICORN_ERROR_LOG', '/var/log/contract_maker/error.log')
+accesslog = os.environ.get('GUNICORN_ACCESS_LOG', '/var/log/vms/access.log')
+errorlog = os.environ.get('GUNICORN_ERROR_LOG', '/var/log/vms/error.log')
 loglevel = os.environ.get('GUNICORN_LOG_LEVEL', 'info')
 
 # Process naming
-proc_name = 'contract_maker'
+proc_name = 'vms'
 
 # Security
 limit_request_line = 4094
