@@ -307,19 +307,14 @@ def init_auth(app):
     # Register blueprint
     app.register_blueprint(auth_bp)
 
-    # Check if first run (no active users)
-    if User.count() == 0:
-        app.config['FIRST_RUN'] = True
-    else:
-        app.config['FIRST_RUN'] = False
-
 
 # Routes
 @auth_bp.route('/login', methods=['GET', 'POST'])
 @limiter.limit("10 per minute", methods=["POST"], error_message="Zu viele Login-Versuche. Bitte warte eine Minute.")
 def login():
     """Login page."""
-    if current_app.config.get('FIRST_RUN'):
+    # Check directly from DB (not app.config) to avoid multi-worker desync
+    if User.count() == 0:
         return redirect(url_for('auth.setup'))
 
     if current_user.is_authenticated:
@@ -368,7 +363,6 @@ def setup():
         )
 
         if user:
-            current_app.config['FIRST_RUN'] = False
             login_user(user)
             flash('Admin-Benutzer erstellt! Willkommen!', 'success')
             return redirect(url_for('index'))
