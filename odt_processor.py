@@ -104,12 +104,46 @@ def replace_placeholders(content: str, replacements: Dict[str, str]) -> str:
             if match:
                 open_tag = match.group(1)
                 close_tag = match.group(3)
-                # Create separate paragraphs for each line
+                
+                # Extract original style name for keep-with-next variant
+                style_match = re.search(r'text:style-name="([^"]*)"', open_tag)
+                parent_style = style_match.group(1) if style_match else 'Standard'
+                keep_style_name = f'{parent_style}_keep'
+                keep_tag = open_tag.replace(
+                    f'text:style-name="{parent_style}"',
+                    f'text:style-name="{keep_style_name}"'
+                )
+                
+                # Split into blocks (separated by empty lines)
+                # and use keep-with-next for lines within the same block
                 replacement_paragraphs = []
-                for line in lines:
-                    escaped_line = escape_xml(line)
-                    replacement_paragraphs.append(f'{open_tag}{escaped_line}{close_tag}')
+                blocks = _split_into_blocks(lines)
+                
+                for block in blocks:
+                    for i, line in enumerate(block):
+                        escaped_line = escape_xml(line)
+                        is_last_in_block = (i == len(block) - 1)
+                        if is_last_in_block or not line.strip():
+                            # Last line of block or empty line: normal style
+                            replacement_paragraphs.append(f'{open_tag}{escaped_line}{close_tag}')
+                        else:
+                            # Inner line: keep with next paragraph
+                            replacement_paragraphs.append(f'{keep_tag}{escaped_line}{close_tag}')
+                
                 content = content[:match.start()] + ''.join(replacement_paragraphs) + content[match.end():]
+                
+                # Inject the keep-with-next style into automatic-styles
+                keep_style_def = (
+                    f'<style:style style:name="{keep_style_name}" style:family="paragraph" '
+                    f'style:parent-style-name="{parent_style}">'
+                    f'<style:paragraph-properties fo:keep-with-next="always"/>'
+                    f'</style:style>'
+                )
+                if keep_style_name not in content:
+                    content = content.replace(
+                        '</office:automatic-styles>',
+                        keep_style_def + '</office:automatic-styles>'
+                    )
             else:
                 # Fallback: simple replacement with line breaks
                 escaped_value = escape_xml(value)
@@ -120,6 +154,24 @@ def replace_placeholders(content: str, replacements: Dict[str, str]) -> str:
             content = content.replace(placeholder, escaped_value)
     
     return content
+
+
+def _split_into_blocks(lines):
+    """Split lines into blocks separated by empty lines."""
+    blocks = []
+    current_block = []
+    for line in lines:
+        if line.strip() == '':
+            if current_block:
+                blocks.append(current_block)
+            # Add the empty line as its own block
+            blocks.append([line])
+            current_block = []
+        else:
+            current_block.append(line)
+    if current_block:
+        blocks.append(current_block)
+    return blocks
 
 
 def escape_xml(text: str) -> str:

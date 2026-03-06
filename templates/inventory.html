@@ -839,6 +839,19 @@
             showToast(msg);
         }
 
+        // Allow Tab key in textareas (insert tab character instead of changing focus)
+        document.querySelectorAll('textarea').forEach(textarea => {
+            textarea.addEventListener('keydown', (e) => {
+                if (e.key === 'Tab') {
+                    e.preventDefault();
+                    const start = textarea.selectionStart;
+                    const end = textarea.selectionEnd;
+                    textarea.value = textarea.value.substring(0, start) + '\t' + textarea.value.substring(end);
+                    textarea.selectionStart = textarea.selectionEnd = start + 1;
+                }
+            });
+        });
+
         // Initialize
         fetchItems();
         fetchBundles();

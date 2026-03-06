@@ -631,7 +631,7 @@ function getSelectedMaterials() {
         }
     });
 
-    return selectedItems.join('\n');
+    return '\n' + selectedItems.join('\n\n');
 }
 
 /**
