@@ -309,7 +309,7 @@ def init_auth(app):
 
 # Routes
 @auth_bp.route('/login', methods=['GET', 'POST'])
-@limiter.limit("5 per minute", error_message="Zu viele Login-Versuche. Bitte warte eine Minute.")
+@limiter.limit("10 per minute", error_message="Zu viele Login-Versuche. Bitte warte eine Minute.")
 def login():
     """Login page."""
     if current_app.config.get('FIRST_RUN'):
@@ -343,6 +343,7 @@ def logout():
 
 
 @auth_bp.route('/setup', methods=['GET', 'POST'])
+@limiter.exempt
 def setup():
     """First-run setup to create admin user."""
     if User.count() > 0:
