@@ -289,7 +289,7 @@ def _get_real_ip():
 
 limiter = Limiter(
     key_func=_get_real_ip,
-    default_limits=["200 per day", "50 per hour"]
+    default_limits=["1000 per day", "300 per hour"]
 )
 
 
@@ -316,7 +316,7 @@ def init_auth(app):
 
 # Routes
 @auth_bp.route('/login', methods=['GET', 'POST'])
-@limiter.limit("10 per minute", error_message="Zu viele Login-Versuche. Bitte warte eine Minute.")
+@limiter.limit("10 per minute", methods=["POST"], error_message="Zu viele Login-Versuche. Bitte warte eine Minute.")
 def login():
     """Login page."""
     if current_app.config.get('FIRST_RUN'):
