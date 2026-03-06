@@ -60,7 +60,7 @@ services:
     restart: unless-stopped
   certbot:
     image: certbot/certbot
-    container_name: contract_maker_certbot
+    container_name: vms_certbot
     volumes:
       - certbot_www:/var/www/certbot
       - certbot_certs:/etc/letsencrypt
