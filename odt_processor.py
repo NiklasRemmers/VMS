@@ -123,12 +123,18 @@ def replace_placeholders(content: str, replacements: Dict[str, str]) -> str:
 
 
 def escape_xml(text: str) -> str:
-    """Escape special XML characters and convert newlines to line breaks."""
+    """Escape special XML characters, convert newlines/tabs/spaces to ODF elements."""
     text = text.replace('&', '&amp;')
     text = text.replace('<', '&lt;')
     text = text.replace('>', '&gt;')
     text = text.replace('"', '&quot;')
     text = text.replace("'", '&apos;')
+    # Convert tabs to ODF tab stops
+    text = text.replace('\t', '<text:tab/>')
+    # Convert multiple consecutive spaces to ODF space elements
+    # (ODF collapses multiple spaces like HTML — use <text:s/> to preserve them)
+    import re
+    text = re.sub(r' {2,}', lambda m: ' ' + '<text:s/>' * (len(m.group(0)) - 1), text)
     # Convert newlines to ODF line breaks
     text = text.replace('\n', '<text:line-break/>')
     return text

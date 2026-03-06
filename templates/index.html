@@ -112,7 +112,7 @@
                                 <div>
                                     <label for="vorname_nachname"
                                         class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Vor- und
-                                        Nachname</label>
+                                        Nachname <span class="text-red-500">*</span></label>
                                     <input type="text" id="vorname_nachname" name="vorname_nachname" required
                                         placeholder="Max Mustermann"
                                         class="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-700 dark:text-gray-300 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent">
@@ -120,7 +120,8 @@
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
                                         <label for="privatanschrift"
-                                            class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Privatanschrift</label>
+                                            class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Privatanschrift
+                                            <span class="text-red-500">*</span></label>
                                         <textarea id="privatanschrift" name="privatanschrift" rows="3" required
                                             placeholder="Musterstraße 1&#10;12345 Musterstadt"
                                             class="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-700 dark:text-gray-300 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-y"></textarea>
@@ -153,13 +154,15 @@
                                 <!-- Pickup -->
                                 <div>
                                     <label for="abholdatum"
-                                        class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Abholdatum</label>
+                                        class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Abholdatum
+                                        <span class="text-red-500">*</span></label>
                                     <input type="date" id="abholdatum" name="abholdatum" required
                                         class="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent">
                                 </div>
                                 <div>
                                     <label
-                                        class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Abholzeit</label>
+                                        class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Abholzeit
+                                        <span class="text-red-500">*</span></label>
                                     <div class="flex items-center space-x-2">
                                         <select id="abholzeit_stunde"
                                             class="flex-1 px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500">
@@ -176,13 +179,15 @@
                                 <!-- Return -->
                                 <div>
                                     <label for="rueckgabedatum"
-                                        class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Rückgabedatum</label>
+                                        class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Rückgabedatum
+                                        <span class="text-red-500">*</span></label>
                                     <input type="date" id="rueckgabedatum" name="rueckgabedatum" required
                                         class="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent">
                                 </div>
                                 <div>
                                     <label
-                                        class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Rückgabezeit</label>
+                                        class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Rückgabezeit
+                                        <span class="text-red-500">*</span></label>
                                     <div class="flex items-center space-x-2">
                                         <select id="rueckgabezeit_stunde"
                                             class="flex-1 px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500">
@@ -214,7 +219,7 @@
                                 <div class="md:col-span-2">
                                     <label for="veranstaltungsname"
                                         class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Name der
-                                        Veranstaltung</label>
+                                        Veranstaltung <span class="text-red-500">*</span></label>
                                     <input type="text" id="veranstaltungsname" name="veranstaltungsname" required
                                         placeholder="Sommerfest 2026"
                                         class="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-700 dark:text-gray-300 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent">
@@ -223,14 +228,14 @@
                                     <label for="veranstaltungsdatum"
                                         class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Datum
                                         der
-                                        Veranstaltung</label>
+                                        Veranstaltung <span class="text-red-500">*</span></label>
                                     <input type="date" id="veranstaltungsdatum" name="veranstaltungsdatum" required
                                         class="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent">
                                 </div>
                                 <div>
                                     <label for="veranstaltungsort"
                                         class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Ort der
-                                        Veranstaltung</label>
+                                        Veranstaltung <span class="text-red-500">*</span></label>
                                     <input type="text" id="veranstaltungsort" name="veranstaltungsort" required
                                         placeholder="Stadthalle Musterstadt"
                                         class="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-700 dark:text-gray-300 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent">
@@ -247,7 +252,7 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                         d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
                                 </svg>
-                                Material
+                                Material <span class="text-red-500">*</span>
                             </h3>
 
                             <!-- Package Selection -->
@@ -354,7 +359,7 @@
                                         d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z">
                                     </path>
                                 </svg>
-                                Unterschrift
+                                Unterschrift <span class="text-red-500">*</span>
                             </h3>
 
                             <div class="space-y-4">

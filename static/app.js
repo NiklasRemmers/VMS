@@ -38,8 +38,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     await loadMaterials();
     initializeTimePickers();
     initializePackageSelector();
-    addDropdownItem('equipment');
-    addDropdownItem('case');
     setupEventListeners();
     await loadCandidatesForContract(); // Auto-load candidates
     await loadSavedSignature(); // Auto-load signature from account
@@ -221,6 +219,19 @@ function setupEventListeners() {
 
     // Form submission
     contractForm.addEventListener('submit', handleSubmit);
+
+    // Allow Tab key in all textareas (inserts tab character instead of changing focus)
+    document.querySelectorAll('textarea').forEach(textarea => {
+        textarea.addEventListener('keydown', (e) => {
+            if (e.key === 'Tab') {
+                e.preventDefault();
+                const start = textarea.selectionStart;
+                const end = textarea.selectionEnd;
+                textarea.value = textarea.value.substring(0, start) + '\t' + textarea.value.substring(end);
+                textarea.selectionStart = textarea.selectionEnd = start + 1;
+            }
+        });
+    });
 
     // Form validation - listen for changes on all inputs
     const formFields = contractForm.querySelectorAll('input[required], textarea[required], select[required]');
