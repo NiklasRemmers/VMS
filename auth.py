@@ -301,6 +301,13 @@ def init_auth(app):
     # Configure Flask-Login
     login_manager.init_app(app)
 
+    # Handle unauthorized access: return 401 JSON for API, redirect for pages
+    @login_manager.unauthorized_handler
+    def unauthorized():
+        if request.path.startswith('/api/') or request.is_json:
+            return jsonify({'error': 'Nicht authentifiziert. Bitte erneut anmelden.'}), 401
+        return redirect(url_for('auth.login', next=request.url))
+
     # Configure rate limiter
     limiter.init_app(app)
 

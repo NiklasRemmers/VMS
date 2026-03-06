@@ -76,6 +76,10 @@ app.register_blueprint(settings_bp)
 from inventory_routes import inventory_bp
 app.register_blueprint(inventory_bp)
 
+# Exempt API blueprints from CSRF (they use X-CSRFToken header in JS)
+csrf.exempt(settings_bp)
+csrf.exempt(inventory_bp)
+
 # Initialize authentication
 init_auth(app)
 
@@ -776,10 +780,22 @@ def delete_email_candidate(candidate_id):
     return jsonify({'error': 'Kandidat nicht gefunden'}), 404
 
 
-# Exempt API routes from CSRF for AJAX calls (forms still protected)
+# Exempt all /api/ routes from CSRF (AJAX calls use session auth, not form tokens)
+# Flask-WTF's csrf.exempt() works per-view; for all inline /api/ routes we use
+# the app-wide approach: disable default checking and protect forms manually.
+app.config['WTF_CSRF_CHECK_DEFAULT'] = False
+
+@app.before_request
+def csrf_protect_forms():
+    """Apply CSRF protection only to non-API POST/PUT/DELETE requests."""
+    if request.method in ('POST', 'PUT', 'DELETE', 'PATCH'):
+        if not request.path.startswith('/api/'):
+            csrf.protect()
+
+
 @app.after_request
-def csrf_exempt_api(response):
-    """Exempt API routes from CSRF."""
+def handle_api_responses(response):
+    """For API routes, ensure proper error responses."""
     return response
 
 
