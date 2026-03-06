@@ -18,7 +18,7 @@ from flask_mail import Mail
 
 from odt_processor import convert_to_pdf, process_odt_template
 import kanboard_client
-from auth import init_auth, login_required, current_user
+from auth import init_auth, login_required, current_user, limiter
 from settings_routes import settings_bp
 
 
@@ -74,6 +74,13 @@ init_auth(app)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 TEMPLATE_PATH = os.path.join(BASE_DIR, 'template.odt')
 MATERIAL_PATH = os.path.join(BASE_DIR, 'material.json')
+
+
+@app.route('/health')
+@limiter.exempt
+def health_check():
+    """Health check endpoint for Docker, exempt from rate limiting."""
+    return jsonify({'status': 'ok'}), 200
 
 
 @app.route('/')

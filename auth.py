@@ -280,8 +280,15 @@ def load_user(user_id):
 
 
 # Initialize rate limiter
+def _get_real_ip():
+    """Get real client IP behind Nginx reverse proxy."""
+    forwarded = request.headers.get('X-Forwarded-For')
+    if forwarded:
+        return forwarded.split(',')[0].strip()
+    return request.remote_addr or '127.0.0.1'
+
 limiter = Limiter(
-    key_func=get_remote_address,
+    key_func=_get_real_ip,
     default_limits=["200 per day", "50 per hour"]
 )
 
