@@ -780,17 +780,13 @@ def delete_email_candidate(candidate_id):
     return jsonify({'error': 'Kandidat nicht gefunden'}), 404
 
 
-# Exempt all /api/ routes from CSRF (AJAX calls use session auth, not form tokens)
-# Flask-WTF's csrf.exempt() works per-view; for all inline /api/ routes we use
-# the app-wide approach: disable default checking and protect forms manually.
-app.config['WTF_CSRF_CHECK_DEFAULT'] = False
-
-@app.before_request
-def csrf_protect_forms():
-    """Apply CSRF protection only to non-API POST/PUT/DELETE requests."""
-    if request.method in ('POST', 'PUT', 'DELETE', 'PATCH'):
-        if not request.path.startswith('/api/'):
-            csrf.protect()
+# Exempt all /api/ routes from CSRF (they are called via AJAX, not form submissions)
+# This iterates over all registered routes after they've been defined above.
+for _rule in app.url_map.iter_rules():
+    if _rule.rule.startswith('/api/'):
+        _view = app.view_functions.get(_rule.endpoint)
+        if _view:
+            csrf.exempt(_view)
 
 
 @app.after_request
