@@ -13,6 +13,7 @@ from datetime import datetime
 
 from dotenv import load_dotenv
 from flask import Flask, jsonify, render_template, request, send_file
+from werkzeug.middleware.proxy_fix import ProxyFix
 from flask_wtf.csrf import CSRFProtect
 from flask_mail import Mail
 
@@ -43,11 +44,19 @@ def _get_secret(key: str, default: str = None) -> str:
 
 app = Flask(__name__, static_folder='static', template_folder='templates')
 
+# Trust X-Forwarded-* headers from reverse proxy (Nginx)
+# This is required so Flask correctly sees HTTPS and client IPs
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
+
 # Security configuration
+_is_production = os.environ.get('FLASK_ENV') == 'production'
 app.config['SECRET_KEY'] = _get_secret('SECRET_KEY', secrets.token_hex(32))
-app.config['SESSION_COOKIE_SECURE'] = os.environ.get('FLASK_ENV') == 'production'
+app.config['SESSION_COOKIE_SECURE'] = _is_production
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['REMEMBER_COOKIE_SECURE'] = _is_production
+app.config['REMEMBER_COOKIE_HTTPONLY'] = True
+app.config['REMEMBER_COOKIE_SAMESITE'] = 'Lax'
 app.config['WTF_CSRF_ENABLED'] = True
 
 # Email configuration
@@ -69,6 +78,10 @@ app.register_blueprint(inventory_bp)
 
 # Initialize authentication
 init_auth(app)
+
+# Log session configuration for diagnostics
+_sk = app.config['SECRET_KEY']
+print(f"ℹ Session: SECRET_KEY fingerprint={_sk[:8]}…, Secure={app.config['SESSION_COOKIE_SECURE']}, Production={_is_production}")
 
 # Paths
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
