@@ -34,11 +34,11 @@ def create_item():
         try:
             # If type is case, auto-generate description from contents
             if type_ == 'case':
-                description = f"1x {name}\n"
+                description = f"1x {name} mit\n"
                 for c_data in contents:
                     child = s.query(InventoryItem).get(c_data['item_id'])
                     if child:
-                        description += f"{c_data['count']}x {child.name}\n"
+                        description += f"\t{c_data['count']}x {child.name}\n"
                 description = description.strip()
 
             item = InventoryItem(name=name, description=description, type=type_)
@@ -91,7 +91,7 @@ def update_item(item_id):
             s.query(ItemContent).filter_by(parent_item_id=item.id).delete()
             
             # Add new contents and regenerate description
-            new_description = f"1x {item.name}\n"
+            new_description = f"1x {item.name} mit\n"
             for c_data in data['contents']:
                 content = ItemContent(
                     parent_item_id=item.id,
@@ -103,7 +103,7 @@ def update_item(item_id):
                 # Fetch child name for description
                 child = s.query(InventoryItem).get(c_data['item_id'])
                 if child:
-                    new_description += f"{c_data['count']}x {child.name}\n"
+                    new_description += f"\t{c_data['count']}x {child.name}\n"
             
             item.description = new_description.strip()
             
