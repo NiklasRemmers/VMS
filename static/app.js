@@ -5,6 +5,8 @@
 
 // Global state
 let materials = {};
+let equipment = {};
+let cases = {};
 let packages = {};
 let customMaterials = {}; // Temporary custom materials (not saved to JSON)
 let signatureData = null;
