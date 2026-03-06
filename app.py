@@ -98,8 +98,7 @@ def index():
     # Count Leihanfragen for current year
     with get_session() as s:
         leihanfragen_count = s.query(EmailCandidate).filter(
-            EmailCandidate.datum.ilike(f'%{current_year}%'),
-            EmailCandidate.user_id == current_user.id
+            EmailCandidate.datum.ilike(f'%{current_year}%')
         ).count()
     
     stats = {
@@ -332,7 +331,7 @@ def emails():
     import json
     
     # Pass user_id explicitly. status_filter='ALL' to get processed ones too.
-    all_candidates = get_candidates(status_filter='ALL', user_id=current_user.id)
+    all_candidates = get_candidates(status_filter='ALL')
     last_sync = get_last_sync(current_user.id)
     today = date.today()
     
@@ -442,7 +441,7 @@ def email_list_html():
     from datetime import datetime, date
     import json
     
-    all_candidates = get_candidates(status_filter='ALL', user_id=current_user.id)
+    all_candidates = get_candidates(status_filter='ALL')
     today = date.today()
     
     # Parse tags and dates for each candidate
@@ -535,7 +534,7 @@ def get_email_candidates():
     import json
     
     
-    candidates = get_candidates(status_filter='ALL', user_id=current_user.id)
+    candidates = get_candidates(status_filter='ALL')
     for c in candidates:
         if not c.get('tags'):
             c['tags'] = []
@@ -567,7 +566,6 @@ def get_archived_emails():
     tag_filter = request.args.get('tag')
     
     result = get_archived_candidates(
-        user_id=current_user.id,
         page=page,
         limit=limit,
         search_query=search,
@@ -719,7 +717,7 @@ def get_candidates_for_contract():
     from datetime import datetime, date
     import json
     
-    all_candidates = get_candidates('processed', user_id=current_user.id)
+    all_candidates = get_candidates('processed')
     result = []
     today = date.today()
     

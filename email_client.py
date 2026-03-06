@@ -345,15 +345,12 @@ def sync_emails(user_id: int) -> int:
 
 
 def get_candidates(status_filter='pending', user_id=None):
-    """Get candidates filtered by status and user."""
+    """Get candidates filtered by status (shared across all users)."""
     with get_session() as s:
         q = s.query(EmailCandidate)
         
         if status_filter != 'ALL':
             q = q.filter(EmailCandidate.status == status_filter)
-        
-        if user_id:
-            q = q.filter(EmailCandidate.user_id == user_id)
         
         q = q.order_by(EmailCandidate.received_at.desc())
         rows = q.all()
@@ -378,9 +375,9 @@ def get_candidates(status_filter='pending', user_id=None):
         return result
 
 
-def mark_candidate_processed(candidate_id, user_id):
+def mark_candidate_processed(candidate_id, user_id=None):
     with get_session() as s:
-        row = s.query(EmailCandidate).filter_by(id=candidate_id, user_id=user_id).first()
+        row = s.query(EmailCandidate).filter_by(id=candidate_id).first()
         if row:
             row.status = 'processed'
             row.contract_created = False
@@ -388,9 +385,9 @@ def mark_candidate_processed(candidate_id, user_id):
     return False
 
 
-def mark_candidate_done(candidate_id, user_id):
+def mark_candidate_done(candidate_id, user_id=None):
     with get_session() as s:
-        row = s.query(EmailCandidate).filter_by(id=candidate_id, user_id=user_id).first()
+        row = s.query(EmailCandidate).filter_by(id=candidate_id).first()
         if row:
             row.status = 'done'
             row.contract_created = True
@@ -398,24 +395,24 @@ def mark_candidate_done(candidate_id, user_id):
     return False
 
 
-def mark_candidate_pending(candidate_id, user_id):
+def mark_candidate_pending(candidate_id, user_id=None):
     with get_session() as s:
-        row = s.query(EmailCandidate).filter_by(id=candidate_id, user_id=user_id).first()
+        row = s.query(EmailCandidate).filter_by(id=candidate_id).first()
         if row:
             row.status = 'pending'
             row.contract_created = False
 
 
-def delete_candidate(candidate_id, user_id):
+def delete_candidate(candidate_id, user_id=None):
     with get_session() as s:
-        row = s.query(EmailCandidate).filter_by(id=candidate_id, user_id=user_id).first()
+        row = s.query(EmailCandidate).filter_by(id=candidate_id).first()
         if row:
             s.delete(row)
             return True
     return False
 
 
-def update_candidate(candidate_id, form_data: Dict, user_id: int):
+def update_candidate(candidate_id, form_data: Dict, user_id: int = None):
     valid_fields = [
         'subject', 'sender', 'vorname_nachname', 'anschrift', 'email_address',
         'telefon', 'veranstaltungsname', 'veranstaltungsart', 'veranstaltungsort',
@@ -425,7 +422,7 @@ def update_candidate(candidate_id, form_data: Dict, user_id: int):
     ]
     
     with get_session() as s:
-        row = s.query(EmailCandidate).filter_by(id=candidate_id, user_id=user_id).first()
+        row = s.query(EmailCandidate).filter_by(id=candidate_id).first()
         if not row:
             return False
         
@@ -436,9 +433,9 @@ def update_candidate(candidate_id, form_data: Dict, user_id: int):
         return True
 
 
-def get_candidate_by_id(candidate_id, user_id):
+def get_candidate_by_id(candidate_id, user_id=None):
     with get_session() as s:
-        row = s.query(EmailCandidate).filter_by(id=candidate_id, user_id=user_id).first()
+        row = s.query(EmailCandidate).filter_by(id=candidate_id).first()
         
         if row:
             c = row.to_dict()
@@ -458,9 +455,9 @@ def get_candidate_by_id(candidate_id, user_id):
     return None
 
 
-def save_kanboard_task_id(candidate_id, task_id, user_id):
+def save_kanboard_task_id(candidate_id, task_id, user_id=None):
     with get_session() as s:
-        row = s.query(EmailCandidate).filter_by(id=candidate_id, user_id=user_id).first()
+        row = s.query(EmailCandidate).filter_by(id=candidate_id).first()
         if row:
             row.kanboard_task_id = task_id
 
@@ -477,9 +474,8 @@ def sync_with_kanboard(user_id: int):
     updated = 0
     
     with get_session() as s:
-        # Load existing candidates linked to Kanboard tasks
+        # Load existing candidates linked to Kanboard tasks (shared across users)
         existing_candidates = s.query(EmailCandidate).filter(
-            EmailCandidate.user_id == user_id,
             EmailCandidate.kanboard_task_id.isnot(None)
         ).all()
         
@@ -584,9 +580,9 @@ def sync_with_kanboard(user_id: int):
     return {'updated': updated, 'created': created}
 
 
-def get_calendar_events(user_id):
-    """Get calendar events for dashboard."""
-    candidates = get_candidates('ALL', user_id)
+def get_calendar_events(user_id=None):
+    """Get calendar events for dashboard (shared across all users)."""
+    candidates = get_candidates('ALL')
     events = []
     
     for c in candidates:
@@ -629,16 +625,16 @@ def get_calendar_events(user_id):
     return events
 
 
-def get_archived_candidates(user_id: int, page: int = 1, limit: int = 10, 
+def get_archived_candidates(user_id: int = None, page: int = 1, limit: int = 10, 
                           search_query: str = None, date_filter: str = None, 
                           tag_filter: str = None) -> Dict:
-    """Get archived (past) candidates with pagination/filtering."""
+    """Get archived (past) candidates with pagination/filtering (shared across all users)."""
     offset = (page - 1) * limit
     
     try:
         with get_session() as s:
-            # Base query: user's candidates
-            q = s.query(EmailCandidate).filter(EmailCandidate.user_id == user_id)
+            # Base query: all candidates (shared)
+            q = s.query(EmailCandidate)
             
             # SAFE DATE PARSING using string manipulation
             # We normalize everything to 'YYYY-MM-DD' string for comparison/sorting
