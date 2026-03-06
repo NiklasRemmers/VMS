@@ -243,6 +243,7 @@ function setupEventListeners() {
  */
 function validateForm() {
     let isValid = true;
+    let missingFields = [];
 
     // Check all required HTML fields
     const requiredFields = contractForm.querySelectorAll('input[required], textarea[required], select[required]');
@@ -251,6 +252,7 @@ function validateForm() {
             isValid = false;
         }
     });
+    if (!isValid) missingFields.push('Pflichtfelder');
 
     // Check material selection
     const equipmentSelects = document.querySelectorAll('.equipment-select');
@@ -260,12 +262,23 @@ function validateForm() {
     equipmentSelects.forEach(sel => { if (sel.value) hasMaterial = true; });
     caseSelects.forEach(sel => { if (sel.value) hasMaterial = true; });
     customTexts.forEach(txt => { if (txt.value && txt.value.trim()) hasMaterial = true; });
-    if (!hasMaterial) isValid = false;
+    if (!hasMaterial) missingFields.push('Material');
 
     // Check signature
-    if (!signatureData) isValid = false;
+    if (!signatureData) missingFields.push('Unterschrift');
 
-    generateBtn.disabled = !isValid;
+    const formComplete = isValid && hasMaterial && signatureData;
+
+    // Style button but never fully disable it
+    if (formComplete) {
+        generateBtn.classList.remove('opacity-50');
+        generateBtn.classList.add('hover:bg-primary-700', 'hover:shadow-xl', 'hover:-translate-y-0.5');
+    } else {
+        generateBtn.classList.add('opacity-50');
+        generateBtn.classList.remove('hover:bg-primary-700', 'hover:shadow-xl', 'hover:-translate-y-0.5');
+    }
+    generateBtn.disabled = false; // Never disable — show error on click instead
+    generateBtn._missingFields = missingFields;
 }
 
 /**
@@ -612,6 +625,12 @@ function getSelectedMaterials() {
  */
 async function handleSubmit(e) {
     e.preventDefault();
+
+    // Show specific validation errors if form is incomplete
+    if (generateBtn._missingFields && generateBtn._missingFields.length > 0) {
+        showError('Fehlend: ' + generateBtn._missingFields.join(', '));
+        return;
+    }
 
     // Validate all required HTML fields first
     if (!contractForm.reportValidity()) {
