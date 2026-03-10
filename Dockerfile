@@ -26,7 +26,7 @@ WORKDIR /app
 COPY app.py auth.py database.py email_client.py \
     kanboard_client.py kms.py kms_setup.py models.py \
     odt_processor.py security.py settings_routes.py \
-    inventory_routes.py gunicorn.conf.py requirements.txt ./
+    inventory_routes.py invoice_routes.py gunicorn.conf.py requirements.txt ./
 
 COPY template.odt ./
 COPY templates/ ./templates/
