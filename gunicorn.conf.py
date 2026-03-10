@@ -32,6 +32,13 @@ limit_request_field_size = 8190
 preload_app = True
 daemon = False
 
+
+def post_fork(server, worker):
+    """Dispose SQLAlchemy engine after fork so each worker gets its own connection pool."""
+    import database
+    if database._engine is not None:
+        database._engine.dispose()
+
 # Development override
 if os.environ.get('FLASK_ENV') == 'development':
     bind = '127.0.0.1:5000'
