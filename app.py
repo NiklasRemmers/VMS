@@ -76,9 +76,13 @@ app.register_blueprint(settings_bp)
 from inventory_routes import inventory_bp
 app.register_blueprint(inventory_bp)
 
+from invoice_routes import invoice_bp
+app.register_blueprint(invoice_bp)
+
 # Exempt API blueprints from CSRF (they use X-CSRFToken header in JS)
 csrf.exempt(settings_bp)
 csrf.exempt(inventory_bp)
+csrf.exempt(invoice_bp)
 
 # Initialize authentication
 init_auth(app)

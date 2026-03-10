@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="de" class="h-full bg-gray-50 dark:bg-gray-900">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>VMS - Rechnungen</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        purple: {
+                            50: '#f5f3ff',
+                            100: '#ede9fe',
+                            500: '#8b5cf6',
+                            600: '#7c3aed',
+                            700: '#6d28d9',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <script>
+        // Check local storage for dark mode preference
+        if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark')
+        } else {
+            document.documentElement.classList.remove('dark')
+        }
+    </script>
+</head>
+
+<body class="h-full font-sans antialiased text-gray-900 dark:text-gray-100 flex overflow-hidden">
+
+    {% include '_sidebar.html' %}
+
+    <div class="flex-1 flex flex-col w-full h-full min-w-0">
+        {% include '_navbar.html' %}
+
+        <!-- Main Content (Scrollable Container) -->
+        <main class="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50 dark:bg-gray-900 min-h-0">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-8 h-full flex flex-col">
+                
+                <!-- Toast Notifications -->
+                <div id="toast-container" class="fixed top-4 right-4 z-50 flex flex-col gap-2"></div>
+
+                <div class="flex items-center justify-between mb-8">
+                    <h2 class="text-2xl font-bold text-gray-800 dark:text-white">Rechnungen</h2>
+                </div>
+
+                <!-- Main Content Area: Fills remaining height -->
+                <div class="flex-1 flex flex-col min-h-0">
+                    
+                    <!-- Invoices Table -->
+                    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 flex flex-col flex-1 overflow-hidden">
+                        
+                        <!-- Table Wrapper -->
+                        <div class="flex-1 overflow-auto">
+                            
+                            <!-- Skeleton Loader -->
+                            <div id="invoicesLoader" class="flex items-center justify-center h-64">
+                                <div class="animate-pulse flex flex-col items-center">
+                                    <div class="h-8 w-8 bg-purple-200 rounded-full mb-4"></div>
+                                    <div class="text-gray-500 dark:text-gray-400">Verarbeite Daten...</div>
+                                </div>
+                            </div>
+
+                            <!-- Data Table -->
+                            <table id="invoicesTable" class="min-w-full divide-y divide-gray-200 dark:divide-gray-700 hidden">
+                                <thead class="bg-gray-50 dark:bg-gray-700 sticky top-0 z-10 shadow-sm border-b border-gray-200 dark:border-gray-700">
+                                    <tr>
+                                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wider">Name / Veranstaltung</th>
+                                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wider">Datum</th>
+                                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wider">Tags</th>
+                                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wider">Hinweis</th>
+                                        <th class="relative px-6 py-4">
+                                            <span class="sr-only">Aktionen</span>
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody id="invoicesTbody" class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                                    <!-- Dynamic content goes here -->
+                                </tbody>
+                            </table>
+                            
+                            <div id="noInvoicesMsg" class="hidden flex-col justify-center items-center h-64 text-gray-500 dark:text-gray-400">
+                                <svg class="w-12 h-12 mb-4 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                </svg>
+                                <p>Keine offenen Rechnungen vorhanden.</p>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Invoice Modal -->
+    <div id="invoiceModal" class="fixed inset-0 z-50 overflow-y-auto hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <!-- Modal Background Overlay -->
+            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity backdrop-blur-sm" aria-hidden="true" onclick="closeInvoiceModal()"></div>
+            <!-- Center modal trick -->
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+
+            <!-- Modal Panel -->
+            <div class="inline-block align-bottom bg-white dark:bg-gray-800 rounded-xl px-4 pt-5 pb-4 text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-3xl sm:w-full sm:p-6 border border-gray-100 dark:border-gray-700">
+                
+                <!-- Modal Header -->
+                <div class="flex justify-between items-center mb-5 pb-4 border-b border-gray-200 dark:border-gray-700">
+                    <h3 class="text-xl font-bold text-gray-900 dark:text-white" id="invoiceModalTitle">Rechnung erstellen</h3>
+                    <button type="button" onclick="closeInvoiceModal()" class="text-gray-400 hover:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 p-2 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500">
+                        <span class="sr-only">Schließen</span>
+                        <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Info Block (Read-only) -->
+                <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 mb-6 text-sm">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <p class="text-gray-500 dark:text-gray-400 mb-1">Name / Veranstaltung</p>
+                            <p class="font-medium text-gray-900 dark:text-white" id="invCandidateName">-</p>
+                            <p class="text-gray-700 dark:text-gray-300" id="invCandidateEvent">-</p>
+                        </div>
+                        <div>
+                            <p class="text-gray-500 dark:text-gray-400 mb-1">Datum</p>
+                            <p class="font-medium text-gray-900 dark:text-white" id="invCandidateDate">-</p>
+                            <div class="mt-2 flex flex-wrap gap-1" id="invCandidateTags"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recipient Email -->
+                <div class="mb-6">
+                    <label for="invEmail" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Empfänger E-Mail</label>
+                    <input type="email" id="invEmail" class="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-purple-500 focus:ring-purple-500 sm:text-sm px-4 py-2 border">
+                </div>
+
+                <!-- Invoice Items Table -->
+                <div class="mb-6">
+                    <h4 class="text-lg font-medium text-gray-900 dark:text-white mb-3">Rechnungsposten</h4>
+                    <div class="overflow-x-auto border border-gray-200 dark:border-gray-700 rounded-lg">
+                        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                            <thead class="bg-gray-50 dark:bg-gray-700">
+                                <tr>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Posten</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider w-32">Preis/Einheit</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider w-24">Anzahl</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider w-32">Summe</th>
+                                    <th class="px-4 py-3 w-16"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="invoiceItemsTbody" class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                                <!-- Dynamic items -->
+                            </tbody>
+                            <tfoot class="bg-gray-50 dark:bg-gray-700 font-medium">
+                                <tr>
+                                    <td colspan="3" class="px-4 py-3 text-right text-gray-900 dark:text-white">Gesamtsumme:</td>
+                                    <td colspan="2" class="px-4 py-3 text-left text-gray-900 dark:text-white" id="invoiceTotal">0,00 €</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Add Items Section -->
+                <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 mb-6">
+                    <!-- Standard Consumable -->
+                    <div class="flex items-end gap-3 mb-4">
+                        <div class="flex-1">
+                            <label for="consumableSelect" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Verbrauchsmaterial hinzufügen</label>
+                            <select id="consumableSelect" class="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-purple-500 focus:ring-purple-500 sm:text-sm px-4 py-2 border">
+                                <option value="">Material wählen...</option>
+                                <!-- Loaded via API -->
+                            </select>
+                        </div>
+                        <button type="button" onclick="addConsumableItem()" class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 dark:focus:ring-offset-gray-800">
+                            Hinzufügen
+                        </button>
+                    </div>
+
+                    <div class="relative py-2">
+                        <div class="absolute inset-0 flex items-center" aria-hidden="true">
+                            <div class="w-full border-t border-gray-300 dark:border-gray-600"></div>
+                        </div>
+                        <div class="relative flex justify-center">
+                            <span class="px-2 bg-gray-50 dark:bg-gray-700 text-sm text-gray-500 dark:text-gray-400">oder freier Posten</span>
+                        </div>
+                    </div>
+
+                    <!-- Custom Item -->
+                    <div class="flex flex-wrap sm:flex-nowrap items-end gap-3 mt-4">
+                        <div class="flex-1 min-w-[150px]">
+                            <label for="customName" class="block text-xs text-gray-500 dark:text-gray-400 mb-1">Bezeichnung</label>
+                            <input type="text" id="customName" class="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-purple-500 focus:ring-purple-500 sm:text-sm px-3 py-1.5 border">
+                        </div>
+                        <div class="w-24">
+                            <label for="customPrice" class="block text-xs text-gray-500 dark:text-gray-400 mb-1">Preis (€)</label>
+                            <input type="number" id="customPrice" step="0.01" min="0" value="0.00" class="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-purple-500 focus:ring-purple-500 sm:text-sm px-3 py-1.5 border">
+                        </div>
+                        <div class="w-24">
+                            <label for="customUnit" class="block text-xs text-gray-500 dark:text-gray-400 mb-1">Einheit</label>
+                            <input type="text" id="customUnit" placeholder="z.B. Stück" class="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-purple-500 focus:ring-purple-500 sm:text-sm px-3 py-1.5 border">
+                        </div>
+                        <button type="button" onclick="addCustomItem()" class="inline-flex items-center px-3 py-1.5 border border-gray-300 dark:border-gray-600 shadow-sm text-sm font-medium rounded-md text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 dark:focus:ring-offset-gray-800">
+                            Plus
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Mail Body Textarea -->
+                <div class="mb-6">
+                    <label for="invMailText" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Mail-Nachricht (inkl. Rechnung als PDF im Anhang)</label>
+                    <textarea id="invMailText" rows="6" class="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-purple-500 focus:ring-purple-500 px-4 py-2 border font-mono text-sm">Hallo,
+
+anbei die Rechnung für die Verbrauchsmaterialien.
+
+Viele Grüße.</textarea>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="mt-5 sm:mt-6 sm:flex sm:flex-row-reverse gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+                    <button type="button" onclick="createInvoice()" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-purple-600 text-base font-medium text-white hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 sm:w-auto sm:text-sm dark:focus:ring-offset-gray-800">
+                        Rechnung erstellen
+                    </button>
+                    <button type="button" onclick="createRefund()" class="mt-3 sm:mt-0 w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-emerald-600 text-base font-medium text-white hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 sm:w-auto sm:text-sm dark:focus:ring-offset-gray-800">
+                        Umlagenerstattung
+                    </button>
+                    <button type="button" onclick="closeInvoiceModal()" class="mt-3 sm:mt-0 w-full inline-flex justify-center rounded-md border border-gray-300 dark:border-gray-600 shadow-sm px-4 py-2 bg-white dark:bg-gray-700 text-base font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 sm:w-auto sm:text-sm dark:focus:ring-offset-gray-800">
+                        Abbrechen
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        // Data globals
+        let candidates = [];
+        let consumables = [];
+        let invoiceItems = [];
+        let activeCandidate = null;
+
+        // Number formatter
+        const formatMoney = (amount) => amount.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " €";
+        
+        // Helper: Toast Message
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            
+            // Animation classes
+            toast.className = `transform transition-all duration-300 ease-in-out translate-x-full opacity-0 flex items-center p-4 mb-2 text-sm text-white rounded-lg shadow-lg ${type === 'success' ? 'bg-green-500' : 'bg-red-500'}`;
+            
+            // Icon based on type
+            const icon = type === 'success' 
+                ? `<svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>`
+                : `<svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
+            
+            toast.innerHTML = `${icon}${message}`;
+            container.appendChild(toast);
+            
+            // Trigger animation
+            requestAnimationFrame(() => {
+                toast.classList.remove('translate-x-full', 'opacity-0');
+                toast.classList.add('translate-x-0', 'opacity-100');
+            });
+            
+            // Remove after 3 seconds
+            setTimeout(() => {
+                toast.classList.remove('translate-x-0', 'opacity-100');
+                toast.classList.add('translate-x-full', 'opacity-0');
+                setTimeout(() => {
+                    container.removeChild(toast);
+                }, 300); // Wait for transition
+            }, 3000);
+        }
+
+        // Fetch data on load
+        async function loadData() {
+            try {
+                const [candRes, consRes] = await Promise.all([
+                    fetch('/api/invoices/candidates'),
+                    fetch('/api/invoices/consumables')
+                ]);
+                
+                candidates = await candRes.json();
+                consumables = await consRes.json();
+                
+                renderCandidatesTable();
+                populateConsumablesDropdown();
+            } catch (err) {
+                console.error("Failed to load invoice data", err);
+                showToast("Fehler beim Laden der Daten.", "error");
+            }
+        }
+
+        function populateConsumablesDropdown() {
+            const select = document.getElementById('consumableSelect');
+            // Keep default option
+            select.innerHTML = '<option value="">Material wählen...</option>';
+            consumables.forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c.id;
+                opt.textContent = `${c.name} (${formatMoney(c.price)} / ${c.unit || 'Stück'})`;
+                select.appendChild(opt);
+            });
+        }
+
+        function renderCandidatesTable() {
+            document.getElementById('invoicesLoader').classList.add('hidden');
+            const table = document.getElementById('invoicesTable');
+            const tbody = document.getElementById('invoicesTbody');
+            const noMsg = document.getElementById('noInvoicesMsg');
+            
+            if (candidates.length === 0) {
+                table.classList.add('hidden');
+                noMsg.classList.remove('hidden');
+                noMsg.classList.add('flex');
+            } else {
+                table.classList.remove('hidden');
+                noMsg.classList.add('hidden');
+                noMsg.classList.remove('flex');
+                
+                tbody.innerHTML = '';
+                candidates.forEach(c => {
+                    const tr = document.createElement('tr');
+                    tr.className = "hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors";
+                    
+                    // Tags HTML
+                    let tagsHtml = '';
+                    if (c.tags && c.tags.length > 0) {
+                        tagsHtml = `<div class="flex flex-wrap gap-1">` + 
+                            c.tags.map(t => `<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300 border border-purple-200 dark:border-purple-800">${t}</span>`).join('') + 
+                            `</div>`;
+                    } else {
+                        tagsHtml = `<span class="text-xs text-gray-500">-</span>`;
+                    }
+                    
+                    // Date HTML
+                    let dateHtml = c.datum || '-';
+                    if (c.datum && c.end_date && c.datum !== c.end_date) {
+                        dateHtml = `${c.datum} - ${c.end_date}`;
+                    }
+                    
+                    // Note HTML
+                    let noteHtml = c.return_note ? `<span class="text-sm truncate max-w-xs inline-block" title="${c.return_note}">Neu: ${c.return_note}</span>` : `<span class="text-gray-400">-</span>`;
+
+                    tr.innerHTML = `
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="flex items-center">
+                                <div class="flex-shrink-0 h-8 w-8 rounded-full bg-purple-100 dark:bg-purple-900/50 flex items-center justify-center text-purple-600 dark:text-purple-400 font-bold">
+                                    ${c.vorname_nachname.charAt(0)}
+                                </div>
+                                <div class="ml-4">
+                                    <div class="text-sm font-medium text-gray-900 dark:text-white">${c.vorname_nachname}</div>
+                                    <div class="text-sm text-gray-500 dark:text-gray-400">${c.veranstaltungsname || 'Keine Veranstaltung'}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">${dateHtml}</td>
+                        <td class="px-6 py-4 whitespace-nowrap">${tagsHtml}</td>
+                        <td class="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">${noteHtml}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <button onclick='openInvoiceModal(${JSON.stringify(c).replace(/'/g, "&#39;")})' class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded shadow-sm text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500">
+                                Erstellen
+                            </button>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
+        }
+
+        // Modal Logic
+        function openInvoiceModal(candidate) {
+            activeCandidate = candidate;
+            invoiceItems = []; // reset
+            
+            // Populate info
+            document.getElementById('invoiceModalTitle').textContent = `Rechnung — ${candidate.veranstaltungsname || candidate.vorname_nachname}`;
+            document.getElementById('invCandidateName').textContent = candidate.vorname_nachname;
+            document.getElementById('invCandidateEvent').textContent = candidate.veranstaltungsname || '-';
+            
+            let dateStr = candidate.datum || '-';
+            if (candidate.datum && candidate.end_date && candidate.datum !== candidate.end_date) {
+                dateStr = `${candidate.datum} - ${candidate.end_date}`;
+            }
+            document.getElementById('invCandidateDate').textContent = dateStr;
+            
+            // Tags
+            const tagsCont = document.getElementById('invCandidateTags');
+            if (candidate.tags && candidate.tags.length > 0) {
+                tagsCont.innerHTML = candidate.tags.map(t => `<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-200 text-gray-800 dark:bg-gray-600 dark:text-gray-200">${t}</span>`).join('');
+            } else {
+                tagsCont.innerHTML = `<span class="text-xs text-gray-500">-</span>`;
+            }
+            
+            // Mail input
+            document.getElementById('invEmail').value = candidate.email_address || '';
+            
+            // Render table empty state
+            renderInvoiceItems();
+            
+            // Show modal
+            document.getElementById('invoiceModal').classList.remove('hidden');
+        }
+
+        function closeInvoiceModal() {
+            document.getElementById('invoiceModal').classList.add('hidden');
+            activeCandidate = null;
+        }
+
+        function renderInvoiceItems() {
+            const tbody = document.getElementById('invoiceItemsTbody');
+            tbody.innerHTML = '';
+            
+            let total = 0;
+            
+            if (invoiceItems.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="px-4 py-6 text-center text-sm text-gray-500 dark:text-gray-400">Keine Posten hinzugefügt.</td></tr>`;
+                document.getElementById('invoiceTotal').textContent = "0,00 €";
+                return;
+            }
+            
+            invoiceItems.forEach((item, index) => {
+                const itemTotal = item.price * item.quantity;
+                total += itemTotal;
+                
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="px-4 py-2 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">${item.name}</td>
+                    <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${formatMoney(item.price)} / ${item.unit}</td>
+                    <td class="px-4 py-2 whitespace-nowrap">
+                        <input type="number" min="1" step="1" value="${item.quantity}" onchange="updateItemQuantity(${index}, this.value)" class="block w-20 rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-purple-500 focus:ring-purple-500 sm:text-sm px-2 py-1 border">
+                    </td>
+                    <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-900 dark:text-white">${formatMoney(itemTotal)}</td>
+                    <td class="px-4 py-2 whitespace-nowrap text-right text-sm font-medium">
+                        <button onclick="removeInvoiceItem(${index})" class="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300">
+                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+            
+            document.getElementById('invoiceTotal').textContent = formatMoney(total);
+        }
+
+        function addConsumableItem() {
+            const select = document.getElementById('consumableSelect');
+            const consId = select.value;
+            if (!consId) return;
+            
+            const cons = consumables.find(c => c.id == consId);
+            if (cons) {
+                // Check if already in list to just increment
+                const existingIndex = invoiceItems.findIndex(i => i.id === cons.id);
+                if (existingIndex >= 0) {
+                    invoiceItems[existingIndex].quantity += 1;
+                } else {
+                    invoiceItems.push({
+                        id: cons.id,
+                        name: cons.name,
+                        price: cons.price,
+                        unit: cons.unit || 'Stück',
+                        quantity: 1
+                    });
+                }
+                renderInvoiceItems();
+                // Reset select
+                select.value = '';
+            }
+        }
+
+        function addCustomItem() {
+            const name = document.getElementById('customName').value.trim();
+            const priceVal = document.getElementById('customPrice').value;
+            const price = parseFloat(priceVal) || 0;
+            const unit = document.getElementById('customUnit').value.trim() || 'Stück'; // default
+            
+            if (!name) {
+                showToast("Bitte Bezeichnung eingeben", "error");
+                return;
+            }
+            
+            invoiceItems.push({
+                id: null,
+                name: name,
+                price: price,
+                unit: unit,
+                quantity: 1
+            });
+            
+            renderInvoiceItems();
+            
+            // clear inputs
+            document.getElementById('customName').value = '';
+            document.getElementById('customPrice').value = '0.00';
+            document.getElementById('customUnit').value = '';
+        }
+
+        function updateItemQuantity(index, val) {
+            const qty = parseInt(val, 10);
+            if (qty > 0 && index >= 0 && index < invoiceItems.length) {
+                invoiceItems[index].quantity = qty;
+                renderInvoiceItems();
+            }
+        }
+
+        function removeInvoiceItem(index) {
+            if (index >= 0 && index < invoiceItems.length) {
+                invoiceItems.splice(index, 1);
+                renderInvoiceItems();
+            }
+        }
+
+        function createInvoice() {
+            showToast("Funktion kommt noch: Rechnung erstellen", "success");
+        }
+
+        function createRefund() {
+            showToast("Funktion kommt noch: Umlagenerstattung", "success");
+        }
+
+        // Init
+        document.addEventListener('DOMContentLoaded', loadData);
+    </script>
+</body>
+</html>
