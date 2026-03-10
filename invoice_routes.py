@@ -2,7 +2,6 @@ from flask import Blueprint, render_template, jsonify, request
 from flask_login import login_required, current_user
 from models import EmailCandidate, InventoryItem
 from database import get_session
-from app_config import materials  # Assuming materials is needed if templates use it
 from datetime import datetime
 import re
 
@@ -28,7 +27,7 @@ def parse_german_date(date_str):
 @invoice_bp.route('/invoices')
 @login_required
 def invoices_page():
-    return render_template('invoices.html', user=current_user, materials=materials)
+    return render_template('invoices.html', user=current_user)
 
 @invoice_bp.route('/api/invoices/candidates', methods=['GET'])
 @login_required
