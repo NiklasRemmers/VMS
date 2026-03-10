@@ -309,97 +309,6 @@
                         </div>
                         {% endif %}
 
-
-                        <!-- Archive Section -->
-                        <div class="mt-8 border-t border-gray-200 dark:border-gray-700 pt-8">
-                            <details class="group" id="archiveDetails">
-                                <summary
-                                    class="flex items-center justify-between cursor-pointer list-none p-4 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800">
-                                    <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200">Vergangene
-                                        Anfragen (Archiv)</h3>
-                                    <span class="transition group-open:rotate-180">
-                                        <svg class="w-6 h-6 text-gray-500" fill="none" stroke="currentColor"
-                                            viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M19 9l-7 7-7-7"></path>
-                                        </svg>
-                                    </span>
-                                </summary>
-
-                                <div class="mt-4 px-2">
-                                    <!-- Filters -->
-                                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-                                        <input type="text" id="archiveSearch" placeholder="Suchen (Name, Event)..."
-                                            oninput="debounceLoadArchive()"
-                                            class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm">
-
-                                        <input type="date" id="archiveDate" onchange="loadArchive(1)"
-                                            class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm">
-
-                                        <select id="archiveTag" onchange="loadArchive(1)"
-                                            class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm">
-                                            <option value="">Alle Tags</option>
-                                            {% if materials and materials.materials %}
-                                            {% for tag_name in materials.materials.keys() %}
-                                            <option value="{{ tag_name }}">{{ tag_name }}</option>
-                                            {% endfor %}
-                                            {% endif %}
-                                        </select>
-
-                                        <button onclick="clearArchiveFilters()"
-                                            class="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg text-sm hover:bg-gray-300 dark:hover:bg-gray-600">
-                                            Filter zurücksetzen
-                                        </button>
-                                    </div>
-
-                                    <!-- Table -->
-                                    <div
-                                        class="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden">
-                                        <table class="w-full">
-                                            <thead class="bg-gray-50 dark:bg-gray-700">
-                                                <tr>
-                                                    <th
-                                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                                        Name / Veranstaltung</th>
-                                                    <th
-                                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                                        Datum</th>
-                                                    <th
-                                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                                        Tags</th>
-                                                    <th
-                                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                                        Status</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody id="archiveBody"
-                                                class="divide-y divide-gray-200 dark:divide-gray-700">
-                                                <!-- Rows loaded via JS -->
-                                                <tr>
-                                                    <td colspan="4" class="px-6 py-4 text-center text-sm text-gray-500">
-                                                        Lade Daten...</td>
-                                                </tr>
-                                            </tbody>
-                                        </table>
-                                    </div>
-
-                                    <!-- Pagination -->
-                                    <div class="flex justify-between items-center mt-4">
-                                        <button id="prevArchive" onclick="changeArchivePage(-1)" disabled
-                                            class="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 disabled:opacity-50 text-sm">
-                                            Zurück
-                                        </button>
-                                        <span id="archivePageInfo"
-                                            class="text-sm text-gray-600 dark:text-gray-400">Seite 1</span>
-                                        <button id="nextArchive" onclick="changeArchivePage(1)" disabled
-                                            class="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 disabled:opacity-50 text-sm">
-                                            Weiter
-                                        </button>
-                                    </div>
-                                </div>
-                            </details>
-                        </div>
-
                     </div><!-- /email-list-container -->
 
                     <!-- Rückgaben Section (outside email-list-container to survive AJAX refresh) -->
@@ -423,6 +332,96 @@
                             </table>
                           </div>
                         </div>
+                    </div>
+
+                    <!-- Archive Section -->
+                    <div class="mt-8 border-t border-gray-200 dark:border-gray-700 pt-8">
+                        <details class="group" id="archiveDetails">
+                            <summary
+                                class="flex items-center justify-between cursor-pointer list-none p-4 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800">
+                                <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200">Vergangene
+                                    Anfragen (Archiv)</h3>
+                                <span class="transition group-open:rotate-180">
+                                    <svg class="w-6 h-6 text-gray-500" fill="none" stroke="currentColor"
+                                        viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M19 9l-7 7-7-7"></path>
+                                    </svg>
+                                </span>
+                            </summary>
+
+                            <div class="mt-4 px-2">
+                                <!-- Filters -->
+                                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                                    <input type="text" id="archiveSearch" placeholder="Suchen (Name, Event)..."
+                                        oninput="debounceLoadArchive()"
+                                        class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm">
+
+                                    <input type="date" id="archiveDate" onchange="loadArchive(1)"
+                                        class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm">
+
+                                    <select id="archiveTag" onchange="loadArchive(1)"
+                                        class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm">
+                                        <option value="">Alle Tags</option>
+                                        {% if materials and materials.materials %}
+                                        {% for tag_name in materials.materials.keys() %}
+                                        <option value="{{ tag_name }}">{{ tag_name }}</option>
+                                        {% endfor %}
+                                        {% endif %}
+                                    </select>
+
+                                    <button onclick="clearArchiveFilters()"
+                                        class="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg text-sm hover:bg-gray-300 dark:hover:bg-gray-600">
+                                        Filter zurücksetzen
+                                    </button>
+                                </div>
+
+                                <!-- Table -->
+                                <div
+                                    class="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden">
+                                    <table class="w-full">
+                                        <thead class="bg-gray-50 dark:bg-gray-700">
+                                            <tr>
+                                                <th
+                                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                                    Name / Veranstaltung</th>
+                                                <th
+                                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                                    Datum</th>
+                                                <th
+                                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                                    Tags</th>
+                                                <th
+                                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                                    Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="archiveBody"
+                                            class="divide-y divide-gray-200 dark:divide-gray-700">
+                                            <!-- Rows loaded via JS -->
+                                            <tr>
+                                                <td colspan="4" class="px-6 py-4 text-center text-sm text-gray-500">
+                                                    Lade Daten...</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <!-- Pagination -->
+                                <div class="flex justify-between items-center mt-4">
+                                    <button id="prevArchive" onclick="changeArchivePage(-1)" disabled
+                                        class="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 disabled:opacity-50 text-sm">
+                                        Zurück
+                                    </button>
+                                    <span id="archivePageInfo"
+                                        class="text-sm text-gray-600 dark:text-gray-400">Seite 1</span>
+                                    <button id="nextArchive" onclick="changeArchivePage(1)" disabled
+                                        class="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 disabled:opacity-50 text-sm">
+                                        Weiter
+                                    </button>
+                                </div>
+                            </div>
+                        </details>
                     </div>
 
                     <script>
@@ -1512,8 +1511,7 @@
                 } else {
                     tbody.innerHTML = '<tr><td colspan="4" class="px-6 py-8 text-center text-sm text-gray-500">Keine Rückgaben vorhanden.</td></tr>';
                 }
-                // Show/hide section
-                document.getElementById('returnsSection').style.display = data.total > 0 ? 'block' : 'none';
+
             } catch (e) {
                 console.error(e);
                 tbody.innerHTML = '<tr><td colspan="4" class="px-6 py-4 text-center text-red-500">Fehler beim Laden.</td></tr>';
