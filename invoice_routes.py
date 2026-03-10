@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template, jsonify, request
 from flask_login import login_required, current_user
-from models import EmailCandidate, InventoryItem, db
+from models import EmailCandidate, InventoryItem
+from database import get_session
 from app_config import materials  # Assuming materials is needed if templates use it
 from datetime import datetime
 import re
@@ -32,9 +33,10 @@ def invoices_page():
 @invoice_bp.route('/api/invoices/candidates', methods=['GET'])
 @login_required
 def api_get_invoice_candidates():
-    # Only pending invoices
-    query = EmailCandidate.query.filter_by(status='invoice_pending')
-    candidates = query.all()
+    with get_session() as s:
+        # Only pending invoices
+        query = s.query(EmailCandidate).filter_by(status='invoice_pending')
+        candidates = query.all()
     
     # Sort by date (oldest first) using parsed dates
     def get_sort_key(c):
@@ -61,7 +63,9 @@ def api_get_invoice_candidates():
 @invoice_bp.route('/api/invoices/consumables', methods=['GET'])
 @login_required
 def api_get_invoice_consumables():
-    consumables = InventoryItem.query.filter_by(type='consumable').all()
+    with get_session() as s:
+        consumables = s.query(InventoryItem).filter_by(type='consumable').all()
+        
     result = []
     for item in consumables:
         result.append({
