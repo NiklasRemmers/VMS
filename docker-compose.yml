@@ -36,6 +36,7 @@ services:
       - app_secrets:/app/secrets_store
       - app_signatures:/app/signatures
       - app_static_signatures:/app/static/signatures
+      - ./templates:/app/templates:ro
     depends_on:
       db:
         condition: service_healthy
