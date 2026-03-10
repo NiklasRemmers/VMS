@@ -146,38 +146,32 @@ def get_materials():
             bundles = s.query(Bundle).order_by(Bundle.name).all()
             
             # Format: { "materials": { "Name": "Description" } } (Backwards compatibility)
-            # New format: { "equipment": { "Name": "Description" }, "cases": { "Name": "Description" } }
             materials_dict = {}
             equipment_dict = {}
-            cases_dict = {}
             
             for item in items:
+                if item.type == 'case':
+                    continue  # Skip legacy case items
                 desc = item.description or item.name
                 materials_dict[item.name] = desc
-                if item.type == 'case':
-                    cases_dict[item.name] = desc
-                else:
-                    equipment_dict[item.name] = desc
+                equipment_dict[item.name] = desc
             
             # Format: { "packages": { "BundleName": [ { "count": 1, "text": "Description" } ] } }
             packages_dict = {}
             for bundle in bundles:
                 package_items = []
                 for b_item in bundle.items:
-                    # b_item is a BundleItem association
                     item_def = s.query(InventoryItem).get(b_item.item_id)
                     if item_def:
                         package_items.append({
                             'count': b_item.count,
-                            'text': item_def.name,
-                            'type': item_def.type or 'equipment'
+                            'text': item_def.name
                         })
                 packages_dict[bundle.name] = package_items
                 
             return jsonify({
                 "materials": materials_dict,
                 "equipment": equipment_dict,
-                "cases": cases_dict,
                 "packages": packages_dict
             })
             

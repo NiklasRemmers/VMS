@@ -77,12 +77,6 @@
                             <li class="mr-2" role="presentation">
                                 <button
                                     class="inline-block p-4 border-b-2 border-transparent rounded-t-lg hover:text-gray-600 hover:border-gray-300 dark:hover:text-gray-300 text-gray-500 dark:text-gray-400"
-                                    id="cases-tab" data-tabs-target="#cases" type="button" role="tab"
-                                    aria-controls="cases" aria-selected="false">Cases</button>
-                            </li>
-                            <li class="mr-2" role="presentation">
-                                <button
-                                    class="inline-block p-4 border-b-2 border-transparent rounded-t-lg hover:text-gray-600 hover:border-gray-300 dark:hover:text-gray-300 text-gray-500 dark:text-gray-400"
                                     id="bundles-tab" data-tabs-target="#bundles" type="button" role="tab"
                                     aria-controls="bundles" aria-selected="false">Bundles</button>
                             </li>
@@ -152,56 +146,6 @@
                             </div>
                         </div>
 
-                        <!-- Cases Tab -->
-                        <div class="hidden p-4" id="cases" role="tabpanel" aria-labelledby="cases-tab">
-                            <div class="flex justify-end mb-4">
-                                <button onclick="openCaseModal()"
-                                    class="px-4 py-2 text-sm font-medium leading-5 text-white transition-colors duration-150 bg-purple-600 border border-transparent rounded-lg active:bg-purple-600 hover:bg-purple-700 focus:outline-none focus:shadow-outline-purple">
-                                    + Case hinzufügen
-                                </button>
-                            </div>
-
-                            <div class="w-full overflow-hidden rounded-lg shadow-xs">
-                                <div class="w-full overflow-x-auto">
-                                    <table class="w-full whitespace-no-wrap">
-                                        <thead>
-                                            <tr
-                                                class="text-xs font-semibold tracking-wide text-left text-gray-500 uppercase border-b dark:border-gray-700 bg-gray-50 dark:text-gray-400 dark:bg-gray-800">
-                                                <th class="px-4 py-3">Name</th>
-                                                <th class="px-4 py-3">Vertragstext</th>
-                                                <th class="px-4 py-3">Aktionen</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="casesTableBody"
-                                            class="bg-white divide-y dark:divide-gray-700 dark:bg-gray-800">
-                                            <!-- Skeleton Loader -->
-                                            <tr class="animate-pulse">
-                                                <td class="px-4 py-3">
-                                                    <div class="h-4 bg-gray-200 rounded dark:bg-gray-700 w-3/4"></div>
-                                                </td>
-                                                <td class="px-4 py-3">
-                                                    <div class="h-4 bg-gray-200 rounded dark:bg-gray-700 w-1/2"></div>
-                                                </td>
-                                                <td class="px-4 py-3">
-                                                    <div class="h-8 bg-gray-200 rounded dark:bg-gray-700 w-24"></div>
-                                                </td>
-                                            </tr>
-                                            <tr class="animate-pulse">
-                                                <td class="px-4 py-3">
-                                                    <div class="h-4 bg-gray-200 rounded dark:bg-gray-700 w-3/4"></div>
-                                                </td>
-                                                <td class="px-4 py-3">
-                                                    <div class="h-4 bg-gray-200 rounded dark:bg-gray-700 w-1/2"></div>
-                                                </td>
-                                                <td class="px-4 py-3">
-                                                    <div class="h-8 bg-gray-200 rounded dark:bg-gray-700 w-24"></div>
-                                                </td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
 
                         <!-- Bundles Tab -->
                         <div class="hidden p-4" id="bundles" role="tabpanel" aria-labelledby="bundles-tab">
@@ -292,66 +236,6 @@
         </div>
     </div>
 
-    <!-- Case Modal -->
-    <div id="caseModal" class="fixed inset-0 z-50 hidden">
-        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" onclick="closeCaseModal()"></div>
-        <div class="relative flex items-center justify-center min-h-screen p-4 pointer-events-none">
-            <div
-                class="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 border border-gray-200 dark:border-gray-700 pointer-events-auto">
-                <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4" id="caseModalTitle">Neues Case
-                </h3>
-                <div class="space-y-4">
-                    <input type="hidden" id="caseId">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Name</label>
-                        <input type="text" id="caseName"
-                            class="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500">
-                    </div>
-
-                    <!-- Content Selection -->
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Inhalt
-                            hinzufügen</label>
-                        <div class="flex gap-2 mb-3">
-                            <select id="caseItemSelect"
-                                class="flex-1 px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500">
-                                <option value="">Gegenstand auswählen...</option>
-                            </select>
-                            <button type="button" onclick="addCaseItem()"
-                                class="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg transition-colors">Hinzufügen</button>
-                        </div>
-
-                        <div class="border border-gray-200 dark:border-gray-600 rounded-lg overflow-hidden">
-                            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                                <thead class="bg-gray-50 dark:bg-gray-700">
-                                    <tr>
-                                        <th
-                                            class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                            Gegenstand</th>
-                                        <th
-                                            class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-24">
-                                            Anzahl</th>
-                                        <th
-                                            class="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-20">
-                                            Aktion</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="caseItemsTableBody"
-                                    class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-                <div class="flex justify-end space-x-3 mt-6">
-                    <button type="button" onclick="closeCaseModal()"
-                        class="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-sm font-medium rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">Abbrechen</button>
-                    <button type="button" onclick="saveCase()"
-                        class="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg transition-colors">Speichern</button>
-                </div>
-            </div>
-        </div>
-    </div>
 
     <!-- Bundle Modal -->
     <div id="bundleModal" class="fixed inset-0 z-50 hidden">
@@ -378,21 +262,7 @@
                                 class="flex-1 px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500">
                                 <option value="">Equipment auswählen...</option>
                             </select>
-                            <button type="button" onclick="addBundleItem('equipment')"
-                                class="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg transition-colors">Hinzufügen</button>
-                        </div>
-                    </div>
-
-                    <!-- Cases Selection -->
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Cases
-                            hinzufügen</label>
-                        <div class="flex gap-2 mb-3">
-                            <select id="bundleCaseSelect"
-                                class="flex-1 px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500">
-                                <option value="">Case auswählen...</option>
-                            </select>
-                            <button type="button" onclick="addBundleItem('case')"
+                            <button type="button" onclick="addBundleItem()"
                                 class="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg transition-colors">Hinzufügen</button>
                         </div>
                     </div>
@@ -407,9 +277,6 @@
                                         <th
                                             class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                                             Gegenstand</th>
-                                        <th
-                                            class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-20">
-                                            Typ</th>
                                         <th
                                             class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-24">
                                             Anzahl</th>
@@ -440,7 +307,6 @@
     <script>
         const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
         let allItems = []; // Store fetched items
-        let currentCaseItems = []; // Temporary storage for Case modal
         let currentBundleItems = []; // Temporary storage for Bundle modal
 
         // Tabs Logic
@@ -470,12 +336,11 @@
                 const response = await fetch('/api/inventory/items');
                 if (!response.ok) throw new Error('Netzwerkfehler');
                 allItems = await response.json();
-                renderInventoryTables(allItems);
+                renderEquipmentTable(allItems);
                 populateItemSelects();
             } catch (error) {
                 console.error('Error fetching items:', error);
                 showTableError('equipmentTableBody');
-                showTableError('casesTableBody');
             }
         }
 
@@ -493,24 +358,13 @@
 
         function populateItemSelects() {
             const equipment = allItems.filter(i => i.type === 'equipment');
-            const cases = allItems.filter(i => i.type === 'case');
 
-            // Case modal: only equipment can be added
             const equipmentOptions = '<option value="">Equipment auswählen...</option>' +
                 equipment.map(i => `<option value="${i.id}">${i.name}</option>`).join('');
 
-            const caseSelect = document.getElementById('caseItemSelect');
-            if (caseSelect) caseSelect.innerHTML = equipmentOptions;
-
-            // Bundle modal: separate dropdowns for equipment and cases
+            // Bundle modal: equipment dropdown
             const bundleEquipmentSelect = document.getElementById('bundleEquipmentSelect');
             if (bundleEquipmentSelect) bundleEquipmentSelect.innerHTML = equipmentOptions;
-
-            const caseOptions = '<option value="">Case auswählen...</option>' +
-                cases.map(i => `<option value="${i.id}">${i.name}</option>`).join('');
-
-            const bundleCaseSelect = document.getElementById('bundleCaseSelect');
-            if (bundleCaseSelect) bundleCaseSelect.innerHTML = caseOptions;
         }
 
         function showTableError(tbodyId) {
@@ -518,13 +372,10 @@
             if (tbody) tbody.innerHTML = `<tr><td colspan="3" class="px-4 py-3 text-center text-red-500">Fehler beim Laden der Daten. Bitte Seite neu laden.</td></tr>`;
         }
 
-        function renderInventoryTables(items) {
+        function renderEquipmentTable(items) {
             if (!items) return;
             const equipment = items.filter(i => i.type === 'equipment');
-            const cases = items.filter(i => i.type === 'case');
-
             renderTable(equipment, 'equipmentTableBody', 'Kein Equipment vorhanden');
-            renderTable(cases, 'casesTableBody', 'Keine Cases vorhanden');
         }
 
         function renderTable(items, tbodyId, emptyMsg) {
@@ -540,7 +391,7 @@
                     <td class="px-4 py-3 text-sm font-semibold">${item.name}</td>
                     <td class="px-4 py-3 text-sm truncate max-w-xs" title="${item.description}">${item.description ? item.description.replace(/\n/g, '<br>') : ''}</td>
                     <td class="px-4 py-3 text-sm">
-                        <button onclick="editItem(${item.id}, '${item.type}')" class="px-2 py-1 font-semibold leading-tight text-gray-700 bg-gray-100 rounded-full dark:text-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600">Edit</button>
+                        <button onclick="editItem(${item.id})" class="px-2 py-1 font-semibold leading-tight text-gray-700 bg-gray-100 rounded-full dark:text-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600">Edit</button>
                         <button onclick="deleteItem(${item.id})" class="ml-2 px-2 py-1 font-semibold leading-tight text-red-700 bg-red-100 rounded-full dark:text-red-100 dark:bg-red-700 hover:bg-red-200 dark:hover:bg-red-600">Delete</button>
                     </td>
                 </tr>
@@ -607,92 +458,6 @@
             } catch (error) { console.error(error); }
         }
 
-        // --- Case Actions ---
-
-        function openCaseModal(item = null) {
-            document.getElementById('caseId').value = item ? item.id : '';
-            document.getElementById('caseName').value = item ? item.name : '';
-            document.getElementById('caseModalTitle').textContent = item ? 'Case bearbeiten' : 'Neues Case';
-
-            // Populate items from item.contents if editing, else empty
-            currentCaseItems = item && item.contents ? item.contents.map(c => ({ id: c.item_id, name: c.item_name, count: c.count })) : [];
-            renderCaseItems();
-
-            document.getElementById('caseModal').classList.remove('hidden');
-        }
-
-        function closeCaseModal() {
-            document.getElementById('caseModal').classList.add('hidden');
-        }
-
-        function addCaseItem() {
-            const select = document.getElementById('caseItemSelect');
-            const id = parseInt(select.value);
-            if (!id) return;
-            const name = select.options[select.selectedIndex].text;
-
-            const existing = currentCaseItems.find(i => i.id === id);
-            if (existing) {
-                existing.count++;
-            } else {
-                currentCaseItems.push({ id, name, count: 1 });
-            }
-            renderCaseItems();
-            select.value = '';
-        }
-
-        function removeCaseItem(index) {
-            currentCaseItems.splice(index, 1);
-            renderCaseItems();
-        }
-
-        function updateCaseItemCount(index, newCount) {
-            if (newCount < 1) return;
-            currentCaseItems[index].count = parseInt(newCount);
-        }
-
-        function renderCaseItems() {
-            const tbody = document.getElementById('caseItemsTableBody');
-            tbody.innerHTML = currentCaseItems.map((item, index) => `
-                <tr>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">${item.name}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                        <input type="number" min="1" value="${item.count}" onchange="updateCaseItemCount(${index}, this.value)" class="w-16 p-1 border rounded dark:bg-gray-700 dark:text-white dark:border-gray-600">
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <button onclick="removeCaseItem(${index})" class="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300">Entfernen</button>
-                    </td>
-                </tr>
-            `).join('');
-        }
-
-        async function saveCase() {
-            const id = document.getElementById('caseId').value;
-            const name = document.getElementById('caseName').value;
-            // Description is auto-generated backend for Cases
-
-            const method = id ? 'PUT' : 'POST';
-            const url = id ? `/api/inventory/items/${id}` : '/api/inventory/items';
-
-            const contents = currentCaseItems.map(i => ({ item_id: i.id, count: i.count }));
-
-            try {
-                const response = await fetch(url, {
-                    method: method,
-                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
-                    body: JSON.stringify({ name, type: 'case', contents })
-                });
-
-                if (response.ok) {
-                    closeCaseModal();
-                    fetchItems();
-                    showToast('Case gespeichert!');
-                } else {
-                    const data = await response.json();
-                    showToast(data.error || 'Fehler beim Speichern', 'error');
-                }
-            } catch (error) { console.error(error); }
-        }
 
         // --- Bundle Actions ---
 
@@ -701,7 +466,7 @@
             document.getElementById('bundleName').value = bundle ? bundle.name : '';
             document.getElementById('bundleModalTitle').textContent = bundle ? 'Bundle bearbeiten' : 'Neues Bundle';
 
-            currentBundleItems = bundle ? bundle.items.map(i => ({ id: i.item_id, name: i.item_name, count: i.count, type: i.item_type || 'equipment' })) : [];
+            currentBundleItems = bundle ? bundle.items.map(i => ({ id: i.item_id, name: i.item_name, count: i.count })) : [];
             renderBundleItems();
 
             document.getElementById('bundleModal').classList.remove('hidden');
@@ -711,9 +476,8 @@
             document.getElementById('bundleModal').classList.add('hidden');
         }
 
-        function addBundleItem(itemType) {
-            const selectId = itemType === 'case' ? 'bundleCaseSelect' : 'bundleEquipmentSelect';
-            const select = document.getElementById(selectId);
+        function addBundleItem() {
+            const select = document.getElementById('bundleEquipmentSelect');
             const id = parseInt(select.value);
             if (!id) return;
             const name = select.options[select.selectedIndex].text;
@@ -722,7 +486,7 @@
             if (existing) {
                 existing.count++;
             } else {
-                currentBundleItems.push({ id, name, count: 1, type: itemType });
+                currentBundleItems.push({ id, name, count: 1 });
             }
             renderBundleItems();
             select.value = '';
@@ -741,17 +505,12 @@
         function renderBundleItems() {
             const tbody = document.getElementById('bundleItemsTableBody');
             if (currentBundleItems.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="4" class="px-4 py-3 text-center text-sm text-gray-500 dark:text-gray-400">Noch keine Gegenstände hinzugefügt</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="3" class="px-4 py-3 text-center text-sm text-gray-500 dark:text-gray-400">Noch keine Gegenstände hinzugefügt</td></tr>`;
                 return;
             }
-            tbody.innerHTML = currentBundleItems.map((item, index) => {
-                const typeBadge = item.type === 'case'
-                    ? '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">Case</span>'
-                    : '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400">Equipment</span>';
-                return `
+            tbody.innerHTML = currentBundleItems.map((item, index) => `
                 <tr>
                     <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">${item.name}</td>
-                    <td class="px-4 py-3 whitespace-nowrap text-sm">${typeBadge}</td>
                     <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                         <input type="number" min="1" value="${item.count}" onchange="updateBundleItemCount(${index}, this.value)" class="w-16 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 dark:text-white text-sm">
                     </td>
@@ -759,7 +518,7 @@
                         <button onclick="removeBundleItem(${index})" class="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300">Entfernen</button>
                     </td>
                 </tr>
-            `}).join('');
+            `).join('');
         }
 
         async function saveBundle() {
@@ -791,13 +550,9 @@
 
         // --- General ---
 
-        function editItem(id, type) {
+        function editItem(id) {
             const item = allItems.find(i => i.id === id);
-            if (type === 'equipment') {
-                openEquipmentModal(item);
-            } else if (type === 'case') {
-                openCaseModal(item);
-            }
+            openEquipmentModal(item);
         }
 
         function editBundle(bundle) {

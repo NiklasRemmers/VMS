@@ -24,40 +24,15 @@ def create_item():
     data = request.get_json()
     name = data.get('name')
     description = data.get('description')
-    type_ = data.get('type', 'equipment')
-    contents = data.get('contents', []) # List of {item_id: int, count: int}
 
     if not name:
         return jsonify({'error': 'Name erforderlich'}), 400
 
     with get_session() as s:
         try:
-            # If type is case, auto-generate description from contents
-            if type_ == 'case':
-                description = f"1x {name} mit\n"
-                for c_data in contents:
-                    child = s.query(InventoryItem).get(c_data['item_id'])
-                    if child:
-                        description += f"\t{c_data['count']}x {child.name}\n"
-                description = description.strip()
-
-            item = InventoryItem(name=name, description=description, type=type_)
+            item = InventoryItem(name=name, description=description, type='equipment')
             s.add(item)
-            s.flush() # Get ID
-
-            # Add contents for Case
-            if type_ == 'case':
-                from models import ItemContent
-                for c_data in contents:
-                    content = ItemContent(
-                        parent_item_id=item.id,
-                        child_item_id=c_data['item_id'],
-                        count=c_data['count']
-                    )
-                    s.add(content)
-
             s.commit()
-            # Refresh to get relationships
             s.refresh(item)
             return jsonify(item.to_dict()), 201
         except IntegrityError:
@@ -81,31 +56,6 @@ def update_item(item_id):
             item.name = data['name']
         if 'description' in data:
             item.description = data['description']
-        if 'type' in data:
-            item.type = data['type']
-        
-        # Update contents if provided (only for cases)
-        if 'contents' in data and item.type == 'case':
-            from models import ItemContent
-            # Clear existing contents
-            s.query(ItemContent).filter_by(parent_item_id=item.id).delete()
-            
-            # Add new contents and regenerate description
-            new_description = f"1x {item.name} mit\n"
-            for c_data in data['contents']:
-                content = ItemContent(
-                    parent_item_id=item.id,
-                    child_item_id=c_data['item_id'],
-                    count=c_data['count']
-                )
-                s.add(content)
-                
-                # Fetch child name for description
-                child = s.query(InventoryItem).get(c_data['item_id'])
-                if child:
-                    new_description += f"\t{c_data['count']}x {child.name}\n"
-            
-            item.description = new_description.strip()
             
         try:
             s.commit()

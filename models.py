@@ -168,17 +168,13 @@ class InventoryItem(Base):
     
     # For bundles
     bundles = relationship('BundleItem', back_populates='item', cascade='all, delete-orphan')
-    
-    # For Cases (contents)
-    contents = relationship('ItemContent', foreign_keys='ItemContent.parent_item_id', back_populates='parent_item', cascade='all, delete-orphan')
 
     def to_dict(self):
         return {
             'id': self.id,
             'name': self.name,
             'description': self.description,
-            'type': self.type,
-            'contents': [c.to_dict() for c in self.contents]
+            'type': self.type
         }
 
 
@@ -220,25 +216,4 @@ class BundleItem(Base):
         }
 
 
-class ItemContent(Base):
-    """
-    Represents the contents of an InventoryItem (specifically for Cases).
-    A Case (parent_item) contains multiple other items (child_item).
-    """
-    __tablename__ = 'item_contents'
 
-    id = Column(Integer, primary_key=True)
-    parent_item_id = Column(Integer, ForeignKey('inventory_items.id', ondelete='CASCADE'), nullable=False)
-    child_item_id = Column(Integer, ForeignKey('inventory_items.id', ondelete='CASCADE'), nullable=False)
-    count = Column(Integer, default=1)
-
-    # Relationships
-    parent_item = relationship('InventoryItem', foreign_keys=[parent_item_id], back_populates='contents')
-    child_item = relationship('InventoryItem', foreign_keys=[child_item_id])
-
-    def to_dict(self):
-        return {
-            'item_id': self.child_item_id,
-            'item_name': self.child_item.name if self.child_item else None,
-            'count': self.count
-        }

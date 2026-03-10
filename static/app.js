@@ -6,7 +6,6 @@
 // Global state
 let materials = {};
 let equipment = {};
-let cases = {};
 let packages = {};
 let customMaterials = {}; // Temporary custom materials (not saved to JSON)
 let signatureData = null;
@@ -71,22 +70,16 @@ async function loadMaterials() {
         const response = await fetch('/api/materials');
         if (response.ok) {
             const data = await response.json();
-            // Check if new structure with equipment and cases
-            if (data.equipment && data.cases) {
+            if (data.equipment) {
                 equipment = data.equipment;
-                cases = data.cases;
-                materials = data.materials; // Keep for retro-compatibility
+                materials = data.materials || data.equipment;
                 packages = data.packages || {};
             } else if (data.materials) {
-                // Fallback for intermediate structure
                 equipment = data.materials;
-                cases = {};
                 materials = data.materials;
                 packages = data.packages || {};
             } else {
-                // Fallback for oldest structure
                 equipment = data;
-                cases = {};
                 materials = data;
                 packages = {};
             }
@@ -155,12 +148,11 @@ function loadPackage() {
 
     // Clear existing materials
     document.getElementById('equipmentContainer').innerHTML = '';
-    document.getElementById('casesContainer').innerHTML = '';
 
     // Load package items
     const packageItems = packages[selectedPackage];
     packageItems.forEach(item => {
-        addDropdownItem(item.type || 'equipment', item.count, item.text);
+        addDropdownItem(item.count, item.text);
     });
 }
 
@@ -169,10 +161,7 @@ function loadPackage() {
  */
 function setupEventListeners() {
     // Add equipment button
-    document.getElementById('addEquipmentBtn').addEventListener('click', () => addDropdownItem('equipment'));
-
-    // Add case button
-    document.getElementById('addCaseBtn').addEventListener('click', () => addDropdownItem('case'));
+    document.getElementById('addEquipmentBtn').addEventListener('click', () => addDropdownItem());
 
     // Load package button
     loadPackageBtn.addEventListener('click', loadPackage);
@@ -243,7 +232,6 @@ function setupEventListeners() {
     // Also watch for material changes
     const observer = new MutationObserver(validateForm);
     observer.observe(document.getElementById('equipmentContainer'), { childList: true, subtree: true });
-    observer.observe(document.getElementById('casesContainer'), { childList: true, subtree: true });
 
     // Initial validation
     validateForm();
@@ -265,18 +253,15 @@ function validateForm() {
     });
     if (!isValid) missingFields.push('Pflichtfelder');
 
-    // Check material selection — either equipment OR case OR custom material
+    // Check material selection — either equipment OR custom material
     const equipmentSelects = document.querySelectorAll('.equipment-select');
-    const caseSelects = document.querySelectorAll('.case-select');
     const customTexts = document.querySelectorAll('.custom-text');
     let hasEquipment = false;
-    let hasCase = false;
     let hasCustom = false;
     equipmentSelects.forEach(sel => { if (sel.value) hasEquipment = true; });
-    caseSelects.forEach(sel => { if (sel.value) hasCase = true; });
     customTexts.forEach(txt => { if (txt.value && txt.value.trim()) hasCustom = true; });
-    const hasMaterial = hasEquipment || hasCase || hasCustom;
-    if (!hasMaterial) missingFields.push('Material oder Case');
+    const hasMaterial = hasEquipment || hasCustom;
+    if (!hasMaterial) missingFields.push('Material');
 
     // Check signature
     if (!signatureData) missingFields.push('Unterschrift');
@@ -415,47 +400,37 @@ function addCustomMaterialItem(quantity, name, text) {
  * Refresh all material dropdowns after adding a new material
  */
 function refreshMaterialDropdowns() {
-    // Refresh both equipment and case dropdowns
-    ['equipment', 'case'].forEach(type => {
-        const selectClass = type === 'equipment' ? '.equipment-select' : '.case-select';
-        const dataObj = type === 'equipment' ? equipment : cases;
+    const selects = document.querySelectorAll('.equipment-select');
+    selects.forEach(select => {
+        const currentValue = select.value;
 
-        const selects = document.querySelectorAll(selectClass);
-        selects.forEach(select => {
-            const currentValue = select.value;
+        // Clear all except default
+        while (select.options.length > 1) {
+            select.remove(1);
+        }
 
-            // Clear all except default
-            while (select.options.length > 1) {
-                select.remove(1);
-            }
+        // Re-add all materials
+        for (const [tag, description] of Object.entries(equipment)) {
+            const option = document.createElement('option');
+            option.value = tag;
+            option.textContent = tag;
+            option.title = description;
+            select.appendChild(option);
+        }
 
-            // Re-add all materials of this type
-            for (const [tag, description] of Object.entries(dataObj)) {
-                const option = document.createElement('option');
-                option.value = tag;
-                option.textContent = tag;
-                option.title = description;
-                select.appendChild(option);
-            }
-
-            // Restore selection
-            select.value = currentValue;
-        });
+        // Restore selection
+        select.value = currentValue;
     });
 }
 
 /**
  * Add a dropdown item with quantity selector
- * @param {string} type - 'equipment' or 'case'
  * @param {number} quantity - Pre-selected quantity
  * @param {string} materialKey - Pre-selected material key
  */
-function addDropdownItem(type = 'equipment', quantity = 1, materialKey = '') {
-    const containerId = type === 'equipment' ? 'equipmentContainer' : 'casesContainer';
-    const container = document.getElementById(containerId);
+function addDropdownItem(quantity = 1, materialKey = '') {
+    const container = document.getElementById('equipmentContainer');
     if (!container) return;
-
-    const dataObj = type === 'equipment' ? equipment : cases;
 
     const item = document.createElement('div');
     item.className = 'material-item flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-lg';
@@ -475,18 +450,17 @@ function addDropdownItem(type = 'equipment', quantity = 1, materialKey = '') {
 
     // Material selector
     const select = document.createElement('select');
-    const selectClass = type === 'equipment' ? 'equipment-select' : 'case-select';
-    select.className = `${selectClass} flex-1 px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500`;
+    select.className = 'equipment-select flex-1 px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500';
     select.required = container.children.length === 0 && !materialKey;
 
     // Add default option
     const defaultOption = document.createElement('option');
     defaultOption.value = '';
-    defaultOption.textContent = type === 'equipment' ? 'Equipment auswählen...' : 'Case auswählen...';
+    defaultOption.textContent = 'Equipment auswählen...';
     select.appendChild(defaultOption);
 
     // Add material options
-    for (const [tag, description] of Object.entries(dataObj)) {
+    for (const [tag, description] of Object.entries(equipment)) {
         const option = document.createElement('option');
         option.value = tag;
         option.textContent = tag;
@@ -504,8 +478,7 @@ function addDropdownItem(type = 'equipment', quantity = 1, materialKey = '') {
     removeBtn.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>';
     removeBtn.addEventListener('click', () => {
         item.remove();
-        // Make first item required if it's the only one
-        const remaining = container.querySelectorAll(`.${selectClass}`);
+        const remaining = container.querySelectorAll('.equipment-select');
         if (remaining.length === 1) {
             remaining[0].required = true;
         }
@@ -623,14 +596,6 @@ function getSelectedMaterials() {
         }
     });
 
-    // Case items
-    document.querySelectorAll('.case-select').forEach(select => {
-        if (select.value && cases[select.value]) {
-            const quantity = select.parentElement.querySelector('.quantity-select').value;
-            selectedItems.push(`${quantity} x ${cases[select.value]}`);
-        }
-    });
-
     return '\n' + selectedItems.join('\n\n');
 }
 
@@ -651,16 +616,14 @@ async function handleSubmit(e) {
         return;
     }
 
-    // Validate that at least one equipment OR case OR custom material is selected
+    // Validate that at least one equipment OR custom material is selected
     const eqSelects = document.querySelectorAll('.equipment-select');
-    const csSelects = document.querySelectorAll('.case-select');
     const ctTexts = document.querySelectorAll('.custom-text');
     let hasAnyMaterial = false;
     eqSelects.forEach(sel => { if (sel.value) hasAnyMaterial = true; });
-    csSelects.forEach(sel => { if (sel.value) hasAnyMaterial = true; });
     ctTexts.forEach(txt => { if (txt.value && txt.value.trim()) hasAnyMaterial = true; });
     if (!hasAnyMaterial) {
-        showError('Bitte mindestens ein Material oder Case auswählen.');
+        showError('Bitte mindestens ein Material ausw\u00e4hlen.');
         return;
     }
 
@@ -892,7 +855,6 @@ function fillFormFromCandidate() {
     document.getElementById('rueckgabezeit_minute').value = '';
     // Clear materials
     document.getElementById('equipmentContainer').innerHTML = '';
-    document.getElementById('casesContainer').innerHTML = '';
 
     // ===== FILL FROM CANDIDATE =====
     document.getElementById('vorname_nachname').value = candidate.vorname_nachname || '';
@@ -945,28 +907,25 @@ function fillFormFromCandidate() {
         });
 
         // Add known materials
-        knownTags.forEach(key => addDropdownItem(cases[key] ? 'case' : 'equipment', 1, key));
+        knownTags.forEach(key => addDropdownItem(1, key));
 
         // Add packages (expanded)
         foundPackages.forEach(pkgKey => {
             const packageItems = packages[pkgKey];
             packageItems.forEach(item => {
-                const itemType = item.type || 'equipment';
-                addDropdownItem(itemType, item.count, item.text);
+                addDropdownItem(item.count, item.text);
             });
         });
 
         // Process unknown tags with popup
         if (unknownTags.length > 0) {
             processUnknownTags(unknownTags);
-        } else if (document.getElementById('equipmentContainer').children.length === 0 && document.getElementById('casesContainer').children.length === 0) {
-            addDropdownItem('equipment');
-            addDropdownItem('case');
+        } else if (document.getElementById('equipmentContainer').children.length === 0) {
+            addDropdownItem();
         }
     } else {
-        // No tags — add one empty row for each
-        addDropdownItem('equipment');
-        addDropdownItem('case');
+        // No tags — add one empty row
+        addDropdownItem();
     }
 
     const displayName = candidate.veranstaltungsname || candidate.vorname_nachname || 'Leihanfrage';
@@ -1041,10 +1000,8 @@ function processNextTag() {
     if (tagMappingQueue.length === 0) {
         // All tags processed, ensure at least one material item
         const eqCount = document.getElementById('equipmentContainer').children.length;
-        const caseCount = document.getElementById('casesContainer').children.length;
-        if (eqCount === 0 && caseCount === 0) {
-            addDropdownItem('equipment');
-            addDropdownItem('case');
+        if (eqCount === 0) {
+            addDropdownItem();
         }
         return;
     }
@@ -1100,7 +1057,7 @@ async function confirmTagMapping() {
         materials[tagName] = description;
 
         // Add material item
-        addDropdownItem('equipment', 1, tagName);
+        addDropdownItem(1, tagName);
 
         // Refresh dropdowns
         refreshMaterialDropdowns();
