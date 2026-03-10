@@ -684,6 +684,7 @@ def get_returns():
             c['tags'] = []
         
         parsed_date = None
+        parsed_end_date = None
         if c.get('datum'):
             try:
                 parsed_date = datetime.strptime(c['datum'], '%d.%m.%Y').date()
@@ -693,13 +694,24 @@ def get_returns():
                 except:
                     pass
         
-        # Check if date is in the past
-        if parsed_date and parsed_date < today:
-            if c.get('end_date'):
-                try:
-                    c['end_date_display'] = datetime.strptime(c['end_date'], '%Y-%m-%d').strftime('%d.%m.%Y')
-                except:
-                    c['end_date_display'] = c['end_date']
+        if c.get('end_date'):
+            try:
+                parsed_end_date = datetime.strptime(c['end_date'], '%Y-%m-%d').date()
+            except:
+                pass
+            try:
+                c['end_date_display'] = datetime.strptime(c['end_date'], '%Y-%m-%d').strftime('%d.%m.%Y')
+            except:
+                c['end_date_display'] = c['end_date']
+        
+        # Check if end_date is past OR start_date (datum) is past
+        is_past = False
+        if parsed_end_date and parsed_end_date < today:
+            is_past = True
+        elif parsed_date and parsed_date < today:
+            is_past = True
+        
+        if is_past:
             returns.append(c)
     
     # Sort oldest first

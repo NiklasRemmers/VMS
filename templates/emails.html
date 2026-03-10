@@ -309,28 +309,6 @@
                         </div>
                         {% endif %}
 
-                        <!-- Rückgaben Section -->
-                        <div class="mb-8" id="returnsSection">
-                            <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-4">Rückgaben</h3>
-                            <div
-                                class="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden">
-                              <div class="max-h-[400px] overflow-y-auto" id="returnsScrollContainer">
-                                <table class="w-full">
-                                    <thead class="bg-gray-50 dark:bg-gray-700">
-                                        <tr>
-                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Name / Veranstaltung</th>
-                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Datum</th>
-                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Tags</th>
-                                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Aktionen</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody class="divide-y divide-gray-200 dark:divide-gray-700" id="returnsTbody">
-                                        <tr><td colspan="4" class="px-6 py-4 text-center text-sm text-gray-500">Lade Rückgaben...</td></tr>
-                                    </tbody>
-                                </table>
-                              </div>
-                            </div>
-                        </div>
 
                         <!-- Archive Section -->
                         <div class="mt-8 border-t border-gray-200 dark:border-gray-700 pt-8">
@@ -423,6 +401,29 @@
                         </div>
 
                     </div><!-- /email-list-container -->
+
+                    <!-- Rückgaben Section (outside email-list-container to survive AJAX refresh) -->
+                    <div class="mb-8" id="returnsSection">
+                        <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-4">Rückgaben</h3>
+                        <div
+                            class="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden">
+                          <div class="max-h-[400px] overflow-y-auto" id="returnsScrollContainer">
+                            <table class="w-full">
+                                <thead class="bg-gray-50 dark:bg-gray-700">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Name / Veranstaltung</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Datum</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Tags</th>
+                                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Aktionen</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-200 dark:divide-gray-700" id="returnsTbody">
+                                    <tr><td colspan="4" class="px-6 py-4 text-center text-sm text-gray-500">Lade Rückgaben...</td></tr>
+                                </tbody>
+                            </table>
+                          </div>
+                        </div>
+                    </div>
 
                     <script>
                         // Archive Logic
@@ -1353,6 +1354,8 @@
                         syncInfo.textContent = `Letzter Sync: ${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
                     }
                 }
+                // Reload returns table
+                if (typeof loadReturns === 'function') loadReturns();
             } catch (error) {
                 console.error('Failed to refresh email list:', error);
             }
