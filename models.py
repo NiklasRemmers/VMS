@@ -164,7 +164,7 @@ class InventoryItem(Base):
     id = Column(Integer, primary_key=True)
     name = Column(String(200), unique=True, nullable=False)
     description = Column(Text)  # The text that goes into the contract
-    type = Column(String(50), nullable=False)  # 'equipment' or 'case'
+    type = Column(String(50), nullable=False)  # 'equipment'
     
     # For bundles
     bundles = relationship('BundleItem', back_populates='item', cascade='all, delete-orphan')
@@ -211,9 +211,5 @@ class BundleItem(Base):
         return {
             'item_id': self.item_id,
             'item_name': self.item.name if self.item else None,
-            'item_type': self.item.type if self.item else 'equipment',
             'count': self.count
         }
-
-
-

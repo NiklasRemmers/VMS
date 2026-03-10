@@ -26,8 +26,6 @@ from models import User as UserModel
 auth_bp = Blueprint('auth', __name__)
 
 
-
-
 class User(UserMixin):
     """User model for Flask-Login."""
 
@@ -164,8 +162,6 @@ class User(UserMixin):
                 row.email = email or self.email
         self.display_name = display_name or self.display_name
         self.email = email or self.email
-
-
 
     def update_password(self, new_password):
         """Update user password."""
@@ -377,9 +373,6 @@ def setup():
             flash('Fehler beim Erstellen des Benutzers', 'error')
 
     return render_template('setup.html', form=form)
-
-
-
 
 
 # User Management Routes

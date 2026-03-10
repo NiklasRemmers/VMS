@@ -25,6 +25,18 @@ else
     echo "✓ Master key exists"
 fi
 
+# ─── 1b. Persistent Flask SECRET_KEY ───
+FLASK_SECRET="$KMS_DIR/flask_secret_key"
+if [ ! -f "$FLASK_SECRET" ]; then
+    echo "⚙ Generating persistent Flask SECRET_KEY..."
+    python -c "import secrets; print(secrets.token_hex(32))" > "$FLASK_SECRET"
+    chmod 600 "$FLASK_SECRET"
+    echo "✓ SECRET_KEY created: $FLASK_SECRET"
+else
+    echo "✓ SECRET_KEY exists"
+fi
+export SECRET_KEY=$(cat "$FLASK_SECRET")
+
 # ─── 2. Encrypt Secrets ───
 if [ ! -f "$SECRETS_FILE" ]; then
     echo "⚙ Encrypting secrets from environment..."

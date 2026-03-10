@@ -90,7 +90,6 @@ print(f"ℹ Session: SECRET_KEY fingerprint={_sk[:8]}…, Secure={app.config['SE
 # Paths
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 TEMPLATE_PATH = os.path.join(BASE_DIR, 'template.odt')
-MATERIAL_PATH = os.path.join(BASE_DIR, 'material.json')
 
 
 @app.route('/health')
@@ -428,10 +427,12 @@ def emails():
     # Convert sets to lists for JSON serialization
     tags_by_date = {str(k): list(v) for k, v in tags_by_date.items()}
     
-    # Load available materials for tag selection
+    # Load available materials for tag selection from DB
     try:
-        with open(MATERIAL_PATH, 'r', encoding='utf-8') as f:
-            materials = json.load(f)
+        from models import InventoryItem
+        with get_session() as s:
+            items = s.query(InventoryItem).filter(InventoryItem.type == 'equipment').all()
+            materials = {item.name: item.description or item.name for item in items}
     except:
         materials = {}
     
@@ -783,10 +784,6 @@ for _rule in app.url_map.iter_rules():
             csrf.exempt(_view)
 
 
-@app.after_request
-def handle_api_responses(response):
-    """For API routes, ensure proper error responses."""
-    return response
 
 
 if __name__ == '__main__':
@@ -794,7 +791,6 @@ if __name__ == '__main__':
     print("VMS - Leihvertrag Generator")
     print("=" * 50)
     print(f"Template: {TEMPLATE_PATH}")
-    print(f"Material: {MATERIAL_PATH}")
     print()
     print("Starte Server auf http://localhost:5000")
     print("Drücke Ctrl+C zum Beenden")

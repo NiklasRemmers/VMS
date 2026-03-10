@@ -29,7 +29,7 @@ limit_request_fields = 100
 limit_request_field_size = 8190
 
 # Server mechanics
-preload_app = False
+preload_app = True
 daemon = False
 
 # Development override

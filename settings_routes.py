@@ -11,7 +11,7 @@ from datetime import datetime, timezone
 from werkzeug.utils import secure_filename
 from security import encrypt_value
 from kms import encrypt_binary, decrypt_binary
-from forms import ProfileForm, PasswordForm
+from auth import ProfileForm, PasswordForm
 from database import get_session
 import base64
 import io

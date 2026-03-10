@@ -159,27 +159,3 @@ def delete_bundle(bundle_id):
         s.delete(bundle)
         s.commit()
         return jsonify({'success': True})
-
-@inventory_bp.route('/api/inventory/all', methods=['GET'])
-@login_required
-def get_all_options():
-    """Return both items and bundles for dropdown selection."""
-    with get_session() as s:
-        items = s.query(InventoryItem).order_by(InventoryItem.name).all()
-        bundles = s.query(Bundle).order_by(Bundle.name).all()
-        
-        # Format for dropdown: name -> description (or expanded bundle list)
-        
-        # Currently the UI expects a dict: "Name" -> "Description"
-        # Since Bundles are now selectable, we need to decide how to represent them.
-        # If the existing UI Logic just inserts the VALUE into the text area, 
-        # then for Bundles we need to resolve them HERE or on generate?
-        
-        # Actually, the user selects them as TAGS.
-        # In the contract generation, these tags are mapped to text.
-        
-        result = {}
-        for i in items:
-            result[i.name] = i.description or i.name
-            
-        return jsonify({'materials': result, 'bundles': [b.name for b in bundles]})
