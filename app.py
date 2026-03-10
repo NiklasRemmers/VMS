@@ -620,7 +620,7 @@ def update_email_candidate(candidate_id):
             print(f"Failed to update Kanboard task {candidate.get('kanboard_task_id')}: {e}")
 
     form_data = {
-        'tags': json.dumps(data.get('tags')) if data.get('tags') is not None else None,
+        'tags': data.get('tags'),
         'datum': data.get('start_date'),
         'end_date': data.get('end_date'),
         'raw_content': data.get('description'),
@@ -682,7 +682,7 @@ def create_task_from_candidate(candidate_id):
         
         # Update candidate
         form_data = {
-            'tags': json.dumps(tags),
+            'tags': tags,
             'datum': due_date,
             'end_date': data.get('end_date'),
             'raw_content': description,
