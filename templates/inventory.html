@@ -80,6 +80,12 @@
                                     id="bundles-tab" data-tabs-target="#bundles" type="button" role="tab"
                                     aria-controls="bundles" aria-selected="false">Bundles</button>
                             </li>
+                            <li class="mr-2" role="presentation">
+                                <button
+                                    class="inline-block p-4 border-b-2 border-transparent rounded-t-lg hover:text-gray-600 hover:border-gray-300 dark:hover:text-gray-300 text-gray-500 dark:text-gray-400"
+                                    id="consumables-tab" data-tabs-target="#consumables" type="button" role="tab"
+                                    aria-controls="consumables" aria-selected="false">Verbrauchsmaterial</button>
+                            </li>
                         </ul>
                     </div>
 
@@ -197,6 +203,64 @@
                                 </div>
                             </div>
                         </div>
+
+                        <!-- Consumables Tab -->
+                        <div class="hidden p-4" id="consumables" role="tabpanel" aria-labelledby="consumables-tab">
+                            <div class="flex justify-end mb-4">
+                                <button onclick="openConsumableModal()"
+                                    class="px-4 py-2 text-sm font-medium leading-5 text-white transition-colors duration-150 bg-purple-600 border border-transparent rounded-lg active:bg-purple-600 hover:bg-purple-700 focus:outline-none focus:shadow-outline-purple">
+                                    + Verbrauchsmaterial hinzufügen
+                                </button>
+                            </div>
+
+                            <div class="w-full overflow-hidden rounded-lg shadow-xs">
+                                <div class="w-full overflow-x-auto">
+                                    <table class="w-full whitespace-no-wrap">
+                                        <thead>
+                                            <tr
+                                                class="text-xs font-semibold tracking-wide text-left text-gray-500 uppercase border-b dark:border-gray-700 bg-gray-50 dark:text-gray-400 dark:bg-gray-800">
+                                                <th class="px-4 py-3">Name</th>
+                                                <th class="px-4 py-3">Beschreibung</th>
+                                                <th class="px-4 py-3">Preis/Einheit</th>
+                                                <th class="px-4 py-3">Aktionen</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="consumablesTableBody"
+                                            class="bg-white divide-y dark:divide-gray-700 dark:bg-gray-800">
+                                            <!-- Skeleton Loader -->
+                                            <tr class="animate-pulse">
+                                                <td class="px-4 py-3">
+                                                    <div class="h-4 bg-gray-200 rounded dark:bg-gray-700 w-3/4"></div>
+                                                </td>
+                                                <td class="px-4 py-3">
+                                                    <div class="h-4 bg-gray-200 rounded dark:bg-gray-700 w-1/2"></div>
+                                                </td>
+                                                <td class="px-4 py-3">
+                                                    <div class="h-4 bg-gray-200 rounded dark:bg-gray-700 w-24"></div>
+                                                </td>
+                                                <td class="px-4 py-3">
+                                                    <div class="h-8 bg-gray-200 rounded dark:bg-gray-700 w-24"></div>
+                                                </td>
+                                            </tr>
+                                            <tr class="animate-pulse">
+                                                <td class="px-4 py-3">
+                                                    <div class="h-4 bg-gray-200 rounded dark:bg-gray-700 w-3/4"></div>
+                                                </td>
+                                                <td class="px-4 py-3">
+                                                    <div class="h-4 bg-gray-200 rounded dark:bg-gray-700 w-1/2"></div>
+                                                </td>
+                                                <td class="px-4 py-3">
+                                                    <div class="h-4 bg-gray-200 rounded dark:bg-gray-700 w-24"></div>
+                                                </td>
+                                                <td class="px-4 py-3">
+                                                    <div class="h-8 bg-gray-200 rounded dark:bg-gray-700 w-24"></div>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </main>
@@ -304,6 +368,58 @@
 
     {% include '_confirm_modal.html' %}
 
+    <!-- Consumable Modal -->
+    <div id="consumableModal" class="fixed inset-0 z-50 hidden">
+        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" onclick="closeConsumableModal()"></div>
+        <div class="relative flex items-center justify-center min-h-screen p-4 pointer-events-none">
+            <div
+                class="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-lg w-full p-6 border border-gray-200 dark:border-gray-700 pointer-events-auto">
+                <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4" id="consumableModalTitle">
+                    Neues Verbrauchsmaterial</h3>
+                <div class="space-y-4">
+                    <input type="hidden" id="consumableId">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Name</label>
+                        <input type="text" id="consumableName"
+                            class="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500">
+                    </div>
+                    <div>
+                        <label
+                            class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Beschreibung</label>
+                        <textarea id="consumableDescription" rows="2"
+                            class="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 resize-y"></textarea>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Preis (€)</label>
+                            <input type="number" id="consumablePrice" step="0.01" min="0" placeholder="0,00"
+                                class="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Einheit</label>
+                            <input type="text" id="consumableUnit" list="unitSuggestions" placeholder="z.B. Stück"
+                                class="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500">
+                            <datalist id="unitSuggestions">
+                                <option value="Stück">
+                                <option value="Liter">
+                                <option value="kg">
+                                <option value="Meter">
+                                <option value="Packung">
+                                <option value="Rolle">
+                            </datalist>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex justify-end space-x-3 mt-6">
+                    <button type="button" onclick="closeConsumableModal()"
+                        class="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-sm font-medium rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">Abbrechen</button>
+                    <button type="button" onclick="saveConsumable()"
+                        class="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg transition-colors">Speichern</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
         const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
         let allItems = []; // Store fetched items
@@ -337,10 +453,12 @@
                 if (!response.ok) throw new Error('Netzwerkfehler');
                 allItems = await response.json();
                 renderEquipmentTable(allItems);
+                renderConsumableTable(allItems);
                 populateItemSelects();
             } catch (error) {
                 console.error('Error fetching items:', error);
                 showTableError('equipmentTableBody');
+                showTableError('consumablesTableBody');
             }
         }
 
@@ -389,13 +507,40 @@
             tbody.innerHTML = items.map(item => `
                 <tr class="text-gray-700 dark:text-gray-400">
                     <td class="px-4 py-3 text-sm font-semibold">${item.name}</td>
-                    <td class="px-4 py-3 text-sm truncate max-w-xs" title="${item.description}">${item.description ? item.description.replace(/\n/g, '<br>') : ''}</td>
+                    <td class="px-4 py-3 text-sm truncate max-w-xs" title="${item.description || ''}">${item.description ? item.description.replace(/\n/g, '<br>') : ''}</td>
                     <td class="px-4 py-3 text-sm">
                         <button onclick="editItem(${item.id})" class="px-2 py-1 font-semibold leading-tight text-gray-700 bg-gray-100 rounded-full dark:text-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600">Edit</button>
                         <button onclick="deleteItem(${item.id})" class="ml-2 px-2 py-1 font-semibold leading-tight text-red-700 bg-red-100 rounded-full dark:text-red-100 dark:bg-red-700 hover:bg-red-200 dark:hover:bg-red-600">Delete</button>
                     </td>
                 </tr>
             `).join('');
+        }
+
+        function renderConsumableTable(items) {
+            if (!items) return;
+            const consumables = items.filter(i => i.type === 'consumable');
+            const tbody = document.getElementById('consumablesTableBody');
+            if (!tbody) return;
+
+            if (consumables.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="4" class="px-4 py-3 text-center text-gray-500 dark:text-gray-400">Kein Verbrauchsmaterial vorhanden</td></tr>`;
+                return;
+            }
+            tbody.innerHTML = consumables.map(item => {
+                const priceStr = item.price !== null ? item.price.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '\u00a0\u20ac' : '';
+                const unitStr = item.unit || '';
+                const priceUnit = priceStr && unitStr ? `${priceStr}/${unitStr}` : priceStr || unitStr || '';
+                return `
+                <tr class="text-gray-700 dark:text-gray-400">
+                    <td class="px-4 py-3 text-sm font-semibold">${item.name}</td>
+                    <td class="px-4 py-3 text-sm truncate max-w-xs" title="${item.description || ''}">${item.description ? item.description.replace(/\n/g, '<br>') : ''}</td>
+                    <td class="px-4 py-3 text-sm">${priceUnit}</td>
+                    <td class="px-4 py-3 text-sm">
+                        <button onclick="editItem(${item.id})" class="px-2 py-1 font-semibold leading-tight text-gray-700 bg-gray-100 rounded-full dark:text-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600">Edit</button>
+                        <button onclick="deleteItem(${item.id})" class="ml-2 px-2 py-1 font-semibold leading-tight text-red-700 bg-red-100 rounded-full dark:text-red-100 dark:bg-red-700 hover:bg-red-200 dark:hover:bg-red-600">Delete</button>
+                    </td>
+                </tr>
+            `}).join('');
         }
 
         function renderBundlesTable(bundles) {
@@ -552,7 +697,68 @@
 
         function editItem(id) {
             const item = allItems.find(i => i.id === id);
-            openEquipmentModal(item);
+            if (item && item.type === 'consumable') {
+                openConsumableModal(item);
+            } else {
+                openEquipmentModal(item);
+            }
+        }
+
+        // --- Consumable Actions ---
+
+        function openConsumableModal(item = null) {
+            document.getElementById('consumableId').value = item ? item.id : '';
+            document.getElementById('consumableName').value = item ? item.name : '';
+            document.getElementById('consumableDescription').value = item ? (item.description || '') : '';
+            document.getElementById('consumablePrice').value = item && item.price !== null ? item.price : '';
+            document.getElementById('consumableUnit').value = item ? (item.unit || '') : '';
+            document.getElementById('consumableModalTitle').textContent = item ? 'Verbrauchsmaterial bearbeiten' : 'Neues Verbrauchsmaterial';
+            document.getElementById('consumableModal').classList.remove('hidden');
+        }
+
+        function closeConsumableModal() {
+            document.getElementById('consumableModal').classList.add('hidden');
+        }
+
+        async function saveConsumable() {
+            const id = document.getElementById('consumableId').value;
+            const name = document.getElementById('consumableName').value;
+            const description = document.getElementById('consumableDescription').value;
+            const priceVal = document.getElementById('consumablePrice').value;
+            const unit = document.getElementById('consumableUnit').value;
+
+            if (!name) {
+                showToast('Name ist erforderlich', 'error');
+                return;
+            }
+
+            const payload = {
+                name,
+                description,
+                type: 'consumable',
+                price: priceVal !== '' ? parseFloat(priceVal) : null,
+                unit: unit || null
+            };
+
+            const method = id ? 'PUT' : 'POST';
+            const url = id ? `/api/inventory/items/${id}` : '/api/inventory/items';
+
+            try {
+                const response = await fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                    body: JSON.stringify(payload)
+                });
+
+                if (response.ok) {
+                    closeConsumableModal();
+                    fetchItems();
+                    showToast('Verbrauchsmaterial gespeichert!');
+                } else {
+                    const data = await response.json();
+                    showToast(data.error || 'Fehler beim Speichern', 'error');
+                }
+            } catch (error) { console.error(error); }
         }
 
         function editBundle(bundle) {

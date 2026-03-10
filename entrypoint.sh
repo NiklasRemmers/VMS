@@ -96,6 +96,35 @@ init_db()
 print('✓ Tables ready')
 "
 
+# ─── 4b. Migrate: Add consumable columns ───
+echo "⚙ Running column migrations..."
+python -c "
+import os
+os.environ['KMS_MASTER_KEY_PATH'] = '$KMS_KEY'
+from database import get_engine
+from sqlalchemy import text
+engine = get_engine()
+with engine.connect() as conn:
+    # Check and add 'price' column
+    result = conn.execute(text(\"\"\"
+        SELECT column_name FROM information_schema.columns
+        WHERE table_name='inventory_items' AND column_name='price'
+    \"\"\"))
+    if result.fetchone() is None:
+        conn.execute(text('ALTER TABLE inventory_items ADD COLUMN price NUMERIC(10,2)'))
+        print('  + Added column: price')
+    # Check and add 'unit' column
+    result = conn.execute(text(\"\"\"
+        SELECT column_name FROM information_schema.columns
+        WHERE table_name='inventory_items' AND column_name='unit'
+    \"\"\"))
+    if result.fetchone() is None:
+        conn.execute(text('ALTER TABLE inventory_items ADD COLUMN unit VARCHAR(50)'))
+        print('  + Added column: unit')
+    conn.commit()
+    print('✓ Migrations complete')
+"
+
 echo ""
 echo "═══════════════════════════════════════════"
 echo "  Starting Gunicorn..."

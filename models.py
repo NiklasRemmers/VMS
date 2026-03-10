@@ -4,7 +4,7 @@ Defines the database schema for PostgreSQL.
 """
 from datetime import datetime, timezone
 from sqlalchemy import (
-    Column, Integer, String, Text, Boolean, DateTime, ForeignKey, Index, LargeBinary
+    Column, Integer, String, Text, Boolean, DateTime, ForeignKey, Index, LargeBinary, Numeric
 )
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, relationship
@@ -164,18 +164,25 @@ class InventoryItem(Base):
     id = Column(Integer, primary_key=True)
     name = Column(String(200), unique=True, nullable=False)
     description = Column(Text)  # The text that goes into the contract
-    type = Column(String(50), nullable=False)  # 'equipment'
+    type = Column(String(50), nullable=False)  # 'equipment' or 'consumable'
+
+    # Consumable-specific fields
+    price = Column(Numeric(10, 2), nullable=True)  # Price per unit
+    unit = Column(String(50), nullable=True)  # e.g. Stück, Liter, kg
     
     # For bundles
     bundles = relationship('BundleItem', back_populates='item', cascade='all, delete-orphan')
 
     def to_dict(self):
-        return {
+        d = {
             'id': self.id,
             'name': self.name,
             'description': self.description,
-            'type': self.type
+            'type': self.type,
+            'price': float(self.price) if self.price is not None else None,
+            'unit': self.unit,
         }
+        return d
 
 
 class Bundle(Base):

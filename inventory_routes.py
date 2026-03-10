@@ -24,13 +24,23 @@ def create_item():
     data = request.get_json()
     name = data.get('name')
     description = data.get('description')
+    item_type = data.get('type', 'equipment')
 
     if not name:
         return jsonify({'error': 'Name erforderlich'}), 400
+    if item_type not in ('equipment', 'consumable'):
+        return jsonify({'error': 'Ungültiger Typ'}), 400
 
     with get_session() as s:
         try:
-            item = InventoryItem(name=name, description=description, type='equipment')
+            item = InventoryItem(name=name, description=description, type=item_type)
+            if item_type == 'consumable':
+                price = data.get('price')
+                unit = data.get('unit')
+                if price is not None:
+                    item.price = price
+                if unit:
+                    item.unit = unit
             s.add(item)
             s.commit()
             s.refresh(item)
@@ -56,6 +66,10 @@ def update_item(item_id):
             item.name = data['name']
         if 'description' in data:
             item.description = data['description']
+        if 'price' in data:
+            item.price = data['price']
+        if 'unit' in data:
+            item.unit = data['unit']
             
         try:
             s.commit()
