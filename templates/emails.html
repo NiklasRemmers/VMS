@@ -519,8 +519,6 @@
                                     '<span class="text-green-600 dark:text-green-400">Zurückgegeben</span>' :
                           c.status === 'invoice_pending' ?
                                     '<span class="text-orange-500 dark:text-orange-400">Rechnung offen</span>' :
-                          c.status === 'problem' ?
-                                    '<span class="text-red-600 dark:text-red-400">Problem</span>' :
                           c.contract_created ?
                                     '<span class="text-green-600 dark:text-green-400">Vertrag erstellt</span>' :
                                     '<span class="text-gray-400">Archiviert</span>'}
@@ -861,13 +859,7 @@
                         placeholder="Optional..."></textarea>
                 </div>
 
-                <!-- Problem description (hidden initially) -->
-                <div class="mb-4 hidden" id="problemFieldContainer">
-                    <label class="block text-sm font-medium text-red-600 dark:text-red-400 mb-1">Problem beschreiben *</label>
-                    <textarea id="returnProblem" rows="3"
-                        class="w-full px-3 py-2 border border-red-300 dark:border-red-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm resize-y"
-                        placeholder="Was ist das Problem?"></textarea>
-                </div>
+                <!-- Problem description removed -->
 
                 <input type="hidden" id="returnCandidateId">
 
@@ -880,16 +872,6 @@
                     <button type="button" onclick="submitReturn('invoice')"
                         class="flex-1 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium rounded-lg transition-colors">
                         ✓ Eingezählt & Rechnung
-                    </button>
-                    <button type="button" onclick="showProblemField()"
-                        id="problemBtn"
-                        class="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg transition-colors">
-                        ✗ Problem gefunden
-                    </button>
-                    <button type="button" onclick="submitReturn('problem')"
-                        id="submitProblemBtn"
-                        class="hidden flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg transition-colors">
-                        Problem speichern
                     </button>
                 </div>
 
@@ -1602,10 +1584,6 @@
                 ? c.tags.map(t => `<span class="inline-flex px-2 py-0.5 text-xs rounded bg-primary-100 dark:bg-primary-900/30 text-primary-800 dark:text-primary-400">${t}</span>`).join(' ')
                 : '<span class="text-xs text-gray-400">-</span>';
             document.getElementById('returnNote').value = '';
-            document.getElementById('returnProblem').value = '';
-            document.getElementById('problemFieldContainer').classList.add('hidden');
-            document.getElementById('problemBtn').classList.remove('hidden');
-            document.getElementById('submitProblemBtn').classList.add('hidden');
             document.getElementById('returnModal').classList.remove('hidden');
         }
 
@@ -1613,22 +1591,9 @@
             document.getElementById('returnModal').classList.add('hidden');
         }
 
-        function showProblemField() {
-            document.getElementById('problemFieldContainer').classList.remove('hidden');
-            document.getElementById('problemBtn').classList.add('hidden');
-            document.getElementById('submitProblemBtn').classList.remove('hidden');
-            document.getElementById('returnProblem').focus();
-        }
-
         async function submitReturn(action) {
             const id = document.getElementById('returnCandidateId').value;
             const note = document.getElementById('returnNote').value;
-            const problem = document.getElementById('returnProblem').value;
-
-            if (action === 'problem' && !problem.trim()) {
-                showFlash('Bitte beschreibe das Problem.', 'error');
-                return;
-            }
 
             try {
                 const response = await fetch(`/api/emails/candidates/${id}/return`, {
@@ -1637,7 +1602,7 @@
                         'Content-Type': 'application/json',
                         'X-CSRFToken': csrfToken
                     },
-                    body: JSON.stringify({ action, note, problem_description: problem })
+                    body: JSON.stringify({ action, note })
                 });
                 const data = await response.json();
                 if (response.ok) {

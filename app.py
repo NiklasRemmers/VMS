@@ -725,9 +725,8 @@ def return_candidate(candidate_id):
     data = request.get_json()
     action = data.get('action')
     note = data.get('note', '')
-    problem_description = data.get('problem_description', '')
     
-    if action not in ('returned', 'invoice', 'problem'):
+    if action not in ('returned', 'invoice'):
         return jsonify({'error': 'Ungültige Aktion'}), 400
     
     candidate = get_candidate_by_id(candidate_id, current_user.id)
@@ -751,9 +750,6 @@ def return_candidate(candidate_id):
             row.status = 'returned'
         elif action == 'invoice':
             row.status = 'invoice_pending'
-        elif action == 'problem':
-            row.status = 'problem'
-            row.return_problem = problem_description if problem_description else None
     
     return jsonify({'success': True})
 

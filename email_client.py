@@ -419,7 +419,7 @@ def update_candidate(candidate_id, form_data: Dict, user_id: int = None):
         'veranstaltungsbereich', 'personenzahl', 'datum', 'material',
         'sonstiges', 'rahmenbedingungen', 'raw_content', 'contract_created',
         'kanboard_task_id', 'end_date', 'tags', 'status',
-        'return_note', 'return_problem', 'returned_at'
+        'return_note', 'returned_at'
     ]
     
     with get_session() as s:
@@ -661,7 +661,7 @@ def get_archived_candidates(user_id: int = None, page: int = 1, limit: int = 10,
             current_date_str = func.to_char(func.current_date(), 'YYYY-MM-DD')
             q = q.filter(or_(
                 iso_date_expr < current_date_str,
-                EmailCandidate.status.in_(['returned', 'problem'])
+                EmailCandidate.status.in_(['returned'])
             ))
             
             # Apply filters
