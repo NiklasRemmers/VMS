@@ -37,26 +37,26 @@ def api_get_invoice_candidates():
         query = s.query(EmailCandidate).filter_by(status='invoice_pending')
         candidates = query.all()
     
-    # Sort by date (oldest first) using parsed dates
-    def get_sort_key(c):
-        parsed_date = parse_german_date(c.datum)
-        return parsed_date if parsed_date else datetime.max
+        # Sort by date (oldest first) using parsed dates
+        def get_sort_key(c):
+            parsed_date = parse_german_date(c.datum)
+            return parsed_date if parsed_date else datetime.max
+            
+        sorted_candidates = sorted(candidates, key=get_sort_key)
         
-    sorted_candidates = sorted(candidates, key=get_sort_key)
-    
-    result = []
-    for c in sorted_candidates:
-        result.append({
-            'id': c.id,
-            'vorname_nachname': c.vorname_nachname,
-            'veranstaltungsname': c.veranstaltungsname,
-            'datum': c.datum,
-            'end_date': c.end_date,
-            'tags': c.tags,
-            'email_address': c.email_address,
-            'return_note': c.return_note
-        })
-        
+        result = []
+        for c in sorted_candidates:
+            result.append({
+                'id': c.id,
+                'vorname_nachname': c.vorname_nachname,
+                'veranstaltungsname': c.veranstaltungsname,
+                'datum': c.datum,
+                'end_date': c.end_date,
+                'tags': c.tags,
+                'email_address': c.email_address,
+                'return_note': c.return_note
+            })
+            
     return jsonify(result)
 
 @invoice_bp.route('/api/invoices/consumables', methods=['GET'])
@@ -65,13 +65,13 @@ def api_get_invoice_consumables():
     with get_session() as s:
         consumables = s.query(InventoryItem).filter_by(type='consumable').all()
         
-    result = []
-    for item in consumables:
-        result.append({
-            'id': item.id,
-            'name': item.name,
-            'description': item.description,
-            'price': float(item.price) if item.price is not None else 0.0,
-            'unit': item.unit
-        })
+        result = []
+        for item in consumables:
+            result.append({
+                'id': item.id,
+                'name': item.name,
+                'description': item.description,
+                'price': float(item.price) if item.price is not None else 0.0,
+                'unit': item.unit
+            })
     return jsonify(result)
