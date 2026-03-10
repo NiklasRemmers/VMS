@@ -129,10 +129,15 @@ class EmailCandidate(Base):
     raw_content = Column(Text)
 
     tags = Column(JSONB, default=list)
-    status = Column(String(20), default='pending')
+    status = Column(String(30), default='pending')  # pending, processed, done, returned, invoice_pending, problem
     kanboard_task_id = Column(Integer)
     contract_created = Column(Boolean, default=False)
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+
+    # Return workflow
+    return_note = Column(Text, nullable=True)
+    return_problem = Column(Text, nullable=True)
+    returned_at = Column(DateTime(timezone=True), nullable=True)
 
     # Relationships
     user = relationship('User', back_populates='candidates')

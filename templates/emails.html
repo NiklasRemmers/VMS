@@ -91,6 +91,7 @@
                             <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-4">Offene Anfragen</h3>
                             <div
                                 class="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden">
+                              <div class="max-h-[400px] overflow-y-auto" id="openScrollContainer">
                                 <table class="w-full">
                                     <thead class="bg-gray-50 dark:bg-gray-700">
                                         <tr>
@@ -108,8 +109,8 @@
                                                 Aktionen</th>
                                         </tr>
                                     </thead>
-                                    <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
-                                        {% for c in open_candidates %}
+                                    <tbody class="divide-y divide-gray-200 dark:divide-gray-700" id="openTbody">
+                                        {% for c in open_candidates[:5] %}
                                         <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50" data-id="{{ c.id }}"
                                             data-datum="{{ c.datum or '' }}">
                                             <td class="px-6 py-4">
@@ -181,8 +182,10 @@
                                             </td>
                                         </tr>
                                         {% endfor %}
+                                        <tr id="openSentinel" class="h-1"><td colspan="4"></td></tr>
                                     </tbody>
                                 </table>
+                              </div>
                             </div>
                         </div>
 
@@ -193,6 +196,7 @@
                             </h3>
                             <div
                                 class="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden">
+                              <div class="max-h-[400px] overflow-y-auto" id="processedScrollContainer">
                                 <table class="w-full">
                                     <thead class="bg-gray-50 dark:bg-gray-700">
                                         <tr>
@@ -213,8 +217,8 @@
                                                 Aktionen</th>
                                         </tr>
                                     </thead>
-                                    <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
-                                        {% for c in processed_candidates %}
+                                    <tbody class="divide-y divide-gray-200 dark:divide-gray-700" id="processedTbody">
+                                        {% for c in processed_candidates[:5] %}
                                         <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 opacity-75"
                                             data-id="{{ c.id }}">
                                             <td class="px-6 py-4">
@@ -297,11 +301,36 @@
                                             </td>
                                         </tr>
                                         {% endfor %}
+                                        <tr id="processedSentinel" class="h-1"><td colspan="5"></td></tr>
                                     </tbody>
                                 </table>
+                              </div>
                             </div>
                         </div>
                         {% endif %}
+
+                        <!-- Rückgaben Section -->
+                        <div class="mb-8" id="returnsSection">
+                            <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-4">Rückgaben</h3>
+                            <div
+                                class="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden">
+                              <div class="max-h-[400px] overflow-y-auto" id="returnsScrollContainer">
+                                <table class="w-full">
+                                    <thead class="bg-gray-50 dark:bg-gray-700">
+                                        <tr>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Name / Veranstaltung</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Datum</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Tags</th>
+                                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Aktionen</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-gray-200 dark:divide-gray-700" id="returnsTbody">
+                                        <tr><td colspan="4" class="px-6 py-4 text-center text-sm text-gray-500">Lade Rückgaben...</td></tr>
+                                    </tbody>
+                                </table>
+                              </div>
+                            </div>
+                        </div>
 
                         <!-- Archive Section -->
                         <div class="mt-8 border-t border-gray-200 dark:border-gray-700 pt-8">
@@ -486,7 +515,13 @@
                         </div>
                     </td>
                     <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
-                         ${c.contract_created ?
+                         ${c.status === 'returned' ?
+                                    '<span class="text-green-600 dark:text-green-400">Zurückgegeben</span>' :
+                          c.status === 'invoice_pending' ?
+                                    '<span class="text-orange-500 dark:text-orange-400">Rechnung offen</span>' :
+                          c.status === 'problem' ?
+                                    '<span class="text-red-600 dark:text-red-400">Problem</span>' :
+                          c.contract_created ?
                                     '<span class="text-green-600 dark:text-green-400">Vertrag erstellt</span>' :
                                     '<span class="text-gray-400">Archiviert</span>'}
                     </td>
@@ -784,6 +819,84 @@
                     <button onclick="confirmUnmarkDone()"
                         class="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700">
                         Bestätigen
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Return Modal -->
+    <div id="returnModal" class="fixed inset-0 z-50 hidden">
+        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" onclick="closeReturnModal()"></div>
+        <div class="relative flex items-center justify-center min-h-screen p-4 pointer-events-none">
+            <div
+                class="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-lg w-full p-6 border border-gray-200 dark:border-gray-700 pointer-events-auto">
+                <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-4" id="returnModalTitle">Rückgabe</h3>
+
+                <!-- Read-only info -->
+                <div class="grid grid-cols-2 gap-3 mb-4 text-sm">
+                    <div>
+                        <span class="text-gray-500 dark:text-gray-400">Name:</span>
+                        <span class="text-gray-800 dark:text-gray-200 ml-1" id="returnName"></span>
+                    </div>
+                    <div>
+                        <span class="text-gray-500 dark:text-gray-400">Veranstaltung:</span>
+                        <span class="text-gray-800 dark:text-gray-200 ml-1" id="returnEvent"></span>
+                    </div>
+                    <div>
+                        <span class="text-gray-500 dark:text-gray-400">Datum:</span>
+                        <span class="text-gray-800 dark:text-gray-200 ml-1" id="returnDatum"></span>
+                    </div>
+                    <div>
+                        <span class="text-gray-500 dark:text-gray-400">Tags:</span>
+                        <span class="ml-1" id="returnTags"></span>
+                    </div>
+                </div>
+
+                <!-- Note -->
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-1">Hinweis / Anmerkung</label>
+                    <textarea id="returnNote" rows="2"
+                        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm resize-y"
+                        placeholder="Optional..."></textarea>
+                </div>
+
+                <!-- Problem description (hidden initially) -->
+                <div class="mb-4 hidden" id="problemFieldContainer">
+                    <label class="block text-sm font-medium text-red-600 dark:text-red-400 mb-1">Problem beschreiben *</label>
+                    <textarea id="returnProblem" rows="3"
+                        class="w-full px-3 py-2 border border-red-300 dark:border-red-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm resize-y"
+                        placeholder="Was ist das Problem?"></textarea>
+                </div>
+
+                <input type="hidden" id="returnCandidateId">
+
+                <!-- Action buttons -->
+                <div class="flex flex-col sm:flex-row gap-3 mb-4">
+                    <button type="button" onclick="submitReturn('returned')"
+                        class="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors">
+                        ✓ Material eingezählt
+                    </button>
+                    <button type="button" onclick="submitReturn('invoice')"
+                        class="flex-1 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium rounded-lg transition-colors">
+                        ✓ Eingezählt & Rechnung
+                    </button>
+                    <button type="button" onclick="showProblemField()"
+                        id="problemBtn"
+                        class="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg transition-colors">
+                        ✗ Problem gefunden
+                    </button>
+                    <button type="button" onclick="submitReturn('problem')"
+                        id="submitProblemBtn"
+                        class="hidden flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg transition-colors">
+                        Problem speichern
+                    </button>
+                </div>
+
+                <div class="flex justify-end">
+                    <button type="button" onclick="closeReturnModal()"
+                        class="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-sm font-medium rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700">
+                        Abbrechen
                     </button>
                 </div>
             </div>
@@ -1260,6 +1373,287 @@
                 }
             } catch (error) {
                 console.error('Failed to refresh email list:', error);
+            }
+        }
+
+        // ═══════════════════════════════════════
+        // INFINITE SCROLL
+        // ═══════════════════════════════════════
+        const SCROLL_PAGE_SIZE = 5;
+
+        function setupInfiniteScroll(config) {
+            let loading = false;
+            let offset = config.initialOffset;
+            let hasMore = config.initialHasMore;
+
+            const sentinel = document.getElementById(config.sentinelId);
+            const container = document.getElementById(config.containerId);
+            if (!sentinel || !container) return;
+
+            const observer = new IntersectionObserver(async (entries) => {
+                if (entries[0].isIntersecting && !loading && hasMore) {
+                    loading = true;
+                    try {
+                        const res = await fetch(config.url(offset));
+                        const data = await res.json();
+                        if (data.items && data.items.length > 0) {
+                            const tbody = document.getElementById(config.tbodyId);
+                            // Insert before sentinel
+                            data.items.forEach(c => {
+                                const tr = document.createElement('tr');
+                                tr.innerHTML = config.renderRow(c);
+                                tr.className = config.rowClass || 'hover:bg-gray-50 dark:hover:bg-gray-700/50';
+                                if (c.id) tr.dataset.id = c.id;
+                                tbody.insertBefore(tr, sentinel);
+                            });
+                            offset += data.items.length;
+                            hasMore = data.has_more;
+                        } else {
+                            hasMore = false;
+                        }
+                    } catch (e) {
+                        console.error('Infinite scroll error:', e);
+                    }
+                    loading = false;
+                }
+            }, { root: container, threshold: 0.1 });
+
+            observer.observe(sentinel);
+            return { observer, reset: () => { offset = 0; hasMore = true; } };
+        }
+
+        // Open candidates infinite scroll
+        const openInitialCount = document.querySelectorAll('#openTbody tr[data-id]').length;
+        setupInfiniteScroll({
+            sentinelId: 'openSentinel',
+            containerId: 'openScrollContainer',
+            tbodyId: 'openTbody',
+            initialOffset: openInitialCount,
+            initialHasMore: {{ 'true' if open_candidates|length > 5 else 'false' }},
+            url: (offset) => `/api/emails/candidates/paged?status=pending&limit=${SCROLL_PAGE_SIZE}&offset=${offset}&direction=future`,
+            renderRow: (c) => `
+                <td class="px-6 py-4">
+                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">${c.vorname_nachname || 'Unbekannt'}</div>
+                    <div class="text-sm text-gray-500 dark:text-gray-400">${c.veranstaltungsname || 'Keine Veranstaltung'}</div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="text-sm text-gray-500 dark:text-gray-400">${c.datum || '-'}${c.end_date_display ? ' - ' + c.end_date_display : ''}</div>
+                    ${c.has_conflict ? '<span class="ml-2 inline-flex items-center px-2 py-0.5 text-xs rounded-full bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-400">⚠️ Konflikt</span>' : ''}
+                </td>
+                <td class="px-6 py-4"><div class="flex flex-wrap gap-1">${
+                    (c.tags && c.tags.length > 0) ? c.tags.map(t => '<span class="inline-flex px-2 py-0.5 text-xs rounded bg-primary-100 dark:bg-primary-900/30 text-primary-800 dark:text-primary-400">' + t + '</span>').join('') : '<span class="text-xs text-gray-400">Keine Tags</span>'
+                }</div></td>
+                <td class="px-6 py-4 whitespace-nowrap text-right text-sm space-x-2">
+                    <button onclick="editCandidate(${c.id})" class="text-primary-600 hover:text-primary-800 dark:text-primary-400">
+                        <svg class="w-5 h-5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                    </button>
+                    <button onclick="deleteCandidate(${c.id})" class="text-red-600 hover:text-red-800 dark:text-red-400">
+                        <svg class="w-5 h-5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                    </button>
+                </td>`
+        });
+
+        // Processed candidates infinite scroll
+        const processedInitialCount = document.querySelectorAll('#processedTbody tr[data-id]').length;
+        if (processedInitialCount > 0) {
+            setupInfiniteScroll({
+                sentinelId: 'processedSentinel',
+                containerId: 'processedScrollContainer',
+                tbodyId: 'processedTbody',
+                initialOffset: processedInitialCount,
+                initialHasMore: {{ 'true' if processed_candidates|length > 5 else 'false' }},
+                url: (offset) => `/api/emails/candidates/paged?status=processed,done&limit=${SCROLL_PAGE_SIZE}&offset=${offset}&direction=future`,
+                rowClass: 'hover:bg-gray-50 dark:hover:bg-gray-700/50 opacity-75',
+                renderRow: (c) => `
+                    <td class="px-6 py-4">
+                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">${c.vorname_nachname || 'Unbekannt'}</div>
+                        <div class="text-sm text-gray-500 dark:text-gray-400">${c.veranstaltungsname || 'Keine Veranstaltung'}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                        ${c.datum || '-'}${c.end_date_display ? ' - ' + c.end_date_display : ''}
+                    </td>
+                    <td class="px-6 py-4"><div class="flex flex-wrap gap-1">${
+                        (c.tags && c.tags.length > 0) ? c.tags.map(t => '<span class="inline-flex px-2 py-0.5 text-xs rounded bg-primary-100 dark:bg-primary-900/30 text-primary-800 dark:text-primary-400">' + t + '</span>').join('') : '<span class="text-xs text-gray-400">Keine Tags</span>'
+                    }</div></td>
+                    <td class="px-6 py-4 text-center">
+                        ${c.contract_created
+                            ? '<span class="text-green-600 dark:text-green-400"><svg class="w-6 h-6 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></span>'
+                            : '<span class="text-gray-300 dark:text-gray-600"><svg class="w-6 h-6 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></span>'}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm space-x-2">
+                        <button onclick="editCandidate(${c.id})" class="text-primary-600 hover:text-primary-800 dark:text-primary-400">
+                            <svg class="w-5 h-5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                        </button>
+                        <button onclick="deleteCandidate(${c.id})" class="text-red-600 hover:text-red-800 dark:text-red-400">
+                            <svg class="w-5 h-5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        </button>
+                    </td>`
+            });
+        }
+
+        // ═══════════════════════════════════════
+        // RÜCKGABEN (RETURNS)
+        // ═══════════════════════════════════════
+        let returnsOffset = 0;
+        let returnsHasMore = true;
+        let returnsLoading = false;
+
+        async function loadReturns() {
+            const tbody = document.getElementById('returnsTbody');
+            tbody.innerHTML = '<tr><td colspan="4" class="px-6 py-4 text-center text-sm text-gray-500">Lade Rückgaben...</td></tr>';
+            returnsOffset = 0;
+            returnsHasMore = true;
+            try {
+                const res = await fetch(`/api/emails/returns?limit=${SCROLL_PAGE_SIZE}&offset=0`);
+                const data = await res.json();
+                if (data.items && data.items.length > 0) {
+                    tbody.innerHTML = '';
+                    data.items.forEach(c => {
+                        const tr = document.createElement('tr');
+                        tr.className = 'hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer';
+                        tr.onclick = () => openReturnModal(c);
+                        tr.innerHTML = renderReturnRow(c);
+                        tbody.appendChild(tr);
+                    });
+                    returnsOffset = data.items.length;
+                    returnsHasMore = data.has_more;
+                    // Add sentinel
+                    const sentinel = document.createElement('tr');
+                    sentinel.id = 'returnsSentinel';
+                    sentinel.className = 'h-1';
+                    sentinel.innerHTML = '<td colspan="4"></td>';
+                    tbody.appendChild(sentinel);
+                    setupReturnScroll();
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="4" class="px-6 py-8 text-center text-sm text-gray-500">Keine Rückgaben vorhanden.</td></tr>';
+                }
+                // Show/hide section
+                document.getElementById('returnsSection').style.display = data.total > 0 ? 'block' : 'none';
+            } catch (e) {
+                console.error(e);
+                tbody.innerHTML = '<tr><td colspan="4" class="px-6 py-4 text-center text-red-500">Fehler beim Laden.</td></tr>';
+            }
+        }
+
+        function renderReturnRow(c) {
+            return `
+                <td class="px-6 py-4">
+                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">${c.vorname_nachname || 'Unbekannt'}</div>
+                    <div class="text-sm text-gray-500 dark:text-gray-400">${c.veranstaltungsname || 'Keine Veranstaltung'}</div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                    ${c.datum || '-'}${c.end_date_display ? ' - ' + c.end_date_display : ''}
+                </td>
+                <td class="px-6 py-4"><div class="flex flex-wrap gap-1">${
+                    (c.tags && c.tags.length > 0) ? c.tags.map(t => '<span class="inline-flex px-2 py-0.5 text-xs rounded bg-primary-100 dark:bg-primary-900/30 text-primary-800 dark:text-primary-400">' + t + '</span>').join('') : '<span class="text-xs text-gray-400">-</span>'
+                }</div></td>
+                <td class="px-6 py-4 whitespace-nowrap text-right text-sm">
+                    <span class="text-primary-600 dark:text-primary-400 hover:underline">Rückgabe bearbeiten →</span>
+                </td>`;
+        }
+
+        function setupReturnScroll() {
+            const sentinel = document.getElementById('returnsSentinel');
+            const container = document.getElementById('returnsScrollContainer');
+            if (!sentinel || !container) return;
+
+            const observer = new IntersectionObserver(async (entries) => {
+                if (entries[0].isIntersecting && !returnsLoading && returnsHasMore) {
+                    returnsLoading = true;
+                    try {
+                        const res = await fetch(`/api/emails/returns?limit=${SCROLL_PAGE_SIZE}&offset=${returnsOffset}`);
+                        const data = await res.json();
+                        if (data.items && data.items.length > 0) {
+                            const tbody = document.getElementById('returnsTbody');
+                            data.items.forEach(c => {
+                                const tr = document.createElement('tr');
+                                tr.className = 'hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer';
+                                tr.onclick = () => openReturnModal(c);
+                                tr.innerHTML = renderReturnRow(c);
+                                tbody.insertBefore(tr, sentinel);
+                            });
+                            returnsOffset += data.items.length;
+                            returnsHasMore = data.has_more;
+                        } else {
+                            returnsHasMore = false;
+                        }
+                    } catch (e) {
+                        console.error(e);
+                    }
+                    returnsLoading = false;
+                }
+            }, { root: container, threshold: 0.1 });
+
+            observer.observe(sentinel);
+        }
+
+        // Load returns on page load
+        loadReturns();
+
+        // ═══════════════════════════════════════
+        // RETURN MODAL
+        // ═══════════════════════════════════════
+        function openReturnModal(c) {
+            document.getElementById('returnCandidateId').value = c.id;
+            document.getElementById('returnName').textContent = c.vorname_nachname || 'Unbekannt';
+            document.getElementById('returnEvent').textContent = c.veranstaltungsname || '-';
+            document.getElementById('returnDatum').textContent = (c.datum || '-') + (c.end_date_display ? ' - ' + c.end_date_display : '');
+            document.getElementById('returnTags').innerHTML = (c.tags && c.tags.length > 0)
+                ? c.tags.map(t => `<span class="inline-flex px-2 py-0.5 text-xs rounded bg-primary-100 dark:bg-primary-900/30 text-primary-800 dark:text-primary-400">${t}</span>`).join(' ')
+                : '<span class="text-xs text-gray-400">-</span>';
+            document.getElementById('returnNote').value = '';
+            document.getElementById('returnProblem').value = '';
+            document.getElementById('problemFieldContainer').classList.add('hidden');
+            document.getElementById('problemBtn').classList.remove('hidden');
+            document.getElementById('submitProblemBtn').classList.add('hidden');
+            document.getElementById('returnModal').classList.remove('hidden');
+        }
+
+        function closeReturnModal() {
+            document.getElementById('returnModal').classList.add('hidden');
+        }
+
+        function showProblemField() {
+            document.getElementById('problemFieldContainer').classList.remove('hidden');
+            document.getElementById('problemBtn').classList.add('hidden');
+            document.getElementById('submitProblemBtn').classList.remove('hidden');
+            document.getElementById('returnProblem').focus();
+        }
+
+        async function submitReturn(action) {
+            const id = document.getElementById('returnCandidateId').value;
+            const note = document.getElementById('returnNote').value;
+            const problem = document.getElementById('returnProblem').value;
+
+            if (action === 'problem' && !problem.trim()) {
+                showFlash('Bitte beschreibe das Problem.', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/emails/candidates/${id}/return`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({ action, note, problem_description: problem })
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    const messages = {
+                        returned: 'Material als eingezählt markiert!',
+                        invoice: 'Material eingezählt & Rechnung wird erstellt.',
+                        problem: 'Problem wurde gemeldet.'
+                    };
+                    showFlash(messages[action] || 'Rückgabe gespeichert.');
+                    closeReturnModal();
+                    loadReturns();
+                } else {
+                    showFlash(data.error || 'Fehler bei der Rückgabe', 'error');
+                }
+            } catch (error) {
+                showFlash('Fehler: ' + error.message, 'error');
             }
         }
     </script>

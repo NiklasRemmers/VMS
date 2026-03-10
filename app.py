@@ -568,7 +568,7 @@ def get_calendar_events():
 @app.route('/api/emails/archive', methods=['GET'])
 @login_required
 def get_archived_emails():
-    """Get paginated archived emails."""
+    """Get paginated archived emails (past dates OR returned/problem status)."""
     from email_client import get_archived_candidates
     
     page = request.args.get('page', 1, type=int)
@@ -585,6 +585,177 @@ def get_archived_emails():
         tag_filter=tag_filter
     )
     return jsonify(result)
+
+
+@app.route('/api/emails/candidates/paged', methods=['GET'])
+@login_required
+def get_paged_candidates():
+    """Get paginated candidates for infinite scroll."""
+    from email_client import get_candidates
+    from datetime import datetime, date
+    
+    status_param = request.args.get('status', 'pending')
+    limit = request.args.get('limit', 5, type=int)
+    offset = request.args.get('offset', 0, type=int)
+    direction = request.args.get('direction', 'future')
+    
+    statuses = [s.strip() for s in status_param.split(',')]
+    all_candidates = get_candidates(status_filter='ALL')
+    today = date.today()
+    
+    filtered = []
+    for c in all_candidates:
+        if c.get('status') not in statuses:
+            continue
+        if not c.get('tags'):
+            c['tags'] = []
+        
+        c['parsed_date'] = None
+        if c.get('datum'):
+            try:
+                c['parsed_date'] = datetime.strptime(c['datum'], '%d.%m.%Y').date()
+            except:
+                try:
+                    c['parsed_date'] = datetime.strptime(c['datum'][:10], '%Y-%m-%d').date()
+                except:
+                    pass
+        
+        if c.get('end_date'):
+            try:
+                dt = datetime.strptime(c['end_date'], '%Y-%m-%d')
+                c['end_date_display'] = dt.strftime('%d.%m.%Y')
+            except:
+                c['end_date_display'] = c['end_date']
+        
+        if direction == 'future':
+            if c['parsed_date'] and c['parsed_date'] < today:
+                continue
+        
+        # Conflict detection for open candidates
+        if 'pending' in statuses:
+            c['has_conflict'] = False
+        
+        filtered.append(c)
+    
+    filtered.sort(key=lambda x: x.get('parsed_date') or date.max)
+    
+    # Conflict detection
+    if 'pending' in statuses:
+        date_counts = {}
+        for c in filtered:
+            if c.get('datum'):
+                date_counts[c['datum']] = date_counts.get(c['datum'], 0) + 1
+        for c in filtered:
+            c['has_conflict'] = c.get('datum') and date_counts.get(c['datum'], 0) > 1
+    
+    total = len(filtered)
+    page_items = filtered[offset:offset + limit]
+    
+    # Clean up non-serializable fields
+    for c in page_items:
+        if 'parsed_date' in c:
+            del c['parsed_date']
+    
+    return jsonify({
+        'items': page_items,
+        'total': total,
+        'has_more': offset + limit < total
+    })
+
+
+@app.route('/api/emails/returns', methods=['GET'])
+@login_required
+def get_returns():
+    """Get candidates ready for return (past date + processed/done status)."""
+    from email_client import get_candidates
+    from datetime import datetime, date
+    
+    limit = request.args.get('limit', 5, type=int)
+    offset = request.args.get('offset', 0, type=int)
+    
+    all_candidates = get_candidates(status_filter='ALL')
+    today = date.today()
+    
+    returns = []
+    for c in all_candidates:
+        if c.get('status') not in ('processed', 'done'):
+            continue
+        if not c.get('tags'):
+            c['tags'] = []
+        
+        parsed_date = None
+        if c.get('datum'):
+            try:
+                parsed_date = datetime.strptime(c['datum'], '%d.%m.%Y').date()
+            except:
+                try:
+                    parsed_date = datetime.strptime(c['datum'][:10], '%Y-%m-%d').date()
+                except:
+                    pass
+        
+        # Check if date is in the past
+        if parsed_date and parsed_date < today:
+            if c.get('end_date'):
+                try:
+                    c['end_date_display'] = datetime.strptime(c['end_date'], '%Y-%m-%d').strftime('%d.%m.%Y')
+                except:
+                    c['end_date_display'] = c['end_date']
+            returns.append(c)
+    
+    # Sort oldest first
+    returns.sort(key=lambda x: x.get('datum', ''))
+    
+    total = len(returns)
+    page_items = returns[offset:offset + limit]
+    
+    return jsonify({
+        'items': page_items,
+        'total': total,
+        'has_more': offset + limit < total
+    })
+
+
+@app.route('/api/emails/candidates/<int:candidate_id>/return', methods=['POST'])
+@login_required
+def return_candidate(candidate_id):
+    """Process a return action on a candidate."""
+    from email_client import get_candidate_by_id, update_candidate
+    from datetime import datetime, timezone
+    
+    data = request.get_json()
+    action = data.get('action')
+    note = data.get('note', '')
+    problem_description = data.get('problem_description', '')
+    
+    if action not in ('returned', 'invoice', 'problem'):
+        return jsonify({'error': 'Ungültige Aktion'}), 400
+    
+    candidate = get_candidate_by_id(candidate_id, current_user.id)
+    if not candidate:
+        return jsonify({'error': 'Kandidat nicht gefunden'}), 404
+    
+    now = datetime.now(timezone.utc)
+    
+    from database import get_session
+    from models import EmailCandidate
+    
+    with get_session() as s:
+        row = s.query(EmailCandidate).filter_by(id=candidate_id).first()
+        if not row:
+            return jsonify({'error': 'Kandidat nicht gefunden'}), 404
+        
+        row.return_note = note if note else None
+        row.returned_at = now
+        
+        if action == 'returned':
+            row.status = 'returned'
+        elif action == 'invoice':
+            row.status = 'invoice_pending'
+        elif action == 'problem':
+            row.status = 'problem'
+            row.return_problem = problem_description if problem_description else None
+    
+    return jsonify({'success': True})
 
 @app.route('/api/emails/candidates/<int:candidate_id>', methods=['PUT'])
 @login_required

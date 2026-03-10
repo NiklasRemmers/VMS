@@ -367,7 +367,7 @@ def get_candidates(status_filter='pending', user_id=None):
             elif not d.get('tags'):
                 d['tags'] = []
             # Handle datetime serialization
-            for key in ['received_at', 'created_at']:
+            for key in ['received_at', 'created_at', 'returned_at']:
                 if d.get(key) and hasattr(d[key], 'isoformat'):
                     d[key] = d[key].isoformat()
             result.append(d)
@@ -418,7 +418,8 @@ def update_candidate(candidate_id, form_data: Dict, user_id: int = None):
         'telefon', 'veranstaltungsname', 'veranstaltungsart', 'veranstaltungsort',
         'veranstaltungsbereich', 'personenzahl', 'datum', 'material',
         'sonstiges', 'rahmenbedingungen', 'raw_content', 'contract_created',
-        'kanboard_task_id'
+        'kanboard_task_id', 'end_date', 'tags', 'status',
+        'return_note', 'return_problem', 'returned_at'
     ]
     
     with get_session() as s:
@@ -656,10 +657,12 @@ def get_archived_candidates(user_id: int = None, page: int = 1, limit: int = 10,
                 else_=None
             )
             
-            # Filter for past dates: iso_date_expr < current_date_iso
-            # We allow invalid dates like '2024-02-31' to be compared as strings safely.
+            # Filter for past dates OR returned/problem status
             current_date_str = func.to_char(func.current_date(), 'YYYY-MM-DD')
-            q = q.filter(iso_date_expr < current_date_str)
+            q = q.filter(or_(
+                iso_date_expr < current_date_str,
+                EmailCandidate.status.in_(['returned', 'problem'])
+            ))
             
             # Apply filters
             if search_query:
@@ -704,7 +707,7 @@ def get_archived_candidates(user_id: int = None, page: int = 1, limit: int = 10,
                 elif not d.get('tags'):
                     d['tags'] = []
                 
-                for key in ['received_at', 'created_at']:
+                for key in ['received_at', 'created_at', 'returned_at']:
                     if d.get(key) and hasattr(d[key], 'isoformat'):
                         d[key] = d[key].isoformat()
                 results.append(d)

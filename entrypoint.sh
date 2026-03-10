@@ -125,6 +125,25 @@ with engine.connect() as conn:
     print('✓ Migrations complete')
 "
 
+# ─── 4c. Migrate: Return workflow columns ───
+python -c "
+import os
+os.environ['KMS_MASTER_KEY_PATH'] = '$KMS_KEY'
+from database import get_engine
+from sqlalchemy import text
+engine = get_engine()
+with engine.connect() as conn:
+    for col, coltype in [('return_note', 'TEXT'), ('return_problem', 'TEXT'), ('returned_at', 'TIMESTAMPTZ')]:
+        result = conn.execute(text(f\"SELECT column_name FROM information_schema.columns WHERE table_name='email_candidates' AND column_name='{col}'\"))
+        if result.fetchone() is None:
+            conn.execute(text(f'ALTER TABLE email_candidates ADD COLUMN {col} {coltype}'))
+            print(f'  + Added column: {col}')
+    # Widen status column
+    conn.execute(text('ALTER TABLE email_candidates ALTER COLUMN status TYPE VARCHAR(30)'))
+    conn.commit()
+    print('✓ Return migrations complete')
+"
+
 echo ""
 echo "═══════════════════════════════════════════"
 echo "  Starting Gunicorn..."
