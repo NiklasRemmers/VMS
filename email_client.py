@@ -45,20 +45,29 @@ def get_imap_connection(settings, email_address=None):
         raise ValueError(f"IMAP-Verbindung fehlgeschlagen: {e}")
 
 
-def get_last_sync(user_id) -> Optional[datetime]:
-    """Get timestamp of last email sync for user."""
+def get_last_sync(user_id=None) -> Optional[datetime]:
+    """Get timestamp of last email sync (global across all users).
+    
+    Returns the most recent sync timestamp from any user to prevent
+    duplicate email fetches when multiple users sync.
+    """
     with get_session() as s:
-        row = s.query(EmailSyncState).filter_by(user_id=user_id).first()
-        if row and row.last_sync:
+        row = s.query(func.max(EmailSyncState.last_sync)).scalar()
+        if row:
             # Ensure it is treated as UTC (assuming DB stores naive UTC)
-            if row.last_sync.tzinfo is None:
-                return row.last_sync.replace(tzinfo=timezone.utc)
-            return row.last_sync
+            if row.tzinfo is None:
+                return row.replace(tzinfo=timezone.utc)
+            return row
     return None
 
 
 def update_last_sync(user_id: int, reset_to_start_of_year: bool = False):
-    """Update last sync timestamp for user."""
+    """Update last sync timestamp globally (for all users).
+    
+    Updates the sync state for the triggering user and ensures
+    all other users' sync states are also updated to prevent
+    duplicate email fetches.
+    """
     if reset_to_start_of_year:
         current_year = datetime.now().year
         timestamp = datetime(current_year, 1, 1, tzinfo=timezone.utc)
@@ -66,10 +75,12 @@ def update_last_sync(user_id: int, reset_to_start_of_year: bool = False):
         timestamp = datetime.now(timezone.utc)
     
     with get_session() as s:
+        # Update all existing sync state rows
+        s.query(EmailSyncState).update({EmailSyncState.last_sync: timestamp})
+        
+        # Ensure the current user has a row
         row = s.query(EmailSyncState).filter_by(user_id=user_id).first()
-        if row:
-            row.last_sync = timestamp
-        else:
+        if not row:
             s.add(EmailSyncState(user_id=user_id, last_sync=timestamp))
 
 

@@ -346,7 +346,7 @@ def emails():
     
     # Pass user_id explicitly. status_filter='ALL' to get processed ones too.
     all_candidates = get_candidates(status_filter='ALL')
-    last_sync = get_last_sync(current_user.id)
+    last_sync = get_last_sync()
     today = date.today()
     
     # Parse tags and dates for each candidate
@@ -529,7 +529,7 @@ def sync_emails():
             print(f"Kanboard sync error: {e}")
         
         # Get updated last_sync
-        last_sync_dt = get_last_sync(current_user.id)
+        last_sync_dt = get_last_sync()
         last_sync_str = last_sync_dt.isoformat() if last_sync_dt else None
 
         return jsonify({
