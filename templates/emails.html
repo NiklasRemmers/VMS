@@ -313,7 +313,7 @@
 
                     <!-- Rückgaben Section (outside email-list-container to survive AJAX refresh) -->
                     <div class="mt-8 mb-8" id="returnsSection">
-                        <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-4">Rückgaben</h3>
+                        <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-4">Rechnungen</h3>
                         <div
                             class="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden">
                           <div class="max-h-[400px] overflow-y-auto" id="returnsScrollContainer">
@@ -327,7 +327,7 @@
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y divide-gray-200 dark:divide-gray-700" id="returnsTbody">
-                                    <tr><td colspan="4" class="px-6 py-4 text-center text-sm text-gray-500">Lade Rückgaben...</td></tr>
+                                    <tr><td colspan="4" class="px-6 py-4 text-center text-sm text-gray-500">Lade Rechnungen...</td></tr>
                                 </tbody>
                             </table>
                           </div>
@@ -829,7 +829,7 @@
         <div class="relative flex items-center justify-center min-h-screen p-4 pointer-events-none">
             <div
                 class="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-lg w-full p-6 border border-gray-200 dark:border-gray-700 pointer-events-auto">
-                <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-4" id="returnModalTitle">Rückgabe</h3>
+                <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-4" id="returnModalTitle">Rechnung</h3>
 
                 <!-- Read-only info -->
                 <div class="grid grid-cols-2 gap-3 mb-4 text-sm">
@@ -864,18 +864,15 @@
                 <input type="hidden" id="returnCandidateId">
 
                 <!-- Action buttons -->
-                <div class="flex flex-col sm:flex-row gap-3 mb-4">
+                <div class="flex gap-3">
                     <button type="button" onclick="submitReturn('returned')"
                         class="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors">
-                        ✓ Material eingezählt
+                        ✓ Rechnung
                     </button>
                     <button type="button" onclick="submitReturn('invoice')"
                         class="flex-1 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium rounded-lg transition-colors">
-                        ✓ Eingezählt & Rechnung
+                        ✓ Rechnung erstellt
                     </button>
-                </div>
-
-                <div class="flex justify-end">
                     <button type="button" onclick="closeReturnModal()"
                         class="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-sm font-medium rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700">
                         Abbrechen
@@ -1522,7 +1519,7 @@
 
         async function loadReturns() {
             const tbody = document.getElementById('returnsTbody');
-            tbody.innerHTML = '<tr><td colspan="4" class="px-6 py-4 text-center text-sm text-gray-500">Lade Rückgaben...</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="4" class="px-6 py-4 text-center text-sm text-gray-500">Lade Rechnungen...</td></tr>';
             returnsOffset = 0;
             returnsHasMore = true;
             try {
@@ -1547,7 +1544,7 @@
                     tbody.appendChild(sentinel);
                     setupReturnScroll();
                 } else {
-                    tbody.innerHTML = '<tr><td colspan="4" class="px-6 py-8 text-center text-sm text-gray-500">Keine Rückgaben vorhanden.</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="4" class="px-6 py-8 text-center text-sm text-gray-500">Keine Rechnungen vorhanden.</td></tr>';
                 }
 
             } catch (e) {
@@ -1569,7 +1566,7 @@
                     (c.tags && c.tags.length > 0) ? c.tags.map(t => '<span class="inline-flex px-2 py-0.5 text-xs rounded bg-primary-100 dark:bg-primary-900/30 text-primary-800 dark:text-primary-400">' + t + '</span>').join('') : '<span class="text-xs text-gray-400">-</span>'
                 }</div></td>
                 <td class="px-6 py-4 whitespace-nowrap text-right text-sm">
-                    <span class="text-primary-600 dark:text-primary-400 hover:underline">Rückgabe bearbeiten →</span>
+                    <span class="text-primary-600 dark:text-primary-400 hover:underline">Rechnung bearbeiten →</span>
                 </td>`;
         }
 
@@ -1646,15 +1643,15 @@
                 const data = await response.json();
                 if (response.ok) {
                     const messages = {
-                        returned: 'Material als eingezählt markiert!',
-                        invoice: 'Material eingezählt & Rechnung wird erstellt.',
+                        returned: 'Rechnung markiert!',
+                        invoice: 'Rechnung erstellt markiert.',
                         problem: 'Problem wurde gemeldet.'
                     };
-                    showFlash(messages[action] || 'Rückgabe gespeichert.');
+                    showFlash(messages[action] || 'Gespeichert.');
                     closeReturnModal();
                     loadReturns();
                 } else {
-                    showFlash(data.error || 'Fehler bei der Rückgabe', 'error');
+                    showFlash(data.error || 'Fehler beim Speichern', 'error');
                 }
             } catch (error) {
                 showFlash('Fehler: ' + error.message, 'error');
