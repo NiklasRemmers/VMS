@@ -730,6 +730,25 @@ def get_returns():
         'has_more': offset + limit < total
     })
 
+@app.route('/api/sequential-number/<string:number_type>', methods=['GET'])
+@login_required
+def get_next_sequential_number(number_type):
+    """Get the next sequential number for a given type (rechnung or umbuchung)."""
+    if number_type not in ('rechnung', 'umbuchung'):
+        return jsonify({'error': 'Ungültiger Typ'}), 400
+    
+    from database import get_session
+    from models import SequentialNumber
+    
+    with get_session() as s:
+        row = s.query(SequentialNumber).filter_by(number_type=number_type).first()
+        if row:
+            next_number = row.last_number + 1
+        else:
+            next_number = 1
+    
+    return jsonify({'next_number': next_number, 'type': number_type})
+
 
 @app.route('/api/emails/candidates/<int:candidate_id>/return', methods=['POST'])
 @login_required
@@ -741,6 +760,8 @@ def return_candidate(candidate_id):
     data = request.get_json()
     action = data.get('action')
     note = data.get('note', '')
+    laufende_nummer = data.get('laufende_nummer')
+    nummer_typ = data.get('nummer_typ')
     
     if action not in ('returned', 'invoice'):
         return jsonify({'error': 'Ungültige Aktion'}), 400
@@ -752,7 +773,7 @@ def return_candidate(candidate_id):
     now = datetime.now(timezone.utc)
     
     from database import get_session
-    from models import EmailCandidate
+    from models import EmailCandidate, SequentialNumber
     
     with get_session() as s:
         row = s.query(EmailCandidate).filter_by(id=candidate_id).first()
@@ -766,6 +787,24 @@ def return_candidate(candidate_id):
             row.status = 'returned'
         elif action == 'invoice':
             row.status = 'invoice_pending'
+        
+        # Save laufende nummer if provided
+        if laufende_nummer and nummer_typ:
+            row.laufende_nummer = str(laufende_nummer)
+            row.nummer_typ = nummer_typ
+            
+            # Update the sequential number counter
+            seq = s.query(SequentialNumber).filter_by(number_type=nummer_typ).first()
+            try:
+                num_val = int(laufende_nummer)
+            except (ValueError, TypeError):
+                num_val = 0
+            
+            if seq:
+                if num_val > seq.last_number:
+                    seq.last_number = num_val
+            else:
+                s.add(SequentialNumber(number_type=nummer_typ, last_number=num_val))
     
     return jsonify({'success': True})
 

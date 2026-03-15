@@ -859,6 +859,22 @@
                         placeholder="Optional..."></textarea>
                 </div>
 
+                <!-- Laufende Nummer -->
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-1">Laufende Nummer</label>
+                    <div class="flex gap-3">
+                        <select id="returnNummerTyp" onchange="fetchNextNumber()"
+                            class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm">
+                            <option value="">-- Typ wählen --</option>
+                            <option value="rechnung">Rechnung</option>
+                            <option value="umbuchung">Umbuchung</option>
+                        </select>
+                        <input type="number" id="returnLaufendeNummer"
+                            class="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm"
+                            placeholder="Nummer" min="1">
+                    </div>
+                </div>
+
                 <!-- Problem description removed -->
 
                 <input type="hidden" id="returnCandidateId">
@@ -1620,6 +1636,8 @@
                 ? c.tags.map(t => `<span class="inline-flex px-2 py-0.5 text-xs rounded bg-primary-100 dark:bg-primary-900/30 text-primary-800 dark:text-primary-400">${t}</span>`).join(' ')
                 : '<span class="text-xs text-gray-400">-</span>';
             document.getElementById('returnNote').value = '';
+            document.getElementById('returnNummerTyp').value = '';
+            document.getElementById('returnLaufendeNummer').value = '';
             document.getElementById('returnModal').classList.remove('hidden');
         }
 
@@ -1627,9 +1645,29 @@
             document.getElementById('returnModal').classList.add('hidden');
         }
 
+        async function fetchNextNumber() {
+            const typ = document.getElementById('returnNummerTyp').value;
+            const numInput = document.getElementById('returnLaufendeNummer');
+            if (!typ) {
+                numInput.value = '';
+                return;
+            }
+            try {
+                const resp = await fetch(`/api/sequential-number/${typ}`);
+                const data = await resp.json();
+                if (resp.ok) {
+                    numInput.value = data.next_number;
+                }
+            } catch (e) {
+                console.error('Error fetching next number:', e);
+            }
+        }
+
         async function submitReturn(action) {
             const id = document.getElementById('returnCandidateId').value;
             const note = document.getElementById('returnNote').value;
+            const laufendeNummer = document.getElementById('returnLaufendeNummer').value;
+            const nummerTyp = document.getElementById('returnNummerTyp').value;
 
             try {
                 const response = await fetch(`/api/emails/candidates/${id}/return`, {
@@ -1638,7 +1676,7 @@
                         'Content-Type': 'application/json',
                         'X-CSRFToken': csrfToken
                     },
-                    body: JSON.stringify({ action, note })
+                    body: JSON.stringify({ action, note, laufende_nummer: laufendeNummer, nummer_typ: nummerTyp })
                 });
                 const data = await response.json();
                 if (response.ok) {

@@ -137,6 +137,8 @@ class EmailCandidate(Base):
     # Return workflow
     return_note = Column(Text, nullable=True)
     returned_at = Column(DateTime(timezone=True), nullable=True)
+    laufende_nummer = Column(String(20), nullable=True)
+    nummer_typ = Column(String(30), nullable=True)  # 'rechnung' or 'umbuchung'
 
     # Relationships
     user = relationship('User', back_populates='candidates')
@@ -160,6 +162,16 @@ class EmailSyncState(Base):
 
     # Relationships
     user = relationship('User', back_populates='sync_state')
+
+
+class SequentialNumber(Base):
+    """Tracks the last-used sequential number per type (rechnung, umbuchung)."""
+    __tablename__ = 'sequential_numbers'
+
+    id = Column(Integer, primary_key=True)
+    number_type = Column(String(30), unique=True, nullable=False)  # 'rechnung' or 'umbuchung'
+    last_number = Column(Integer, default=0, nullable=False)
+    updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
 
 class InventoryItem(Base):
