@@ -1352,6 +1352,36 @@
                         const pad = n => String(n).padStart(2, '0');
                         syncInfo.textContent = `Letzter Sync: ${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
                     }
+
+                    // Re-setup infinite scrolling for the replaced tables
+                    const openCount = document.querySelectorAll('#openTbody tr[data-id]').length;
+                    const openContainer = document.getElementById('openScrollContainer');
+                    const openTotal = openContainer ? parseInt(openContainer.dataset.totalCount || '0') : 0;
+                    setupInfiniteScroll({
+                        sentinelId: 'openSentinel',
+                        containerId: 'openScrollContainer',
+                        tbodyId: 'openTbody',
+                        initialOffset: openCount,
+                        initialHasMore: openTotal > 5,
+                        url: (offset) => `/api/emails/candidates/paged?status=pending&limit=${SCROLL_PAGE_SIZE}&offset=${offset}&direction=future`,
+                        renderRow: renderOpenRow
+                    });
+
+                    const processedCount = document.querySelectorAll('#processedTbody tr[data-id]').length;
+                    if (processedCount > 0) {
+                        const processedContainer = document.getElementById('processedScrollContainer');
+                        const processedTotal = processedContainer ? parseInt(processedContainer.dataset.totalCount || '0') : 0;
+                        setupInfiniteScroll({
+                            sentinelId: 'processedSentinel',
+                            containerId: 'processedScrollContainer',
+                            tbodyId: 'processedTbody',
+                            initialOffset: processedCount,
+                            initialHasMore: processedTotal > 5,
+                            url: (offset) => `/api/emails/candidates/paged?status=processed,done&limit=${SCROLL_PAGE_SIZE}&offset=${offset}&direction=future`,
+                            rowClass: 'hover:bg-gray-50 dark:hover:bg-gray-700/50 opacity-75',
+                            renderRow: renderProcessedRow
+                        });
+                    }
                 }
                 // Reload returns table
                 if (typeof loadReturns === 'function') loadReturns();
@@ -1364,6 +1394,56 @@
         // INFINITE SCROLL
         // ═══════════════════════════════════════
         const SCROLL_PAGE_SIZE = 5;
+
+        function renderOpenRow(c) {
+            return `
+                <td class="px-6 py-4">
+                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">${c.vorname_nachname || 'Unbekannt'}</div>
+                    <div class="text-sm text-gray-500 dark:text-gray-400">${c.veranstaltungsname || 'Keine Veranstaltung'}</div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="text-sm text-gray-500 dark:text-gray-400">${c.datum || '-'}${c.end_date_display ? ' - ' + c.end_date_display : ''}</div>
+                    ${c.has_conflict ? '<span class="ml-2 inline-flex items-center px-2 py-0.5 text-xs rounded-full bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-400">⚠️ Konflikt</span>' : ''}
+                </td>
+                <td class="px-6 py-4"><div class="flex flex-wrap gap-1">${
+                    (c.tags && c.tags.length > 0) ? c.tags.map(t => '<span class="inline-flex px-2 py-0.5 text-xs rounded bg-primary-100 dark:bg-primary-900/30 text-primary-800 dark:text-primary-400">' + t + '</span>').join('') : '<span class="text-xs text-gray-400">Keine Tags</span>'
+                }</div></td>
+                <td class="px-6 py-4 whitespace-nowrap text-right text-sm space-x-2">
+                    <button onclick="editCandidate(${c.id})" class="text-primary-600 hover:text-primary-800 dark:text-primary-400">
+                        <svg class="w-5 h-5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                    </button>
+                    <button onclick="deleteCandidate(${c.id})" class="text-red-600 hover:text-red-800 dark:text-red-400">
+                        <svg class="w-5 h-5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                    </button>
+                </td>`;
+        }
+
+        function renderProcessedRow(c) {
+            return `
+                    <td class="px-6 py-4">
+                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">${c.vorname_nachname || 'Unbekannt'}</div>
+                        <div class="text-sm text-gray-500 dark:text-gray-400">${c.veranstaltungsname || 'Keine Veranstaltung'}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                        ${c.datum || '-'}${c.end_date_display ? ' - ' + c.end_date_display : ''}
+                    </td>
+                    <td class="px-6 py-4"><div class="flex flex-wrap gap-1">${
+                        (c.tags && c.tags.length > 0) ? c.tags.map(t => '<span class="inline-flex px-2 py-0.5 text-xs rounded bg-primary-100 dark:bg-primary-900/30 text-primary-800 dark:text-primary-400">' + t + '</span>').join('') : '<span class="text-xs text-gray-400">Keine Tags</span>'
+                    }</div></td>
+                    <td class="px-6 py-4 text-center">
+                        ${c.contract_created
+                            ? '<span class="text-green-600 dark:text-green-400"><svg class="w-6 h-6 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></span>'
+                            : '<span class="text-gray-300 dark:text-gray-600"><svg class="w-6 h-6 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></span>'}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm space-x-2">
+                        <button onclick="editCandidate(${c.id})" class="text-primary-600 hover:text-primary-800 dark:text-primary-400">
+                            <svg class="w-5 h-5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                        </button>
+                        <button onclick="deleteCandidate(${c.id})" class="text-red-600 hover:text-red-800 dark:text-red-400">
+                            <svg class="w-5 h-5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        </button>
+                    </td>`;
+        }
 
         function setupInfiniteScroll(config) {
             let loading = false;
@@ -1415,26 +1495,7 @@
             initialOffset: openInitialCount,
             initialHasMore: {{ 'true' if open_candidates|length > 5 else 'false' }},
             url: (offset) => `/api/emails/candidates/paged?status=pending&limit=${SCROLL_PAGE_SIZE}&offset=${offset}&direction=future`,
-            renderRow: (c) => `
-                <td class="px-6 py-4">
-                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">${c.vorname_nachname || 'Unbekannt'}</div>
-                    <div class="text-sm text-gray-500 dark:text-gray-400">${c.veranstaltungsname || 'Keine Veranstaltung'}</div>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                    <div class="text-sm text-gray-500 dark:text-gray-400">${c.datum || '-'}${c.end_date_display ? ' - ' + c.end_date_display : ''}</div>
-                    ${c.has_conflict ? '<span class="ml-2 inline-flex items-center px-2 py-0.5 text-xs rounded-full bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-400">⚠️ Konflikt</span>' : ''}
-                </td>
-                <td class="px-6 py-4"><div class="flex flex-wrap gap-1">${
-                    (c.tags && c.tags.length > 0) ? c.tags.map(t => '<span class="inline-flex px-2 py-0.5 text-xs rounded bg-primary-100 dark:bg-primary-900/30 text-primary-800 dark:text-primary-400">' + t + '</span>').join('') : '<span class="text-xs text-gray-400">Keine Tags</span>'
-                }</div></td>
-                <td class="px-6 py-4 whitespace-nowrap text-right text-sm space-x-2">
-                    <button onclick="editCandidate(${c.id})" class="text-primary-600 hover:text-primary-800 dark:text-primary-400">
-                        <svg class="w-5 h-5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
-                    </button>
-                    <button onclick="deleteCandidate(${c.id})" class="text-red-600 hover:text-red-800 dark:text-red-400">
-                        <svg class="w-5 h-5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                    </button>
-                </td>`
+            renderRow: renderOpenRow
         });
 
         // Processed candidates infinite scroll
@@ -1448,30 +1509,7 @@
                 initialHasMore: {{ 'true' if processed_candidates|length > 5 else 'false' }},
                 url: (offset) => `/api/emails/candidates/paged?status=processed,done&limit=${SCROLL_PAGE_SIZE}&offset=${offset}&direction=future`,
                 rowClass: 'hover:bg-gray-50 dark:hover:bg-gray-700/50 opacity-75',
-                renderRow: (c) => `
-                    <td class="px-6 py-4">
-                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">${c.vorname_nachname || 'Unbekannt'}</div>
-                        <div class="text-sm text-gray-500 dark:text-gray-400">${c.veranstaltungsname || 'Keine Veranstaltung'}</div>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                        ${c.datum || '-'}${c.end_date_display ? ' - ' + c.end_date_display : ''}
-                    </td>
-                    <td class="px-6 py-4"><div class="flex flex-wrap gap-1">${
-                        (c.tags && c.tags.length > 0) ? c.tags.map(t => '<span class="inline-flex px-2 py-0.5 text-xs rounded bg-primary-100 dark:bg-primary-900/30 text-primary-800 dark:text-primary-400">' + t + '</span>').join('') : '<span class="text-xs text-gray-400">Keine Tags</span>'
-                    }</div></td>
-                    <td class="px-6 py-4 text-center">
-                        ${c.contract_created
-                            ? '<span class="text-green-600 dark:text-green-400"><svg class="w-6 h-6 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></span>'
-                            : '<span class="text-gray-300 dark:text-gray-600"><svg class="w-6 h-6 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></span>'}
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm space-x-2">
-                        <button onclick="editCandidate(${c.id})" class="text-primary-600 hover:text-primary-800 dark:text-primary-400">
-                            <svg class="w-5 h-5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
-                        </button>
-                        <button onclick="deleteCandidate(${c.id})" class="text-red-600 hover:text-red-800 dark:text-red-400">
-                            <svg class="w-5 h-5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                        </button>
-                    </td>`
+                renderRow: renderProcessedRow
             });
         }
 
