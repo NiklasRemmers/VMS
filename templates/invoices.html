@@ -140,6 +140,22 @@
                     </div>
                 </div>
 
+                <!-- Laufende Nummer -->
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Laufende Nummer</label>
+                    <div class="flex gap-3">
+                        <select id="invNummerTyp" onchange="fetchInvNextNumber()"
+                            class="rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-purple-500 focus:ring-purple-500 sm:text-sm px-4 py-2 border">
+                            <option value="">-- Typ wählen --</option>
+                            <option value="rechnung">Rechnung</option>
+                            <option value="umbuchung">Umbuchung</option>
+                        </select>
+                        <input type="number" id="invLaufendeNummer"
+                            class="flex-1 rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-purple-500 focus:ring-purple-500 sm:text-sm px-4 py-2 border"
+                            placeholder="Nummer" min="1">
+                    </div>
+                </div>
+
                 <!-- Recipient Email -->
                 <div class="mb-6">
                     <label for="invEmail" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Empfänger E-Mail</label>
@@ -252,6 +268,7 @@ Viele Grüße.</textarea>
         let consumables = [];
         let invoiceItems = [];
         let activeCandidate = null;
+        const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
 
         // Number formatter
         const formatMoney = (amount) => amount.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " €";
@@ -410,6 +427,10 @@ Viele Grüße.</textarea>
             
             // Mail input
             document.getElementById('invEmail').value = candidate.email_address || '';
+
+            // Reset Laufende Nummer
+            document.getElementById('invNummerTyp').value = '';
+            document.getElementById('invLaufendeNummer').value = '';
             
             // Render table empty state
             renderInvoiceItems();
@@ -421,6 +442,24 @@ Viele Grüße.</textarea>
         function closeInvoiceModal() {
             document.getElementById('invoiceModal').classList.add('hidden');
             activeCandidate = null;
+        }
+
+        async function fetchInvNextNumber() {
+            const typ = document.getElementById('invNummerTyp').value;
+            const numInput = document.getElementById('invLaufendeNummer');
+            if (!typ) {
+                numInput.value = '';
+                return;
+            }
+            try {
+                const resp = await fetch(`/api/sequential-number/${typ}`);
+                const data = await resp.json();
+                if (resp.ok) {
+                    numInput.value = data.next_number;
+                }
+            } catch (e) {
+                console.error('Error fetching next number:', e);
+            }
         }
 
         function renderInvoiceItems() {
