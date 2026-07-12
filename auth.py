@@ -554,3 +554,60 @@ Falls du diese E-Mail nicht erwartet hast, kannst du sie ignorieren.
         mail.send(msg)
     except Exception as e:
         raise e
+
+
+def send_plain_email(email_addr, subject, body):
+    """Send a plain-text email using per-user SMTP (DB/KMS) or the Flask-Mail
+    fallback. Same two-tier strategy as send_invitation_email."""
+
+    # 1. Try to fetch user-specific SMTP settings from DB
+    smtp_settings = None
+    if current_user.is_authenticated:
+        try:
+            from database import get_user_settings
+            from security import decrypt_value
+
+            settings = get_user_settings(current_user.id)
+            if settings and settings.get('smtp_server') and settings.get('smtp_user'):
+                password = decrypt_value(settings.get('encrypted_smtp_password'))
+                if password:
+                    smtp_settings = {
+                        'server': settings.get('smtp_server'),
+                        'port': settings.get('smtp_port') or 587,
+                        'user': settings.get('smtp_user'),
+                        'password': password
+                    }
+        except Exception as e:
+            print(f"Error fetching SMTP settings from DB: {e}")
+
+    # 2. Use Custom SMTP if available
+    if smtp_settings:
+        import smtplib
+        from email.mime.text import MIMEText
+        from email.mime.multipart import MIMEMultipart
+
+        msg = MIMEMultipart()
+        msg['From'] = smtp_settings['user']
+        msg['To'] = email_addr
+        msg['Subject'] = subject
+        msg.attach(MIMEText(body, 'plain'))
+
+        try:
+            with smtplib.SMTP(smtp_settings['server'], smtp_settings['port']) as server:
+                server.starttls()
+                server.login(smtp_settings['user'], smtp_settings['password'])
+                server.send_message(msg)
+            return
+        except Exception as e:
+            raise Exception(f"SMTP (DB) send failed: {str(e)}")
+
+    # 3. Fallback to Global Flask-Mail
+    from flask_mail import Message
+    from flask import current_app
+
+    mail = current_app.extensions.get('mail')
+    if not mail:
+        raise Exception('Flask-Mail nicht konfiguriert und keine Benutzereinstellungen gefunden')
+
+    msg = Message(subject, recipients=[email_addr], body=body)
+    mail.send(msg)

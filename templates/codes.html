@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="de">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verleih-Codes</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f5f3ff', 100: '#ede9fe', 200: '#ddd6fe', 300: '#c4b5fd',
+                            400: '#a78bfa', 500: '#8b5cf6', 600: '#7c3aed', 700: '#6d28d9',
+                            800: '#5b21b6', 900: '#4c1d95',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style> body { font-family: 'Inter', sans-serif; } </style>
+    <script src="/static/theme.js"></script>
+</head>
+
+<body class="bg-gray-50 dark:bg-gray-900 min-h-screen flex items-center justify-center p-4">
+    <div class="w-full max-w-md">
+        <div class="text-center mb-8">
+            <h1 class="text-3xl font-bold text-gray-800 dark:text-gray-200">Anlagenreferat</h1>
+            <p class="text-gray-500 dark:text-gray-400 mt-2">Verleih-Codes</p>
+        </div>
+
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-8">
+            {% if not found %}
+            <div class="text-center">
+                <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-2">Ungültiger Link</h2>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Dieser Link ist ungültig oder nicht mehr gültig.</p>
+            </div>
+            {% else %}
+            <div class="text-center mb-6">
+                {% if event %}
+                <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-200">{{ event }}</h2>
+                {% endif %}
+                {% if name %}
+                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">{{ name }}</p>
+                {% endif %}
+            </div>
+
+            {% if not visible %}
+            <div class="text-center py-6">
+                <svg class="w-12 h-12 mx-auto text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                </svg>
+                <p class="text-gray-700 dark:text-gray-300">Die Codes werden am
+                    <span class="font-semibold">{{ datum or 'Tag des Verleihs' }}</span> sichtbar.</p>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">Bitte schau am Verleih-Tag erneut vorbei.</p>
+            </div>
+            {% elif locations|length == 0 %}
+            <div class="text-center py-6">
+                <p class="text-gray-700 dark:text-gray-300">Keine Codes hinterlegt.</p>
+            </div>
+            {% else %}
+            <div class="space-y-3">
+                {% for loc in locations %}
+                <div class="flex items-center justify-between px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/40">
+                    <span class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ loc.name }}</span>
+                    <span class="text-lg font-mono font-semibold text-primary-700 dark:text-primary-400 tracking-wider">{{ loc.code or '–' }}</span>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+            {% endif %}
+        </div>
+    </div>
+</body>
+
+</html>

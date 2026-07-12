@@ -107,6 +107,39 @@ def health_check():
     return jsonify({'status': 'ok'}), 200
 
 
+@app.route('/codes/<token>')
+@limiter.limit("60 per hour")
+def public_codes(token):
+    """Public (no-login) page that reveals a loan's storage codes from the
+    loan's start date onwards. Reached via a secret token link sent by email."""
+    from database import get_session
+    from models import CodeShareLink, StorageLocation
+    from kanboard_client import _parse_date, _today
+
+    with get_session() as s:
+        link = s.query(CodeShareLink).filter_by(token=token).first()
+        if not link or not link.candidate:
+            return render_template('codes.html', found=False), 404
+
+        candidate = link.candidate
+        datum = candidate.datum or ''
+        event = candidate.veranstaltungsname
+        name = candidate.vorname_nachname
+
+        start = _parse_date(datum)
+        visible = start is not None and _today() >= start
+
+        locations = []
+        if visible:
+            locs = s.query(StorageLocation).filter_by(
+                candidate_id=candidate.id
+            ).order_by(StorageLocation.name).all()
+            locations = [{'name': loc.name, 'code': loc.code} for loc in locs]
+
+        return render_template('codes.html', found=True, visible=visible,
+                               datum=datum, event=event, name=name, locations=locations)
+
+
 @app.route('/')
 @login_required
 def index():

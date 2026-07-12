@@ -264,6 +264,7 @@ class StorageLocation(Base):
                 'name': self.candidate.vorname_nachname,
                 'event': self.candidate.veranstaltungsname,
                 'datum': self.candidate.datum,
+                'email': self.candidate.email_address,
             }
         return {
             'id': self.id,
@@ -271,4 +272,27 @@ class StorageLocation(Base):
             'code': self.code,
             'candidate_id': self.candidate_id,
             'candidate': candidate,
+        }
+
+
+class CodeShareLink(Base):
+    """A public, tokenized link that reveals a loan's storage codes.
+
+    One link per loan (candidate). The codes are only shown from the loan's
+    start date onwards; the token grants access without login."""
+    __tablename__ = 'code_share_links'
+
+    id = Column(Integer, primary_key=True)
+    token = Column(String(64), unique=True, nullable=False, index=True)
+    candidate_id = Column(Integer, ForeignKey('email_candidates.id', ondelete='CASCADE'),
+                          unique=True, nullable=False)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+
+    candidate = relationship('EmailCandidate')
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'token': self.token,
+            'candidate_id': self.candidate_id,
         }

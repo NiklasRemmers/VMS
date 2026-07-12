@@ -56,13 +56,22 @@
                 <div class="container px-6 mx-auto grid">
                     <div class="flex items-center justify-between my-6">
                         <h2 class="text-2xl font-semibold text-gray-700 dark:text-gray-200">Verleih</h2>
-                        <button type="button" onclick="openLocationModal()"
-                            class="inline-flex items-center px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg transition-colors">
-                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-                            </svg>
-                            Neuer Lagerort
-                        </button>
+                        <div class="flex items-center gap-2">
+                            <button type="button" onclick="openSendCodesModal()"
+                                class="inline-flex items-center px-4 py-2 border border-primary-600 text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 text-sm font-medium rounded-lg transition-colors">
+                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                                </svg>
+                                Codes verschicken
+                            </button>
+                            <button type="button" onclick="openLocationModal()"
+                                class="inline-flex items-center px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg transition-colors">
+                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                                </svg>
+                                Neuer Lagerort
+                            </button>
+                        </div>
                     </div>
 
                     <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">
@@ -131,6 +140,45 @@
                         class="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-sm font-medium rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">Abbrechen</button>
                     <button type="button" onclick="assignLoan()"
                         class="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg transition-colors">Zuordnen</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Send Codes Modal -->
+    <div id="sendCodesModal" class="fixed inset-0 z-50 hidden">
+        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" onclick="closeSendCodesModal()"></div>
+        <div class="relative flex items-center justify-center min-h-screen p-4 pointer-events-none">
+            <div class="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-lg w-full p-6 border border-gray-200 dark:border-gray-700 pointer-events-auto">
+                <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">Codes verschicken</h3>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Verleih</label>
+                        <select id="sendCodesLoanSelect" onchange="onSendCodesLoanChange()"
+                            class="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500">
+                            <option value="">Verleih auswählen…</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Empfänger (E-Mail)</label>
+                        <input type="email" id="sendCodesEmail" placeholder="name@example.com"
+                            class="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500">
+                    </div>
+                    <div>
+                        <span class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Diese Codes werden geteilt:</span>
+                        <div id="sendCodesPreview" class="text-sm text-gray-600 dark:text-gray-400">
+                            <span class="text-gray-400">Bitte einen Verleih auswählen.</span>
+                        </div>
+                    </div>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">
+                        Es wird ein Link verschickt — die Codes stehen nicht in der Mail und werden erst am Verleih-Tag sichtbar.
+                    </p>
+                </div>
+                <div class="flex justify-end space-x-3 mt-6">
+                    <button type="button" onclick="closeSendCodesModal()"
+                        class="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-sm font-medium rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">Abbrechen</button>
+                    <button type="button" onclick="sendCodes()"
+                        class="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg transition-colors">Senden</button>
                 </div>
             </div>
         </div>
@@ -339,6 +387,70 @@
                 if (response.ok) { fetchLocations(); showToast('Lagerort freigegeben'); }
                 else { showToast('Fehler beim Freigeben', 'error'); }
             }, { confirmText: 'Freigeben', type: 'info' });
+        }
+
+        function openSendCodesModal() {
+            const select = document.getElementById('sendCodesLoanSelect');
+            // Distinct occupied loans (candidates that have at least one location).
+            const seen = new Set();
+            const loans = [];
+            allLocations.forEach(loc => {
+                if (loc.candidate && !seen.has(loc.candidate.id)) {
+                    seen.add(loc.candidate.id);
+                    loans.push(loc.candidate);
+                }
+            });
+            select.innerHTML = '<option value="">Verleih auswählen…</option>' + loans.map(c => {
+                const label = [c.name, c.event].filter(Boolean).join(' – ') + (c.datum ? ` (${c.datum})` : '');
+                return `<option value="${c.id}">${escapeHtml(label) || ('Verleih #' + c.id)}</option>`;
+            }).join('');
+            document.getElementById('sendCodesEmail').value = '';
+            document.getElementById('sendCodesPreview').innerHTML = '<span class="text-gray-400">Bitte einen Verleih auswählen.</span>';
+            document.getElementById('sendCodesModal').classList.remove('hidden');
+        }
+
+        function closeSendCodesModal() {
+            document.getElementById('sendCodesModal').classList.add('hidden');
+        }
+
+        function onSendCodesLoanChange() {
+            const candidateId = parseInt(document.getElementById('sendCodesLoanSelect').value, 10);
+            const preview = document.getElementById('sendCodesPreview');
+            const emailInput = document.getElementById('sendCodesEmail');
+            if (!candidateId) {
+                preview.innerHTML = '<span class="text-gray-400">Bitte einen Verleih auswählen.</span>';
+                emailInput.value = '';
+                return;
+            }
+            const locs = allLocations.filter(l => l.candidate_id === candidateId);
+            const candidate = locs.length ? locs[0].candidate : null;
+            if (candidate && candidate.email) emailInput.value = candidate.email;
+            preview.innerHTML = locs.length
+                ? locs.map(l => `<div class="flex items-center justify-between py-0.5"><span>${escapeHtml(l.name)}</span><span class="font-mono text-gray-800 dark:text-gray-200">${l.code ? escapeHtml(l.code) : '–'}</span></div>`).join('')
+                : '<span class="text-gray-400">Keine Codes zugeordnet.</span>';
+        }
+
+        async function sendCodes() {
+            const candidateId = parseInt(document.getElementById('sendCodesLoanSelect').value, 10);
+            const email = document.getElementById('sendCodesEmail').value.trim();
+            if (!candidateId) { showToast('Bitte einen Verleih auswählen', 'error'); return; }
+            if (!email) { showToast('Bitte eine E-Mail-Adresse angeben', 'error'); return; }
+            try {
+                const response = await fetch('/api/verleih/send-codes', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                    body: JSON.stringify({ candidate_id: candidateId, email })
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    closeSendCodesModal();
+                    showToast('Link verschickt!');
+                } else {
+                    showToast(data.error || 'Fehler beim Senden', 'error');
+                }
+            } catch (error) {
+                showToast('Fehler beim Senden', 'error');
+            }
         }
 
         fetchLocations();

@@ -1,10 +1,23 @@
-from flask import Blueprint, request, jsonify, render_template
+import secrets
+
+from flask import Blueprint, request, jsonify, render_template, url_for
 from database import get_session
-from models import StorageLocation
+from models import StorageLocation, CodeShareLink
 from auth import login_required, current_user
 from sqlalchemy.exc import IntegrityError
 
 verleih_bp = Blueprint('verleih', __name__)
+
+
+def _get_or_create_share_token(candidate_id):
+    """Return the (reused) public share token for a loan, creating one if needed."""
+    with get_session() as s:
+        link = s.query(CodeShareLink).filter_by(candidate_id=candidate_id).first()
+        if link:
+            return link.token
+        token = secrets.token_urlsafe(32)
+        s.add(CodeShareLink(token=token, candidate_id=candidate_id))
+        return token
 
 
 @verleih_bp.route('/verleih')
@@ -118,6 +131,55 @@ def unassign_location(location_id):
         s.commit()
         s.refresh(loc)
         return jsonify(loc.to_dict())
+
+
+@verleih_bp.route('/api/verleih/send-codes', methods=['POST'])
+@login_required
+def send_codes():
+    """Email a public link (no codes in the mail) to reveal a loan's codes."""
+    from email_client import get_candidate_by_id
+    from auth import send_plain_email
+
+    data = request.get_json() or {}
+    candidate_id = data.get('candidate_id')
+    email = (data.get('email') or '').strip()
+
+    if not candidate_id:
+        return jsonify({'error': 'candidate_id erforderlich'}), 400
+    if not email:
+        return jsonify({'error': 'E-Mail-Adresse erforderlich'}), 400
+
+    candidate = get_candidate_by_id(candidate_id, current_user.id)
+    if not candidate:
+        return jsonify({'error': 'Verleih nicht gefunden'}), 404
+
+    # Must have at least one assigned storage location to share.
+    with get_session() as s:
+        count = s.query(StorageLocation).filter_by(candidate_id=candidate_id).count()
+    if count == 0:
+        return jsonify({'error': 'Diesem Verleih ist kein Lagerort zugeordnet'}), 400
+
+    token = _get_or_create_share_token(candidate_id)
+    url = url_for('public_codes', token=token, _external=True)
+
+    datum = candidate.get('datum') or ''
+    event = candidate.get('veranstaltungsname') or 'deinen Verleih'
+    body = f'''Hallo,
+
+für {event} kannst du deine Abhol-Codes über den folgenden Link abrufen:
+
+{url}
+
+Die Codes werden erst am Tag des Verleihs ({datum}) sichtbar.
+
+Viele Grüße'''
+
+    try:
+        send_plain_email(email, 'Deine Codes für den Verleih', body)
+    except Exception as e:
+        return jsonify({'error': f'E-Mail konnte nicht gesendet werden: {e}', 'url': url}), 500
+
+    return jsonify({'success': True, 'url': url})
 
 
 @verleih_bp.route('/api/verleih/loans', methods=['GET'])
