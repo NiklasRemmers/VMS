@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="de" class="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verleih - VMS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f5f3ff',
+                            100: '#ede9fe',
+                            200: '#ddd6fe',
+                            300: '#c4b5fd',
+                            400: '#a78bfa',
+                            500: '#8b5cf6',
+                            600: '#7c3aed',
+                            700: '#6d28d9',
+                            800: '#5b21b6',
+                            900: '#4c1d95',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <script>
+        if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+    <script src="/static/theme.js"></script>
+</head>
+
+<body class="bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-200 transition-colors duration-200">
+    <div class="flex h-screen overflow-hidden">
+        {% include '_sidebar.html' %}
+
+        <div class="flex flex-col flex-1 w-full">
+            {% include '_navbar.html' %}
+
+            <main class="h-full overflow-y-auto">
+                <div class="container px-6 mx-auto grid">
+                    <div class="flex items-center justify-between my-6">
+                        <h2 class="text-2xl font-semibold text-gray-700 dark:text-gray-200">Verleih</h2>
+                        <button type="button" onclick="openLocationModal()"
+                            class="inline-flex items-center px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg transition-colors">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                            </svg>
+                            Neuer Lagerort
+                        </button>
+                    </div>
+
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">
+                        Lagerorte (Schränke &amp; Spind-Fächer) mit Code verwalten und einem Verleih zuordnen.
+                    </p>
+
+                    <!-- Flash Messages -->
+                    <div id="flashMessages"></div>
+
+                    <!-- Locations grid -->
+                    <div id="locationsGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+                        <p class="text-sm text-gray-500 dark:text-gray-400">Lade Lagerorte…</p>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Create/Edit Location Modal -->
+    <div id="locationModal" class="fixed inset-0 z-50 hidden">
+        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" onclick="closeLocationModal()"></div>
+        <div class="relative flex items-center justify-center min-h-screen p-4 pointer-events-none">
+            <div class="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-lg w-full p-6 border border-gray-200 dark:border-gray-700 pointer-events-auto">
+                <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4" id="locationModalTitle">Neuer Lagerort</h3>
+                <div class="space-y-4">
+                    <input type="hidden" id="locationId">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Name</label>
+                        <input type="text" id="locationName" placeholder="z. B. Schrank 5 oder Spind 3"
+                            class="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Code</label>
+                        <input type="text" id="locationCode" placeholder="z. B. 4711"
+                            class="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500">
+                    </div>
+                </div>
+                <div class="flex justify-end space-x-3 mt-6">
+                    <button type="button" onclick="closeLocationModal()"
+                        class="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-sm font-medium rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">Abbrechen</button>
+                    <button type="button" onclick="saveLocation()"
+                        class="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg transition-colors">Speichern</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Assign Loan Modal -->
+    <div id="assignModal" class="fixed inset-0 z-50 hidden">
+        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" onclick="closeAssignModal()"></div>
+        <div class="relative flex items-center justify-center min-h-screen p-4 pointer-events-none">
+            <div class="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-lg w-full p-6 border border-gray-200 dark:border-gray-700 pointer-events-auto">
+                <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">Verleih zuordnen — <span id="assignLocationName"></span></h3>
+                <div class="space-y-4">
+                    <input type="hidden" id="assignLocationId">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Verleih</label>
+                        <select id="assignLoanSelect"
+                            class="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500">
+                            <option value="">Verleih auswählen…</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="flex justify-end space-x-3 mt-6">
+                    <button type="button" onclick="closeAssignModal()"
+                        class="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-sm font-medium rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">Abbrechen</button>
+                    <button type="button" onclick="assignLoan()"
+                        class="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg transition-colors">Zuordnen</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% include '_confirm_modal.html' %}
+
+    <script>
+        const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+        let allLoans = [];
+        let allLocations = [];
+
+        function escapeHtml(str) {
+            return (str ?? '').toString()
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        }
+
+        async function fetchLocations() {
+            const grid = document.getElementById('locationsGrid');
+            try {
+                const response = await fetch('/api/verleih/locations');
+                if (!response.ok) throw new Error('Netzwerkfehler');
+                const locations = await response.json();
+                renderLocations(locations);
+            } catch (error) {
+                console.error('Error fetching locations:', error);
+                grid.innerHTML = '<p class="text-sm text-red-500">Lagerorte konnten nicht geladen werden.</p>';
+            }
+        }
+
+        function renderLocations(locations) {
+            allLocations = locations;
+            const grid = document.getElementById('locationsGrid');
+            if (!locations.length) {
+                grid.innerHTML = '<p class="text-sm text-gray-500 dark:text-gray-400">Noch keine Lagerorte. Lege den ersten an.</p>';
+                return;
+            }
+            grid.innerHTML = locations.map(loc => {
+                const occupied = !!loc.candidate;
+                const statusBadge = occupied
+                    ? `<span class="inline-flex px-2 py-0.5 text-xs rounded bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-400">Belegt</span>`
+                    : `<span class="inline-flex px-2 py-0.5 text-xs rounded bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400">Frei</span>`;
+                const occupantHtml = occupied
+                    ? `<div class="mt-2 text-sm text-gray-700 dark:text-gray-300">
+                           <span class="text-gray-500 dark:text-gray-400">Verleih:</span>
+                           ${escapeHtml(loc.candidate.name) || 'Unbekannt'}${loc.candidate.event ? ' – ' + escapeHtml(loc.candidate.event) : ''}
+                           ${loc.candidate.datum ? `<span class="text-gray-400"> (${escapeHtml(loc.candidate.datum)})</span>` : ''}
+                       </div>`
+                    : '';
+                const actionBtn = occupied
+                    ? `<button type="button" onclick="unassignLocation(${loc.id})"
+                           class="px-3 py-1.5 text-xs font-medium rounded-lg border border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20">Freigeben</button>`
+                    : `<button type="button" onclick="openAssignModal(${loc.id})"
+                           class="px-3 py-1.5 text-xs font-medium rounded-lg bg-primary-600 hover:bg-primary-700 text-white">Zuordnen</button>`;
+                return `
+                <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
+                    <div class="flex items-start justify-between">
+                        <div>
+                            <h3 class="text-base font-semibold text-gray-800 dark:text-gray-200">${escapeHtml(loc.name)}</h3>
+                            <div class="mt-1 text-sm">
+                                <span class="text-gray-500 dark:text-gray-400">Code:</span>
+                                <span class="ml-1 font-mono text-gray-800 dark:text-gray-200">${loc.code ? escapeHtml(loc.code) : '–'}</span>
+                            </div>
+                        </div>
+                        ${statusBadge}
+                    </div>
+                    ${occupantHtml}
+                    <div class="flex items-center justify-between mt-4">
+                        ${actionBtn}
+                        <div class="flex items-center gap-1">
+                            <button type="button" onclick="editLocation(${loc.id})"
+                                class="p-1.5 text-gray-400 hover:text-primary-600 rounded" title="Bearbeiten">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                            </button>
+                            <button type="button" onclick="deleteLocation(${loc.id})"
+                                class="p-1.5 text-gray-400 hover:text-red-500 rounded" title="Löschen">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        function editLocation(id) {
+            const loc = allLocations.find(l => l.id === id);
+            if (loc) openLocationModal(loc);
+        }
+
+        function openLocationModal(location = null) {
+            document.getElementById('locationId').value = location ? location.id : '';
+            document.getElementById('locationName').value = location ? location.name : '';
+            document.getElementById('locationCode').value = location ? (location.code || '') : '';
+            document.getElementById('locationModalTitle').textContent = location ? 'Lagerort bearbeiten' : 'Neuer Lagerort';
+            document.getElementById('locationModal').classList.remove('hidden');
+        }
+
+        function closeLocationModal() {
+            document.getElementById('locationModal').classList.add('hidden');
+        }
+
+        async function saveLocation() {
+            const id = document.getElementById('locationId').value;
+            const name = document.getElementById('locationName').value.trim();
+            const code = document.getElementById('locationCode').value.trim();
+
+            if (!name) {
+                showToast('Name ist erforderlich', 'error');
+                return;
+            }
+
+            const method = id ? 'PUT' : 'POST';
+            const url = id ? `/api/verleih/locations/${id}` : '/api/verleih/locations';
+
+            try {
+                const response = await fetch(url, {
+                    method,
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                    body: JSON.stringify({ name, code })
+                });
+                if (response.ok) {
+                    closeLocationModal();
+                    fetchLocations();
+                    showToast('Lagerort gespeichert!');
+                } else {
+                    const data = await response.json();
+                    showToast(data.error || 'Fehler beim Speichern', 'error');
+                }
+            } catch (error) {
+                console.error(error);
+                showToast('Fehler beim Speichern', 'error');
+            }
+        }
+
+        function deleteLocation(id) {
+            showConfirmDialog('Löschen bestätigen', 'Möchtest du diesen Lagerort wirklich löschen?', async () => {
+                const response = await fetch(`/api/verleih/locations/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'X-CSRFToken': csrfToken }
+                });
+                if (response.ok) { fetchLocations(); showToast('Erfolgreich gelöscht'); }
+                else { showToast('Fehler beim Löschen', 'error'); }
+            }, { confirmText: 'Löschen', type: 'danger' });
+        }
+
+        async function openAssignModal(locationId) {
+            const loc = allLocations.find(l => l.id === locationId);
+            document.getElementById('assignLocationId').value = locationId;
+            document.getElementById('assignLocationName').textContent = loc ? loc.name : '';
+            await fetchLoans();
+            document.getElementById('assignModal').classList.remove('hidden');
+        }
+
+        function closeAssignModal() {
+            document.getElementById('assignModal').classList.add('hidden');
+        }
+
+        async function fetchLoans() {
+            const select = document.getElementById('assignLoanSelect');
+            try {
+                const response = await fetch('/api/verleih/loans');
+                allLoans = response.ok ? await response.json() : [];
+            } catch (error) {
+                allLoans = [];
+            }
+            select.innerHTML = '<option value="">Verleih auswählen…</option>' + allLoans.map(l => {
+                const label = [l.vorname_nachname, l.veranstaltungsname].filter(Boolean).join(' – ')
+                    + (l.datum ? ` (${l.datum})` : '');
+                return `<option value="${l.id}">${escapeHtml(label) || ('Verleih #' + l.id)}</option>`;
+            }).join('');
+        }
+
+        async function assignLoan() {
+            const locationId = document.getElementById('assignLocationId').value;
+            const candidateId = document.getElementById('assignLoanSelect').value;
+            if (!candidateId) {
+                showToast('Bitte einen Verleih auswählen', 'error');
+                return;
+            }
+            try {
+                const response = await fetch(`/api/verleih/locations/${locationId}/assign`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                    body: JSON.stringify({ candidate_id: parseInt(candidateId, 10) })
+                });
+                if (response.ok) {
+                    closeAssignModal();
+                    fetchLocations();
+                    showToast('Verleih zugeordnet!');
+                } else {
+                    const data = await response.json();
+                    showToast(data.error || 'Fehler beim Zuordnen', 'error');
+                }
+            } catch (error) {
+                showToast('Fehler beim Zuordnen', 'error');
+            }
+        }
+
+        function unassignLocation(id) {
+            showConfirmDialog('Freigeben', 'Diesen Lagerort wieder freigeben?', async () => {
+                const response = await fetch(`/api/verleih/locations/${id}/unassign`, {
+                    method: 'POST',
+                    headers: { 'X-CSRFToken': csrfToken }
+                });
+                if (response.ok) { fetchLocations(); showToast('Lagerort freigegeben'); }
+                else { showToast('Fehler beim Freigeben', 'error'); }
+            }, { confirmText: 'Freigeben', type: 'info' });
+        }
+
+        fetchLocations();
+    </script>
+</body>
+
+</html>

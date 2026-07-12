@@ -236,3 +236,39 @@ class BundleItem(Base):
             'item_name': self.item.name if self.item else None,
             'count': self.count
         }
+
+
+class StorageLocation(Base):
+    """A physical storage location (Schrank / Spind-Fach) with a code.
+
+    Can be assigned to a loan (EmailCandidate) to show that its material is
+    prepared there. Freed automatically when the loan is returned."""
+    __tablename__ = 'storage_locations'
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String(100), unique=True, nullable=False)  # e.g. "Schrank 5", "Spind 3"
+    code = Column(String(100), nullable=True)  # shown on the Verleih page
+    candidate_id = Column(Integer, ForeignKey('email_candidates.id', ondelete='SET NULL'), nullable=True)
+
+    candidate = relationship('EmailCandidate')
+
+    __table_args__ = (
+        Index('idx_storage_candidate_id', 'candidate_id'),
+    )
+
+    def to_dict(self):
+        candidate = None
+        if self.candidate is not None:
+            candidate = {
+                'id': self.candidate.id,
+                'name': self.candidate.vorname_nachname,
+                'event': self.candidate.veranstaltungsname,
+                'datum': self.candidate.datum,
+            }
+        return {
+            'id': self.id,
+            'name': self.name,
+            'code': self.code,
+            'candidate_id': self.candidate_id,
+            'candidate': candidate,
+        }

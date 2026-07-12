@@ -4,11 +4,29 @@ Handles communication with the Kanboard TODO board
 Supports per-user configuration.
 """
 import requests
+import logging
+from datetime import datetime
 from typing import Dict, List, Optional, Any
 from database import get_user_settings
 from security import decrypt_value
 
+try:
+    from zoneinfo import ZoneInfo
+    LOCAL_TZ = ZoneInfo('Europe/Berlin')
+except Exception:  # pragma: no cover - fallback if tzdata missing
+    LOCAL_TZ = None
+
+logger = logging.getLogger(__name__)
+
 DEFAULT_PROJECT_ID = 25  # Fallback
+
+# ─── Kanboard column names per candidate lifecycle state ───
+# Resolved by name at runtime (case-insensitive). These columns must exist
+# in the Kanboard project with exactly these titles.
+COLUMN_PROCESSED = 'Leihanfrage'
+COLUMN_DONE      = 'Abholdatum, Referent festgelegt oder Leihvertrag gemacht'
+COLUMN_VERLIEHEN = 'Verliehen'
+COLUMN_INVOICE   = 'Zurückgegeben/Rechnung offen'
 
 def get_project_id(user_id: int) -> int:
     """Get project ID from user settings or default."""
@@ -273,3 +291,99 @@ def get_all_tags(user_id: int, project_id: int = None) -> List[str]:
         return []
     except:
         return []
+
+
+def _parse_date(date_str: str):
+    """Parse a DD.MM.YYYY or YYYY-MM-DD string into a date. Returns None on failure."""
+    if not date_str:
+        return None
+    s = date_str
+    if 'T' in s:
+        s = s.split('T')[0]
+    if ' ' in s:
+        s = s.split(' ')[0]
+    for fmt in ('%d.%m.%Y', '%Y-%m-%d'):
+        try:
+            return datetime.strptime(s, fmt).date()
+        except ValueError:
+            continue
+    return None
+
+
+def _today():
+    """Local (Europe/Berlin) current date, matching the daily reconcile job."""
+    if LOCAL_TZ is not None:
+        return datetime.now(LOCAL_TZ).date()
+    return datetime.now().date()
+
+
+def move_task(user_id: int, task_id: int, column_name: str, position: int = 1,
+              project_id: int = None) -> bool:
+    """Move a task to another column (by name). No-op if it is already there.
+
+    Returns True if the task is in (or was moved to) the target column,
+    False if the column could not be resolved."""
+    pid = project_id or get_project_id(user_id)
+
+    task = _make_request(user_id, 'getTask', {'task_id': task_id})
+    if not task:
+        logger.warning("move_task: Kanboard task %s nicht gefunden", task_id)
+        return False
+
+    target_col_id = get_column_id_by_name(user_id, column_name, pid)
+    if not target_col_id:
+        logger.warning("move_task: Spalte '%s' nicht gefunden (Projekt %s)", column_name, pid)
+        return False
+
+    if int(task.get('column_id', 0)) == target_col_id:
+        return True  # already in the right column
+
+    swimlane_id = int(task.get('swimlane_id') or 1)
+    _make_request(user_id, 'moveTaskPosition', {
+        'project_id': pid,
+        'task_id': task_id,
+        'column_id': target_col_id,
+        'position': position,
+        'swimlane_id': swimlane_id,
+    })
+    return True
+
+
+def close_task(user_id: int, task_id: int) -> bool:
+    """Close a task in Kanboard. No-op if it is already closed."""
+    task = _make_request(user_id, 'getTask', {'task_id': task_id})
+    if not task:
+        logger.warning("close_task: Kanboard task %s nicht gefunden", task_id)
+        return False
+    if int(task.get('is_active', 1)) == 0:
+        return True  # already closed
+    return bool(_make_request(user_id, 'closeTask', {'task_id': task_id}))
+
+
+def reconcile_candidate(user_id: int, candidate: Dict) -> None:
+    """Move/close the linked Kanboard task to match the candidate's lifecycle state.
+
+    Best-effort: any Kanboard error is logged and swallowed so it never breaks
+    the calling request. Candidates without a kanboard_task_id are ignored."""
+    task_id = candidate.get('kanboard_task_id')
+    if not task_id:
+        return
+
+    status = candidate.get('status')
+    try:
+        if status == 'processed':
+            move_task(user_id, task_id, COLUMN_PROCESSED)
+        elif status == 'done':
+            start = _parse_date(candidate.get('datum'))
+            if start is not None and _today() >= start:
+                move_task(user_id, task_id, COLUMN_VERLIEHEN)
+            else:
+                move_task(user_id, task_id, COLUMN_DONE)
+        elif status == 'returned':
+            close_task(user_id, task_id)
+        elif status == 'invoice_pending':
+            move_task(user_id, task_id, COLUMN_INVOICE)
+        # 'pending' → no Kanboard task yet, nothing to do
+    except Exception as e:
+        logger.warning("reconcile_candidate: Kanboard-Abgleich für Task %s fehlgeschlagen: %s",
+                       task_id, e)

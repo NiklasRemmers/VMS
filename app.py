@@ -79,10 +79,14 @@ app.register_blueprint(inventory_bp)
 from invoice_routes import invoice_bp
 app.register_blueprint(invoice_bp)
 
+from verleih_routes import verleih_bp
+app.register_blueprint(verleih_bp)
+
 # Exempt API blueprints from CSRF (they use X-CSRFToken header in JS)
 csrf.exempt(settings_bp)
 csrf.exempt(inventory_bp)
 csrf.exempt(invoice_bp)
+csrf.exempt(verleih_bp)
 
 # Initialize authentication
 init_auth(app)
@@ -726,7 +730,20 @@ def get_returns():
     
     total = len(returns)
     page_items = returns[offset:offset + limit]
-    
+
+    # Enrich the visible items with their assigned storage locations (Verleih).
+    from database import get_session
+    from models import StorageLocation
+    if page_items:
+        ids = [c['id'] for c in page_items]
+        with get_session() as s:
+            locs = s.query(StorageLocation).filter(StorageLocation.candidate_id.in_(ids)).all()
+            by_candidate = {}
+            for loc in locs:
+                by_candidate.setdefault(loc.candidate_id, []).append(loc.name)
+        for c in page_items:
+            c['storage_locations'] = by_candidate.get(c['id'], [])
+
     return jsonify({
         'items': page_items,
         'total': total,
@@ -776,20 +793,23 @@ def return_candidate(candidate_id):
     now = datetime.now(timezone.utc)
     
     from database import get_session
-    from models import EmailCandidate, SequentialNumber
-    
+    from models import EmailCandidate, SequentialNumber, StorageLocation
+
     with get_session() as s:
         row = s.query(EmailCandidate).filter_by(id=candidate_id).first()
         if not row:
             return jsonify({'error': 'Kandidat nicht gefunden'}), 404
-        
+
         row.return_note = note if note else None
         row.returned_at = now
-        
+
         if action == 'returned':
             row.status = 'returned'
         elif action == 'invoice':
             row.status = 'invoice_pending'
+
+        # Free any storage locations assigned to this loan (both actions end it).
+        s.query(StorageLocation).filter_by(candidate_id=candidate_id).update({'candidate_id': None})
         
         # Save laufende nummer if provided
         if laufende_nummer and nummer_typ:
@@ -808,7 +828,10 @@ def return_candidate(candidate_id):
                     seq.last_number = num_val
             else:
                 s.add(SequentialNumber(number_type=nummer_typ, last_number=num_val))
-    
+
+    # Reflect the new status in Kanboard (returned → close, invoice → move).
+    _reconcile_kanboard(candidate_id, current_user.id)
+
     return jsonify({'success': True})
 
 @app.route('/api/emails/candidates/<int:candidate_id>', methods=['PUT'])
@@ -974,13 +997,27 @@ def create_manual_candidate_route():
         return jsonify({'error': str(e)}), 500
 
 
+def _reconcile_kanboard(candidate_id, user_id=None):
+    """Load a candidate and move/close its Kanboard task to match its status.
+    Best-effort — never raises into the calling request."""
+    from email_client import get_candidate_by_id
+    uid = user_id or current_user.id
+    try:
+        candidate = get_candidate_by_id(candidate_id, uid)
+        if candidate:
+            kanboard_client.reconcile_candidate(uid, candidate)
+    except Exception:
+        pass
+
+
 @app.route('/api/emails/candidates/<int:candidate_id>/mark-done', methods=['PUT'])
 @login_required
 def mark_candidate_done_route(candidate_id):
     """Mark a candidate as done (contract created)."""
     from email_client import mark_candidate_done
-    
+
     if mark_candidate_done(candidate_id, current_user.id):
+        _reconcile_kanboard(candidate_id)
         return jsonify({'success': True})
     return jsonify({'error': 'Kandidat nicht gefunden'}), 404
 
@@ -990,8 +1027,9 @@ def mark_candidate_done_route(candidate_id):
 def mark_candidate_processed_route(candidate_id):
     """Mark a candidate as processed (revert from done)."""
     from email_client import mark_candidate_processed
-    
+
     if mark_candidate_processed(candidate_id, current_user.id):
+        _reconcile_kanboard(candidate_id)
         return jsonify({'success': True})
     return jsonify({'error': 'Kandidat nicht gefunden'}), 404
 
@@ -1050,6 +1088,86 @@ def delete_email_candidate(candidate_id):
     return jsonify({'error': 'Kandidat nicht gefunden'}), 404
 
 
+@app.route('/api/kanboard/reconcile', methods=['POST'])
+@login_required
+def reconcile_kanboard_route():
+    """Manually trigger the Kanboard column reconciliation (also runs daily)."""
+    moved = reconcile_all_rentals()
+    return jsonify({'success': True, 'reconciled': moved})
+
+
+# ─── Scheduler: move "done" rentals into the "Verliehen" column once their
+#     rental period starts. Time-based, so it cannot hang off a user action. ───
+
+_ADVISORY_LOCK_KEY = 815734  # arbitrary, shared across workers
+_scheduler_started = False
+
+
+def reconcile_all_rentals():
+    """Reconcile the Kanboard column for every contract-created (done) candidate.
+
+    Guarded by a Postgres advisory lock so that with multiple Gunicorn workers
+    only one actually performs the work per run. Returns the number of
+    candidates processed (0 if the lock was held by another worker)."""
+    from database import get_engine
+    from models import EmailCandidate
+    from sqlalchemy import text
+
+    engine = get_engine()
+    with engine.connect() as conn:
+        got_lock = conn.execute(
+            text('SELECT pg_try_advisory_lock(:k)'), {'k': _ADVISORY_LOCK_KEY}
+        ).scalar()
+        if not got_lock:
+            return 0
+        try:
+            from database import get_session
+            processed = 0
+            with get_session() as s:
+                rows = s.query(EmailCandidate).filter(
+                    EmailCandidate.status == 'done',
+                    EmailCandidate.kanboard_task_id.isnot(None)
+                ).all()
+                candidates = [{
+                    'kanboard_task_id': r.kanboard_task_id,
+                    'status': r.status,
+                    'datum': r.datum,
+                    'user_id': r.user_id,
+                } for r in rows]
+            for c in candidates:
+                try:
+                    kanboard_client.reconcile_candidate(c['user_id'], c)
+                    processed += 1
+                except Exception:
+                    pass
+            return processed
+        finally:
+            conn.execute(text('SELECT pg_advisory_unlock(:k)'), {'k': _ADVISORY_LOCK_KEY})
+
+
+def init_scheduler():
+    """Start the daily reconciliation job (idempotent per process)."""
+    global _scheduler_started
+    if _scheduler_started:
+        return
+    try:
+        from apscheduler.schedulers.background import BackgroundScheduler
+        from apscheduler.triggers.cron import CronTrigger
+        scheduler = BackgroundScheduler(timezone='Europe/Berlin')
+        scheduler.add_job(
+            reconcile_all_rentals,
+            trigger=CronTrigger(hour=0, minute=5),
+            id='reconcile_rentals',
+            replace_existing=True,
+            max_instances=1,
+        )
+        scheduler.start()
+        _scheduler_started = True
+        print("✓ Scheduler: daily Kanboard reconcile at 00:05 Europe/Berlin")
+    except Exception as e:
+        print(f"⚠ Scheduler konnte nicht gestartet werden: {e}")
+
+
 # Exempt all /api/ routes from CSRF (they are called via AJAX, not form submissions)
 # This iterates over all registered routes after they've been defined above.
 for _rule in app.url_map.iter_rules():
@@ -1070,4 +1188,5 @@ if __name__ == '__main__':
     print("Starte Server auf http://localhost:5000")
     print("Drücke Ctrl+C zum Beenden")
     print("=" * 50)
+    init_scheduler()
     app.run(debug=True, port=5000)

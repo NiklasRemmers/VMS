@@ -859,6 +859,10 @@
                         <span class="text-gray-500 dark:text-gray-400">Tags:</span>
                         <span class="ml-1" id="returnTags"></span>
                     </div>
+                    <div class="col-span-2">
+                        <span class="text-gray-500 dark:text-gray-400">Lagerort:</span>
+                        <span class="text-gray-800 dark:text-gray-200 ml-1" id="returnStorage"></span>
+                    </div>
                 </div>
 
                 <!-- Note -->
@@ -1721,6 +1725,9 @@
             document.getElementById('returnTags').innerHTML = (c.tags && c.tags.length > 0)
                 ? c.tags.map(t => `<span class="inline-flex px-2 py-0.5 text-xs rounded bg-primary-100 dark:bg-primary-900/30 text-primary-800 dark:text-primary-400">${t}</span>`).join(' ')
                 : '<span class="text-xs text-gray-400">-</span>';
+            document.getElementById('returnStorage').textContent = (c.storage_locations && c.storage_locations.length > 0)
+                ? c.storage_locations.join(', ')
+                : '-';
             document.getElementById('returnNote').value = '';
             document.getElementById('returnModal').classList.remove('hidden');
         }

@@ -34,10 +34,20 @@ daemon = False
 
 
 def post_fork(server, worker):
-    """Dispose SQLAlchemy engine after fork so each worker gets its own connection pool."""
+    """Dispose SQLAlchemy engine after fork so each worker gets its own connection pool,
+    then start the daily Kanboard reconcile scheduler in this worker.
+
+    Each worker starts its own scheduler; the job itself is guarded by a Postgres
+    advisory lock so only one worker actually reconciles per run."""
     import database
     if database._engine is not None:
         database._engine.dispose()
+
+    try:
+        import app as app_module
+        app_module.init_scheduler()
+    except Exception as e:
+        server.log.warning(f"Scheduler init im Worker fehlgeschlagen: {e}")
 
 # Development override
 if os.environ.get('FLASK_ENV') == 'development':

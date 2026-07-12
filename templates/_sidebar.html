@@ -78,6 +78,23 @@
                     </a>
             </li>
             <li class="relative px-6 py-3">
+                {% if '/verleih' in request.path %}
+                <span class="absolute inset-y-0 left-0 w-1 bg-purple-600 rounded-tr-lg rounded-br-lg"
+                    aria-hidden="true"></span>
+                <a class="inline-flex items-center w-full text-sm font-semibold text-gray-800 dark:text-gray-100 transition-colors duration-150 hover:text-gray-800 dark:hover:text-gray-200"
+                    href="/verleih">
+                    {% else %}
+                    <a class="inline-flex items-center w-full text-sm font-semibold text-gray-600 dark:text-gray-400 transition-colors duration-150 hover:text-gray-800 dark:hover:text-gray-200"
+                        href="/verleih">
+                        {% endif %}
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path>
+                        </svg>
+                        <span class="ml-4">Verleih</span>
+                    </a>
+            </li>
+            <li class="relative px-6 py-3">
                 {% if '/invoices' in request.path %}
                 <span class="absolute inset-y-0 left-0 w-1 bg-purple-600 rounded-tr-lg rounded-br-lg"
                     aria-hidden="true"></span>
@@ -216,6 +233,23 @@
                                 </path>
                             </svg>
                             <span class="ml-4">Leihanfragen</span>
+                        </a>
+                </li>
+                <li class="relative px-6 py-3">
+                    {% if '/verleih' in request.path %}
+                    <span class="absolute inset-y-0 left-0 w-1 bg-purple-600 rounded-tr-lg rounded-br-lg"
+                        aria-hidden="true"></span>
+                    <a class="inline-flex items-center w-full text-sm font-semibold text-gray-800 dark:text-gray-100 transition-colors duration-150 hover:text-gray-800 dark:hover:text-gray-200"
+                        href="/verleih">
+                        {% else %}
+                        <a class="inline-flex items-center w-full text-sm font-semibold text-gray-600 dark:text-gray-400 transition-colors duration-150 hover:text-gray-800 dark:hover:text-gray-200"
+                            href="/verleih">
+                            {% endif %}
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path>
+                            </svg>
+                            <span class="ml-4">Verleih</span>
                         </a>
                 </li>
                 <li class="relative px-6 py-3">
