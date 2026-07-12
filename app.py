@@ -110,8 +110,8 @@ def health_check():
 @app.route('/codes/<token>')
 @limiter.limit("60 per hour")
 def public_codes(token):
-    """Public (no-login) page that reveals a loan's storage codes from the
-    loan's start date onwards. Reached via a secret token link sent by email."""
+    """Public (no-login) page that reveals a loan's storage codes only during
+    the loan period (start date .. end date). Reached via a secret token link."""
     from database import get_session
     from models import CodeShareLink, StorageLocation
     from kanboard_client import _parse_date, _today
@@ -127,7 +127,18 @@ def public_codes(token):
         name = candidate.vorname_nachname
 
         start = _parse_date(datum)
-        visible = start is not None and _today() >= start
+        end = _parse_date(candidate.end_date) or start  # single-day loan if no end
+        today = _today()
+
+        # Codes are only visible during the loan period.
+        status = 'visible'
+        if start is None:
+            status = 'upcoming'
+        elif today < start:
+            status = 'upcoming'
+        elif end is not None and today > end:
+            status = 'ended'
+        visible = status == 'visible'
 
         locations = []
         if visible:
@@ -136,7 +147,7 @@ def public_codes(token):
             ).order_by(StorageLocation.name).all()
             locations = [{'name': loc.name, 'code': loc.code} for loc in locs]
 
-        return render_template('codes.html', found=True, visible=visible,
+        return render_template('codes.html', found=True, visible=visible, status=status,
                                datum=datum, event=event, name=name, locations=locations)
 
 
