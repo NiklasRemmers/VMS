@@ -434,11 +434,14 @@ def emails():
     # Load available materials for tag selection from DB
     try:
         from models import InventoryItem
+        from database import get_session
         with get_session() as s:
             items = s.query(InventoryItem).filter(InventoryItem.type == 'equipment').all()
-            materials = {item.name: item.description or item.name for item in items}
-    except:
-        materials = {}
+            # Template accesses materials.materials, so keep the nested structure.
+            materials = {'materials': {item.name: item.description or item.name for item in items}}
+    except Exception as e:
+        app.logger.warning('Failed to load materials for tag selection: %s', e)
+        materials = {'materials': {}}
     
     return render_template('emails.html', 
                            user=current_user, 
