@@ -69,16 +69,26 @@
                             </p>
                         </div>
 
-                        <button onclick="syncEmails()" id="syncButton"
-                            class="inline-flex items-center px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg transition-colors duration-150">
-                            <svg id="syncIcon" class="w-4 h-4 mr-2" fill="none" stroke="currentColor"
-                                viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15">
-                                </path>
-                            </svg>
-                            <span id="syncText">Synchronisieren</span>
-                        </button>
+                        <div class="flex items-center gap-2">
+                            <button onclick="newCandidate()" id="newCandidateButton"
+                                class="inline-flex items-center px-4 py-2 border border-primary-600 text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 text-sm font-medium rounded-lg transition-colors duration-150">
+                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M12 4v16m8-8H4"></path>
+                                </svg>
+                                <span>Neue Anfrage</span>
+                            </button>
+                            <button onclick="syncEmails()" id="syncButton"
+                                class="inline-flex items-center px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg transition-colors duration-150">
+                                <svg id="syncIcon" class="w-4 h-4 mr-2" fill="none" stroke="currentColor"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15">
+                                    </path>
+                                </svg>
+                                <span id="syncText">Synchronisieren</span>
+                            </button>
+                        </div>
                     </div>
 
                     <!-- Flash Messages -->
@@ -640,7 +650,7 @@
         <div class="relative flex items-center justify-center min-h-screen p-4 pointer-events-none">
             <div
                 class="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 border border-gray-200 dark:border-gray-700 pointer-events-auto">
-                <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-4">Leihanfrage bearbeiten</h3>
+                <h3 id="editModalTitle" class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-4">Leihanfrage bearbeiten</h3>
 
                 <!-- Editable Details -->
                 <div class="grid grid-cols-2 gap-4 mb-6">
@@ -887,6 +897,7 @@
         let deleteCandidateId = null;
 
         let currentCandidateDate = null;
+        let isNewCandidate = false;
         let selectedTags = [];
         const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
         const tagsUsedByDate = {{ tags_by_date | tojson }};
@@ -1047,8 +1058,41 @@
             }
         }
 
+        function newCandidate() {
+            isNewCandidate = true;
+            currentCandidateId = null;
+            currentCandidateStatus = null;
+            currentCandidateDate = null;
+            currentCandidateContractCreated = false;
+
+            // Clear all fields
+            document.getElementById('editName').value = '';
+            document.getElementById('editAnschrift').value = '';
+            document.getElementById('editEvent').value = '';
+            document.getElementById('editLocation').value = '';
+            document.getElementById('editEmail').value = '';
+            document.getElementById('editPersons').value = '';
+            document.getElementById('rawContent').value = '';
+            document.getElementById('startDate').value = new Date().toISOString().split('T')[0];
+            document.getElementById('endDate').value = '';
+
+            // Reset tags
+            selectedTags = [];
+            renderSelectedTags();
+            updateTagDropdownOptions();
+
+            // Modal chrome
+            document.getElementById('editModalTitle').textContent = 'Leihanfrage erstellen';
+            document.getElementById('saveTaskBtn').textContent = 'Anfrage erstellen';
+            document.getElementById('unmarkDoneBtn').classList.add('hidden');
+
+            document.getElementById('editModal').classList.remove('hidden');
+        }
+
         async function editCandidate(id) {
+            isNewCandidate = false;
             currentCandidateId = id;
+            document.getElementById('editModalTitle').textContent = 'Leihanfrage bearbeiten';
 
             try {
                 const response = await fetch('/api/emails/candidates');
@@ -1116,9 +1160,15 @@
             document.getElementById('editModal').classList.add('hidden');
             currentCandidateId = null;
             currentCandidateStatus = null;
+            isNewCandidate = false;
         }
 
         async function saveTask() {
+            if (isNewCandidate) {
+                await createManualCandidate();
+                return;
+            }
+
             if (!currentCandidateId) return;
 
             if (currentCandidateStatus === 'processed' || currentCandidateStatus === 'done') {
@@ -1264,6 +1314,58 @@
 
                 if (response.ok) {
                     showFlash('Task erfolgreich erstellt!');
+                    closeEditModal();
+                    refreshEmailList();
+                } else {
+                    showFlash(data.error || 'Fehler beim Erstellen', 'error');
+                }
+            } catch (error) {
+                showFlash('Fehler: ' + error.message, 'error');
+            }
+        }
+
+        async function createManualCandidate() {
+            const tags = selectedTags;
+            const description = document.getElementById('rawContent').value;
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            const vorname_nachname = document.getElementById('editName').value;
+            const veranstaltungsname = document.getElementById('editEvent').value;
+            const veranstaltungsort = document.getElementById('editLocation').value;
+            const email_address = document.getElementById('editEmail').value;
+            const personenzahl = document.getElementById('editPersons').value;
+            const anschrift = document.getElementById('editAnschrift').value;
+
+            if (!veranstaltungsname && !vorname_nachname) {
+                showFlash('Bitte mindestens Name oder Veranstaltung angeben', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/emails/candidates/create', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({
+                        tags,
+                        description,
+                        start_date: startDate,
+                        end_date: endDate,
+                        vorname_nachname,
+                        veranstaltungsname,
+                        veranstaltungsort,
+                        email_address,
+                        personenzahl,
+                        anschrift
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showFlash('Anfrage erstellt!');
                     closeEditModal();
                     refreshEmailList();
                 } else {

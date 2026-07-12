@@ -924,6 +924,56 @@ def create_task_from_candidate(candidate_id):
 
 
 
+@app.route('/api/emails/candidates/create', methods=['POST'])
+@login_required
+def create_manual_candidate_route():
+    """Create a loan request manually: create the Kanboard task, then store
+    the candidate locally as 'processed' so it lands in 'Erledigte Anfragen'."""
+    from email_client import create_manual_candidate
+
+    data = request.get_json() or {}
+    tags = data.get('tags', []) or []
+    description = data.get('description') or ''
+    veranstaltungsname = data.get('veranstaltungsname')
+    vorname_nachname = data.get('vorname_nachname')
+
+    if not (veranstaltungsname or vorname_nachname):
+        return jsonify({'error': 'Bitte mindestens Name oder Veranstaltung angeben'}), 400
+
+    due_date = data.get('start_date')
+
+    try:
+        # Create the Kanboard task first so we never leave an orphan candidate.
+        result = kanboard_client.create_task(
+            user_id=current_user.id,
+            title=f"{veranstaltungsname or vorname_nachname or 'Manuelle Anfrage'}",
+            description=description,
+            due_date=due_date,
+            tags=tags,
+            column_name='Leihanfrage'
+        )
+
+        form_data = {
+            'tags': tags,
+            'datum': due_date,
+            'end_date': data.get('end_date'),
+            'raw_content': description,
+            'vorname_nachname': vorname_nachname,
+            'veranstaltungsname': veranstaltungsname,
+            'veranstaltungsort': data.get('veranstaltungsort'),
+            'email_address': data.get('email_address'),
+            'personenzahl': data.get('personenzahl'),
+            'anschrift': data.get('anschrift'),
+            'kanboard_task_id': result.get('id'),
+        }
+
+        candidate_id = create_manual_candidate(form_data, current_user.id)
+
+        return jsonify({'success': True, 'task_id': result.get('id'), 'candidate_id': candidate_id})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
 @app.route('/api/emails/candidates/<int:candidate_id>/mark-done', methods=['PUT'])
 @login_required
 def mark_candidate_done_route(candidate_id):

@@ -9,6 +9,7 @@ from email.header import decode_header
 from email.utils import parsedate_to_datetime
 import os
 import re
+import uuid
 from datetime import datetime, timezone
 import base64
 from typing import List, Dict, Optional, Any
@@ -345,6 +346,35 @@ def save_candidates(emails: List[Dict], user_id: int) -> int:
                 continue
     
     return count
+
+
+def create_manual_candidate(form_data: Dict, user_id: int) -> int:
+    """Create a loan request candidate manually (not from an email).
+
+    Inserted directly with status='processed' so it lands in the
+    "Erledigte Anfragen" list. Returns the new candidate id.
+    """
+    with get_session() as s:
+        candidate = EmailCandidate(
+            user_id=user_id,
+            email_id=f"manual_{uuid.uuid4()}",
+            vorname_nachname=form_data.get('vorname_nachname'),
+            anschrift=form_data.get('anschrift'),
+            email_address=form_data.get('email_address'),
+            veranstaltungsname=form_data.get('veranstaltungsname'),
+            veranstaltungsort=form_data.get('veranstaltungsort'),
+            personenzahl=form_data.get('personenzahl'),
+            datum=form_data.get('datum'),
+            end_date=form_data.get('end_date'),
+            raw_content=form_data.get('raw_content'),
+            tags=form_data.get('tags') or [],
+            kanboard_task_id=form_data.get('kanboard_task_id'),
+            status='processed',
+            contract_created=False,
+        )
+        s.add(candidate)
+        s.flush()
+        return candidate.id
 
 
 def sync_emails(user_id: int) -> int:
