@@ -58,13 +58,16 @@ services:
     depends_on:
       - app
     restart: unless-stopped
+    # Reload every 6h so renewed certs are picked up (nginx only reads certs on start/reload)
+    command: "/bin/sh -c 'while :; do sleep 6h & wait $${!}; nginx -s reload; done & exec nginx -g \"daemon off;\"'"
   certbot:
     image: certbot/certbot
     container_name: vms_certbot
     volumes:
       - certbot_www:/var/www/certbot
-      - certbot_certs:/etc/letsencrypt
-    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do sleep 12h; certbot renew; done'"
+      # Same host path nginx reads from — renewals must land where nginx looks
+      - /etc/letsencrypt:/etc/letsencrypt
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew --webroot -w /var/www/certbot; sleep 12h & wait $${!}; done'"
 volumes:
   pgdata:
   kms_data:
@@ -72,4 +75,3 @@ volumes:
   app_signatures:
   app_static_signatures:
   certbot_www:
-  certbot_certs:
