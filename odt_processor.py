@@ -15,17 +15,21 @@ def process_odt_template(
     template_path: str,
     output_path: str,
     replacements: Dict[str, str],
-    signature_path: Optional[str] = None
+    signature_path: Optional[str] = None,
+    row_items: Optional[list] = None
 ) -> str:
     """
     Process an ODT template by replacing placeholders and inserting signature.
-    
+
     Args:
         template_path: Path to the ODT template file
         output_path: Path where the processed ODT will be saved
         replacements: Dictionary mapping placeholder names to replacement values
         signature_path: Optional path to signature PNG file
-        
+        row_items: Optional list of item dicts (name, quantity, price, unit) used
+            to expand the invoice article table row (one row per item) before the
+            global replacements are applied.
+
     Returns:
         Path to the processed ODT file
     """
@@ -34,12 +38,17 @@ def process_odt_template(
         # Extract OTD (it's a ZIP archive)
         with zipfile.ZipFile(template_path, 'r') as zip_ref:
             zip_ref.extractall(temp_dir)
-        
+
         # Read and process content.xml
         content_xml_path = os.path.join(temp_dir, 'content.xml')
         with open(content_xml_path, 'r', encoding='utf-8') as f:
             content = f.read()
-        
+
+        # Expand the per-item article table row (if requested) before the
+        # single global replacements run.
+        if row_items is not None:
+            content = _expand_item_rows(content, row_items)
+
         # Replace placeholders
         content = replace_placeholders(content, replacements)
         
@@ -61,30 +70,29 @@ def process_odt_template(
     return output_path
 
 
+def normalize_fragmented_placeholders(content: str) -> str:
+    """
+    Normalize placeholders that LibreOffice split across multiple XML tags.
+
+    LibreOffice sometimes splits placeholders across multiple XML tags like:
+    <text:span>#</text:span>PLACEHOLDER<text:span>#</text:span>
+
+    This collapses those back into a clean ``#PLACEHOLDER#`` token.
+    """
+    # Find potential fragmented placeholders (# followed by content with possible tags, ending with #)
+    fragmented_pattern = r'#(?:<[^>]*>)*([A-ZÄÖÜ][A-ZÄÖÜ0-9_ ]*?)(?:<[^>]*>)*#'
+    return re.sub(fragmented_pattern, lambda m: f'#{m.group(1)}#', content)
+
+
 def replace_placeholders(content: str, replacements: Dict[str, str]) -> str:
     """
     Replace placeholders in content, handling fragmented XML tags.
-    
-    LibreOffice sometimes splits placeholders across multiple XML tags like:
-    <text:span>#</text:span>PLACEHOLDER<text:span>#</text:span>
-    
+
     This function handles both simple and fragmented cases.
     """
     # First, normalize fragmented placeholders
-    # Pattern matches #...WORD...# where the content might be split by XML tags
-    
-    # Handle fragmented placeholders by removing XML tags between # markers
-    # This regex finds patterns like #<tags>TEXT</tags># and extracts the text
-    def normalize_placeholder(match):
-        full_match = match.group(0)
-        # Remove all XML tags to get the pure placeholder
-        clean = re.sub(r'<[^>]+>', '', full_match)
-        return clean
-    
-    # Find potential fragmented placeholders (# followed by content with possible tags, ending with #)
-    fragmented_pattern = r'#(?:<[^>]*>)*([A-ZÄÖÜ][A-ZÄÖÜ0-9_ ]*?)(?:<[^>]*>)*#'
-    content = re.sub(fragmented_pattern, lambda m: f'#{m.group(1)}#', content)
-    
+    content = normalize_fragmented_placeholders(content)
+
     # Now replace all placeholders
     for placeholder, value in replacements.items():
         # Ensure placeholder has # markers
@@ -154,6 +162,68 @@ def replace_placeholders(content: str, replacements: Dict[str, str]) -> str:
             content = content.replace(placeholder, escaped_value)
     
     return content
+
+
+def format_money_de(value) -> str:
+    """Format a number as a German amount, e.g. 1234.5 -> '1.234,50' (no currency)."""
+    try:
+        amount = float(value)
+    except (TypeError, ValueError):
+        amount = 0.0
+    # Format with thousands sep and 2 decimals, then swap separators to German.
+    s = f"{amount:,.2f}"  # e.g. '1,234.50'
+    return s.replace(',', '#').replace('.', ',').replace('#', '.')
+
+
+def _expand_item_rows(content: str, items: list) -> str:
+    """
+    Expand the single article table row of an invoice/rebooking template into one
+    row per item.
+
+    The templates contain exactly one ``<table:table-row>`` whose cells hold the
+    per-item placeholders ``#ARTIKEL#``, ``#MENGE#``, ``#STÜCKPREIS#`` and
+    ``#GESAMTPREIS_POS#``. This function locates that row, duplicates it for each
+    item with the per-item values filled in, and splices the result back in.
+    Global placeholders (e.g. ``#GESAMTPREIS#``) are left untouched.
+    """
+    # Ensure placeholders are not fragmented across XML tags before matching.
+    content = normalize_fragmented_placeholders(content)
+
+    # Locate the table row that carries the item placeholder (non-greedy so we
+    # match a single <table:table-row>...</table:table-row>).
+    row_pattern = re.compile(
+        r'<table:table-row\b[^>]*>(?:(?!</table:table-row>).)*?#ARTIKEL#.*?</table:table-row>',
+        re.DOTALL,
+    )
+    match = row_pattern.search(content)
+    if not match:
+        # Nothing to expand — return content unchanged.
+        return content
+
+    row_template = match.group(0)
+
+    rendered_rows = []
+    for item in (items or []):
+        name = item.get('name', '')
+        try:
+            quantity = int(item.get('quantity', 0))
+        except (TypeError, ValueError):
+            quantity = 0
+        try:
+            price = float(item.get('price', 0))
+        except (TypeError, ValueError):
+            price = 0.0
+        pos_total = price * quantity
+
+        row = row_template
+        row = row.replace('#ARTIKEL#', escape_xml(str(name)))
+        row = row.replace('#MENGE#', escape_xml(str(quantity)))
+        row = row.replace('#STÜCKPREIS#', escape_xml(format_money_de(price)))
+        row = row.replace('#GESAMTPREIS_POS#', escape_xml(format_money_de(pos_total)))
+        rendered_rows.append(row)
+
+    replacement = ''.join(rendered_rows)
+    return content[:match.start()] + replacement + content[match.end():]
 
 
 def _split_into_blocks(lines):

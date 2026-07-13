@@ -611,3 +611,70 @@ def send_plain_email(email_addr, subject, body):
 
     msg = Message(subject, recipients=[email_addr], body=body)
     mail.send(msg)
+
+
+def send_email_with_attachment(email_addr, subject, body, attachment_bytes,
+                               attachment_filename, attachment_mimetype='application/pdf'):
+    """Send an email with a binary attachment (e.g. a generated invoice PDF).
+
+    Uses the same two-tier strategy as send_plain_email: per-user SMTP from the
+    DB/KMS settings if available, otherwise the global Flask-Mail fallback."""
+
+    # 1. Try to fetch user-specific SMTP settings from DB
+    smtp_settings = None
+    if current_user.is_authenticated:
+        try:
+            from database import get_user_settings
+            from security import decrypt_value
+
+            settings = get_user_settings(current_user.id)
+            if settings and settings.get('smtp_server') and settings.get('smtp_user'):
+                password = decrypt_value(settings.get('encrypted_smtp_password'))
+                if password:
+                    smtp_settings = {
+                        'server': settings.get('smtp_server'),
+                        'port': settings.get('smtp_port') or 587,
+                        'user': settings.get('smtp_user'),
+                        'password': password
+                    }
+        except Exception as e:
+            print(f"Error fetching SMTP settings from DB: {e}")
+
+    # 2. Use Custom SMTP if available
+    if smtp_settings:
+        import smtplib
+        from email.mime.text import MIMEText
+        from email.mime.multipart import MIMEMultipart
+        from email.mime.application import MIMEApplication
+
+        msg = MIMEMultipart()
+        msg['From'] = smtp_settings['user']
+        msg['To'] = email_addr
+        msg['Subject'] = subject
+        msg.attach(MIMEText(body, 'plain'))
+
+        subtype = attachment_mimetype.split('/')[-1] if '/' in attachment_mimetype else attachment_mimetype
+        part = MIMEApplication(attachment_bytes, _subtype=subtype)
+        part.add_header('Content-Disposition', 'attachment', filename=attachment_filename)
+        msg.attach(part)
+
+        try:
+            with smtplib.SMTP(smtp_settings['server'], smtp_settings['port']) as server:
+                server.starttls()
+                server.login(smtp_settings['user'], smtp_settings['password'])
+                server.send_message(msg)
+            return
+        except Exception as e:
+            raise Exception(f"SMTP (DB) send failed: {str(e)}")
+
+    # 3. Fallback to Global Flask-Mail
+    from flask_mail import Message
+    from flask import current_app
+
+    mail = current_app.extensions.get('mail')
+    if not mail:
+        raise Exception('Flask-Mail nicht konfiguriert und keine Benutzereinstellungen gefunden')
+
+    msg = Message(subject, recipients=[email_addr], body=body)
+    msg.attach(attachment_filename, attachment_mimetype, attachment_bytes)
+    mail.send(msg)

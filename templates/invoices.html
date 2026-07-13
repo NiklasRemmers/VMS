@@ -162,6 +162,12 @@
                     <input type="email" id="invEmail" class="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-purple-500 focus:ring-purple-500 sm:text-sm px-4 py-2 border">
                 </div>
 
+                <!-- Billing Address (Rechnung) -->
+                <div class="mb-6">
+                    <label for="invAdresse" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Rechnungsanschrift <span class="text-gray-400 font-normal">(nur Rechnung)</span></label>
+                    <textarea id="invAdresse" rows="3" class="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-purple-500 focus:ring-purple-500 sm:text-sm px-4 py-2 border"></textarea>
+                </div>
+
                 <!-- Invoice Items Table -->
                 <div class="mb-6">
                     <h4 class="text-lg font-medium text-gray-900 dark:text-white mb-3">Rechnungsposten</h4>
@@ -246,10 +252,10 @@ Viele Grüße.</textarea>
 
                 <!-- Action Buttons -->
                 <div class="mt-5 sm:mt-6 sm:flex sm:flex-row-reverse gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
-                    <button type="button" onclick="createInvoice()" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-purple-600 text-base font-medium text-white hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 sm:w-auto sm:text-sm dark:focus:ring-offset-gray-800">
+                    <button type="button" id="btnSendRechnung" onclick="sendInvoice('rechnung')" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-purple-600 text-base font-medium text-white hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 sm:w-auto sm:text-sm dark:focus:ring-offset-gray-800 disabled:opacity-60 disabled:cursor-not-allowed">
                         Rechnung verschicken
                     </button>
-                    <button type="button" onclick="createRefund()" class="mt-3 sm:mt-0 w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-emerald-600 text-base font-medium text-white hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 sm:w-auto sm:text-sm dark:focus:ring-offset-gray-800">
+                    <button type="button" id="btnSendUmbuchung" onclick="sendInvoice('umbuchung')" class="mt-3 sm:mt-0 w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-emerald-600 text-base font-medium text-white hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 sm:w-auto sm:text-sm dark:focus:ring-offset-gray-800 disabled:opacity-60 disabled:cursor-not-allowed">
                         Umlagenerstattung verschicken
                     </button>
                     <button type="button" onclick="closeInvoiceModal()" class="mt-3 sm:mt-0 w-full inline-flex justify-center rounded-md border border-gray-300 dark:border-gray-600 shadow-sm px-4 py-2 bg-white dark:bg-gray-700 text-base font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 sm:w-auto sm:text-sm dark:focus:ring-offset-gray-800">
@@ -427,6 +433,7 @@ Viele Grüße.</textarea>
             
             // Mail input
             document.getElementById('invEmail').value = candidate.email_address || '';
+            document.getElementById('invAdresse').value = candidate.anschrift || '';
 
             // Reset Laufende Nummer
             document.getElementById('invNummerTyp').value = '';
@@ -568,12 +575,71 @@ Viele Grüße.</textarea>
             }
         }
 
-        function createInvoice() {
-            showToast("Funktion kommt noch: Rechnung erstellen", "success");
-        }
+        async function sendInvoice(typ) {
+            if (!activeCandidate) return;
 
-        function createRefund() {
-            showToast("Funktion kommt noch: Umlagenerstattung", "success");
+            // The clicked button is the source of truth for the type; reflect it
+            // in the dropdown and fetch the next number if none is entered yet.
+            const typSelect = document.getElementById('invNummerTyp');
+            if (typSelect.value !== typ) {
+                typSelect.value = typ;
+                await fetchInvNextNumber();
+            }
+
+            const laufendeNummer = document.getElementById('invLaufendeNummer').value;
+            const email = document.getElementById('invEmail').value.trim();
+            const adresse = document.getElementById('invAdresse').value;
+            const mailText = document.getElementById('invMailText').value;
+
+            if (!laufendeNummer) { showToast("Bitte laufende Nummer angeben", "error"); return; }
+            if (!email) { showToast("Bitte Empfänger-E-Mail angeben", "error"); return; }
+            if (invoiceItems.length === 0) { showToast("Bitte mindestens einen Posten hinzufügen", "error"); return; }
+
+            const btnR = document.getElementById('btnSendRechnung');
+            const btnU = document.getElementById('btnSendUmbuchung');
+            const activeBtn = (typ === 'rechnung') ? btnR : btnU;
+            const originalLabel = activeBtn.textContent;
+            btnR.disabled = true;
+            btnU.disabled = true;
+            activeBtn.textContent = 'Wird gesendet…';
+
+            try {
+                const resp = await fetch('/api/invoices/send', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({
+                        candidate_id: activeCandidate.id,
+                        nummer_typ: typ,
+                        laufende_nummer: laufendeNummer,
+                        email: email,
+                        adresse: adresse,
+                        mail_text: mailText,
+                        items: invoiceItems.map(i => ({
+                            name: i.name, price: i.price, unit: i.unit, quantity: i.quantity
+                        }))
+                    })
+                });
+                const data = await resp.json();
+                if (resp.ok && data.success) {
+                    showToast(typ === 'rechnung' ? "Rechnung verschickt" : "Umbuchung verschickt", "success");
+                    // Remove the candidate from the open list.
+                    candidates = candidates.filter(c => c.id !== activeCandidate.id);
+                    closeInvoiceModal();
+                    renderCandidatesTable();
+                } else {
+                    showToast(data.error || "Versand fehlgeschlagen", "error");
+                }
+            } catch (err) {
+                console.error("Send invoice failed", err);
+                showToast("Versand fehlgeschlagen", "error");
+            } finally {
+                btnR.disabled = false;
+                btnU.disabled = false;
+                activeBtn.textContent = originalLabel;
+            }
         }
 
         // Init
