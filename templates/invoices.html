@@ -7,6 +7,7 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>VMS - Rechnungen</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="/static/searchable_select.js"></script>
     <script>
         tailwind.config = {
             darkMode: 'class',
@@ -201,7 +202,7 @@
                     <div class="flex items-end gap-3 mb-4">
                         <div class="flex-1">
                             <label for="consumableSelect" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Verbrauchsmaterial hinzufügen</label>
-                            <select id="consumableSelect" class="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-purple-500 focus:ring-purple-500 sm:text-sm px-4 py-2 border">
+                            <select id="consumableSelect" data-searchable class="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-purple-500 focus:ring-purple-500 sm:text-sm px-4 py-2 border">
                                 <option value="">Material wählen...</option>
                                 <!-- Loaded via API -->
                             </select>
@@ -533,6 +534,7 @@ Viele Grüße.</textarea>
                 renderInvoiceItems();
                 // Reset select
                 select.value = '';
+                select.dispatchEvent(new Event('change'));
             }
         }
 

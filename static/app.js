@@ -488,6 +488,9 @@ function addDropdownItem(quantity = 1, materialKey = '') {
     item.appendChild(select);
     item.appendChild(removeBtn);
     container.appendChild(item);
+
+    // Dropdown durchsuchbar machen
+    if (window.SearchableSelect) SearchableSelect.enhance(select);
 }
 
 /**

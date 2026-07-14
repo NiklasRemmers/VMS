@@ -40,6 +40,7 @@
         }
     </style>
     <script src="/static/theme.js"></script>
+    <script src="/static/searchable_select.js"></script>
 </head>
 
 <body class="bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
@@ -715,7 +716,7 @@
 
                     <!-- Tag hinzufügen -->
                     <div class="flex gap-2">
-                        <select id="tagSelect"
+                        <select id="tagSelect" data-searchable
                             class="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm">
                             <option value="">Tag auswählen...</option>
                             {% if materials.materials %}
@@ -928,6 +929,7 @@
                 updateTagDropdownOptions();
             }
             select.value = '';
+            select.dispatchEvent(new Event('change'));
         }
 
         function removeTag(tag) {
