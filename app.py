@@ -359,7 +359,7 @@ def generate_pdf():
             pdf_path = convert_to_pdf(output_odt, temp_dir)
             
             # Generate filename with date
-            name = data.get('vorname_nachname', 'Unbekannt').replace(' ', '_')
+            name = (data.get('vorname_nachname') or 'Unbekannt').replace(' ', '_')
             # Remove special characters for filename
             name = ''.join(c for c in name if c.isalnum() or c == '_')
             filename = f"Leihvertrag_{name}_{datetime.now().strftime('%Y%m%d')}.pdf"

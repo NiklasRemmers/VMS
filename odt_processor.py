@@ -98,7 +98,15 @@ def replace_placeholders(content: str, replacements: Dict[str, str]) -> str:
         # Ensure placeholder has # markers
         if not placeholder.startswith('#'):
             placeholder = f'#{placeholder}#'
-        
+
+        # Coerce missing/null values to an empty string so a None never reaches
+        # the XML replacement logic (which would crash on `'\n' in None` /
+        # escape_xml(None)). This keeps the PDF blank at that spot instead.
+        if value is None:
+            value = ''
+        elif not isinstance(value, str):
+            value = str(value)
+
         if '\n' in value:
             # Multi-line value: replace the entire <text:p> element containing
             # the placeholder with separate <text:p> elements per line.
@@ -204,7 +212,7 @@ def _expand_item_rows(content: str, items: list) -> str:
 
     rendered_rows = []
     for item in (items or []):
-        name = item.get('name', '')
+        name = item.get('name') or ''
         try:
             quantity = int(item.get('quantity', 0))
         except (TypeError, ValueError):
