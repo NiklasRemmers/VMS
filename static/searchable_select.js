@@ -38,15 +38,10 @@
         const input = document.createElement('input');
         input.type = 'text';
         input.autocomplete = 'off';
-        input.className = select.className + ' pr-9 cursor-text';
+        input.className = select.className + ' cursor-text';
         input.classList.remove('flex-1'); // Breite regelt der Wrapper
+        input.classList.add('block', 'w-full'); // füllt die volle Breite des Dialogs/Wrappers
         wrapper.appendChild(input);
-
-        // Caret
-        const caret = document.createElement('div');
-        caret.className = 'pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400';
-        caret.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>';
-        wrapper.appendChild(caret);
 
         // Dropdown-Panel
         const panel = document.createElement('div');
