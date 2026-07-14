@@ -381,14 +381,17 @@ Viele Grüße.</textarea>
                     // Note HTML
                     let noteHtml = c.return_note ? `<span class="text-sm truncate max-w-xs inline-block" title="${c.return_note}">Neu: ${c.return_note}</span>` : `<span class="text-gray-400">-</span>`;
 
+                    // Name may be null/empty (e.g. first or last name missing)
+                    const displayName = c.vorname_nachname || 'Unbekannt';
+
                     tr.innerHTML = `
                         <td class="px-6 py-4 whitespace-nowrap">
                             <div class="flex items-center">
                                 <div class="flex-shrink-0 h-8 w-8 rounded-full bg-purple-100 dark:bg-purple-900/50 flex items-center justify-center text-purple-600 dark:text-purple-400 font-bold">
-                                    ${c.vorname_nachname.charAt(0)}
+                                    ${displayName.charAt(0)}
                                 </div>
                                 <div class="ml-4">
-                                    <div class="text-sm font-medium text-gray-900 dark:text-white">${c.vorname_nachname}</div>
+                                    <div class="text-sm font-medium text-gray-900 dark:text-white">${displayName}</div>
                                     <div class="text-sm text-gray-500 dark:text-gray-400">${c.veranstaltungsname || 'Keine Veranstaltung'}</div>
                                 </div>
                             </div>
@@ -413,8 +416,8 @@ Viele Grüße.</textarea>
             invoiceItems = []; // reset
             
             // Populate info
-            document.getElementById('invoiceModalTitle').textContent = `Rechnung — ${candidate.veranstaltungsname || candidate.vorname_nachname}`;
-            document.getElementById('invCandidateName').textContent = candidate.vorname_nachname;
+            document.getElementById('invoiceModalTitle').textContent = `Rechnung — ${candidate.veranstaltungsname || candidate.vorname_nachname || 'Unbekannt'}`;
+            document.getElementById('invCandidateName').textContent = candidate.vorname_nachname || 'Unbekannt';
             document.getElementById('invCandidateEvent').textContent = candidate.veranstaltungsname || '-';
             
             let dateStr = candidate.datum || '-';
