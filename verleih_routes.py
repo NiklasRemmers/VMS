@@ -2,7 +2,7 @@ import secrets
 
 from flask import Blueprint, request, jsonify, render_template, url_for
 from database import get_session
-from models import StorageLocation, CodeShareLink
+from models import StorageLocation, CodeShareLink, format_de_date
 from auth import login_required, current_user
 from sqlalchemy.exc import IntegrityError
 
@@ -193,6 +193,6 @@ def get_assignable_loans():
         'id': c['id'],
         'vorname_nachname': c.get('vorname_nachname'),
         'veranstaltungsname': c.get('veranstaltungsname'),
-        'datum': c.get('datum'),
+        'datum': format_de_date(c.get('datum')),
     } for c in candidates if c.get('status') in ('processed', 'done')]
     return jsonify(loans)

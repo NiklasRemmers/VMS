@@ -44,6 +44,10 @@ def _get_secret(key: str, default: str = None) -> str:
 
 app = Flask(__name__, static_folder='static', template_folder='templates')
 
+# Make German date formatting (DD.MM.YYYY) available in all templates.
+from models import format_de_date as _format_de_date
+app.add_template_filter(_format_de_date, name='de_date')
+
 # Trust X-Forwarded-* headers from reverse proxy (Nginx)
 # This is required so Flask correctly sees HTTPS and client IPs
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
@@ -113,7 +117,7 @@ def public_codes(token):
     """Public (no-login) page that reveals a loan's storage codes only during
     the loan period (start date .. end date). Reached via a secret token link."""
     from database import get_session
-    from models import CodeShareLink, StorageLocation
+    from models import CodeShareLink, StorageLocation, format_de_date
     from kanboard_client import _parse_date, _today
 
     with get_session() as s:
@@ -148,7 +152,7 @@ def public_codes(token):
             locations = [{'name': loc.name, 'code': loc.code} for loc in locs]
 
         return render_template('codes.html', found=True, visible=visible, status=status,
-                               datum=datum, event=event, name=name, locations=locations)
+                               datum=format_de_date(datum), event=event, name=name, locations=locations)
 
 
 @app.route('/')
@@ -286,8 +290,9 @@ def get_kanboard_task(task_id):
 def generate_pdf():
     """Generate PDF from template with provided data."""
     try:
+        from models import format_de_date
         data = request.get_json()
-        
+
         # Extract form data
         # Current date in German format for #HEUTE#
         heute = datetime.now().strftime('%d.%m.%Y')
@@ -316,10 +321,10 @@ def generate_pdf():
             '#VORNAME NACHNAME#': data.get('vorname_nachname', ''),
             '#PRIVATANSCHRIFT#': data.get('privatanschrift', ''),
             '#RECHNUNGSANSCHRIFT#': data.get('rechnungsanschrift', ''),
-            '#ABHOLDATUM#': data.get('abholdatum', ''),
-            '#RÜCKGABEDATUM#': data.get('rueckgabedatum', ''),
+            '#ABHOLDATUM#': format_de_date(data.get('abholdatum', '')),
+            '#RÜCKGABEDATUM#': format_de_date(data.get('rueckgabedatum', '')),
             '#VERANSTALTUNGSNAME#': data.get('veranstaltungsname', ''),
-            '#VERANSTALTUNGSDATUM#': data.get('veranstaltungsdatum', ''),
+            '#VERANSTALTUNGSDATUM#': format_de_date(data.get('veranstaltungsdatum', '')),
             '#VERANSTALTUNGSORT#': data.get('veranstaltungsort', ''),
             '#MATERIAL#': data.get('material', ''),
             '#HEUTE#': heute,
@@ -495,7 +500,7 @@ def emails():
                            user=current_user, 
                            open_candidates=open_candidates,
                            processed_candidates=processed_candidates,
-                           last_sync=last_sync.isoformat() if last_sync else None,
+                           last_sync=last_sync.strftime('%d.%m.%Y %H:%M') if last_sync else None,
                            materials=materials,
                            tags_by_date=tags_by_date)
 

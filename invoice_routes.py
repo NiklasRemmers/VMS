@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, jsonify, request
 from flask_login import login_required, current_user
-from models import EmailCandidate, InventoryItem, SequentialNumber
+from models import EmailCandidate, InventoryItem, SequentialNumber, format_de_date
 from database import get_session
 from datetime import datetime
 import os
@@ -58,8 +58,8 @@ def api_get_invoice_candidates():
                 'id': c.id,
                 'vorname_nachname': c.vorname_nachname,
                 'veranstaltungsname': c.veranstaltungsname,
-                'datum': c.datum,
-                'end_date': c.end_date,
+                'datum': format_de_date(c.datum),
+                'end_date': format_de_date(c.end_date),
                 'tags': c.tags,
                 'email_address': c.email_address,
                 'return_note': c.return_note

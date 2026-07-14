@@ -20,7 +20,7 @@ import kanboard_client
 from sqlalchemy import func, or_, and_, text, desc, case
 
 # ... existing imports ...
-from models import EmailCandidate, EmailSyncState
+from models import EmailCandidate, EmailSyncState, format_de_date
 from database import get_session, get_user_settings
 
 
@@ -411,8 +411,13 @@ def get_candidates(status_filter='pending', user_id=None):
             for key in ['received_at', 'created_at', 'returned_at']:
                 if d.get(key) and hasattr(d[key], 'isoformat'):
                     d[key] = d[key].isoformat()
+            # Normalize the loan date to DD.MM.YYYY for display and expose a
+            # display-formatted end date. end_date itself stays ISO because the
+            # <input type="date"> in the edit form needs the ISO value.
+            d['datum'] = format_de_date(d.get('datum'))
+            d['end_date_display'] = format_de_date(d.get('end_date'))
             result.append(d)
-        
+
         return result
 
 
@@ -751,6 +756,8 @@ def get_archived_candidates(user_id: int = None, page: int = 1, limit: int = 10,
                 for key in ['received_at', 'created_at', 'returned_at']:
                     if d.get(key) and hasattr(d[key], 'isoformat'):
                         d[key] = d[key].isoformat()
+                d['datum'] = format_de_date(d.get('datum'))
+                d['end_date_display'] = format_de_date(d.get('end_date'))
                 results.append(d)
                 
             return {

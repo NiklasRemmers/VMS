@@ -10,6 +10,26 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, relationship
 
 
+def format_de_date(value):
+    """Format a stored date as DD.MM.YYYY for display.
+
+    Accepts a date/datetime object or a string in ISO (YYYY-MM-DD, optionally
+    with a time part), German (DD.MM.YYYY) or short German (DD.MM.YY) form.
+    Returns the original value unchanged if it is empty or cannot be parsed."""
+    if not value:
+        return value
+    if hasattr(value, 'strftime'):
+        return value.strftime('%d.%m.%Y')
+    s = str(value).strip()
+    for candidate in (s, s[:10]):
+        for fmt in ('%d.%m.%Y', '%Y-%m-%d', '%d.%m.%y'):
+            try:
+                return datetime.strptime(candidate, fmt).strftime('%d.%m.%Y')
+            except ValueError:
+                continue
+    return value
+
+
 class Base(DeclarativeBase):
     pass
 
@@ -263,7 +283,7 @@ class StorageLocation(Base):
                 'id': self.candidate.id,
                 'name': self.candidate.vorname_nachname,
                 'event': self.candidate.veranstaltungsname,
-                'datum': self.candidate.datum,
+                'datum': format_de_date(self.candidate.datum),
                 'email': self.candidate.email_address,
             }
         return {
