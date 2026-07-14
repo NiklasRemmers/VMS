@@ -623,7 +623,11 @@ def get_email_candidates():
 def get_calendar_events():
     """Get events for the dashboard calendar."""
     from email_client import get_calendar_events
-    events = get_calendar_events(current_user.id)
+    # FullCalendar sends the visible window as ?start=...&end=... (ISO, may
+    # include a time/offset). Pass it through so we only return that range.
+    range_start = request.args.get('start')
+    range_end = request.args.get('end')
+    events = get_calendar_events(current_user.id, range_start, range_end)
     return jsonify(events)
 @app.route('/api/emails/archive', methods=['GET'])
 @login_required

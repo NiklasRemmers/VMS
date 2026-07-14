@@ -2,6 +2,7 @@
 SQLAlchemy Models for VMS.
 Defines the database schema for PostgreSQL.
 """
+import re
 from datetime import datetime, timezone
 from sqlalchemy import (
     Column, Integer, String, Text, Boolean, DateTime, ForeignKey, Index, LargeBinary, Numeric
@@ -28,6 +29,53 @@ def format_de_date(value):
             except ValueError:
                 continue
     return value
+
+
+def parse_flexible_date(value):
+    """Parse a date from many shapes into a `date` object, or None.
+
+    Accepts a date/datetime object or a string in ISO (YYYY-MM-DD, optionally
+    with a time part), German (DD.MM.YYYY), short German (DD.MM.YY), a value with
+    a date embedded in extra text, or the German range shorthand "13.-15.11.26"
+    (resolved to the start day). Returns None when no date can be found."""
+    if not value:
+        return None
+    if hasattr(value, 'year') and not isinstance(value, str):
+        return value.date() if hasattr(value, 'date') else value
+    s = str(value).strip()
+    # German range shorthand "DD.-DD.MM.YY(YY)": the first day shares the
+    # month/year of the second, so resolve it to the start day.
+    m = re.match(r'\s*(\d{1,2})\.\s*-\s*\d{1,2}\.(\d{1,2})\.(\d{2,4})', s)
+    if not m:
+        # First German-style token DD.MM.YYYY / DD.MM.YY.
+        m = re.search(r'(\d{1,2})\.(\d{1,2})\.(\d{2,4})', s)
+    if m:
+        day, month, year = (int(g) for g in m.groups())
+        if year < 100:
+            year += 2000
+        try:
+            return datetime(year, month, day).date()
+        except ValueError:
+            return None
+    # ISO token YYYY-MM-DD (also strips any trailing time part).
+    m = re.search(r'(\d{4})-(\d{2})-(\d{2})', s)
+    if m:
+        try:
+            return datetime(int(m.group(1)), int(m.group(2)), int(m.group(3))).date()
+        except ValueError:
+            return None
+    return None
+
+
+def to_iso_date(value):
+    """Normalize a stored/incoming date to ISO 'YYYY-MM-DD' for persistence.
+
+    Returns the original value unchanged if it is empty or cannot be parsed, so
+    unexpected free text is preserved rather than silently dropped."""
+    if not value:
+        return value
+    d = parse_flexible_date(value)
+    return d.strftime('%Y-%m-%d') if d else value
 
 
 class Base(DeclarativeBase):

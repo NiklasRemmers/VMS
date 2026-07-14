@@ -10,7 +10,7 @@ from email.utils import parsedate_to_datetime
 import os
 import re
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 import base64
 from typing import List, Dict, Optional, Any
 from security import decrypt_value
@@ -20,7 +20,7 @@ import kanboard_client
 from sqlalchemy import func, or_, and_, text, desc, case
 
 # ... existing imports ...
-from models import EmailCandidate, EmailSyncState, format_de_date
+from models import EmailCandidate, EmailSyncState, format_de_date, parse_flexible_date, to_iso_date
 from database import get_session, get_user_settings
 
 
@@ -333,7 +333,7 @@ def save_candidates(emails: List[Dict], user_id: int) -> int:
                     veranstaltungsort=email_data.get('veranstaltungsort'),
                     veranstaltungsbereich=email_data.get('veranstaltungsbereich'),
                     personenzahl=email_data.get('personenzahl'),
-                    datum=email_data.get('datum'),
+                    datum=to_iso_date(email_data.get('datum')),
                     material=email_data.get('material'),
                     sonstiges=email_data.get('sonstiges'),
                     rahmenbedingungen=email_data.get('rahmenbedingungen'),
@@ -364,8 +364,8 @@ def create_manual_candidate(form_data: Dict, user_id: int) -> int:
             veranstaltungsname=form_data.get('veranstaltungsname'),
             veranstaltungsort=form_data.get('veranstaltungsort'),
             personenzahl=form_data.get('personenzahl'),
-            datum=form_data.get('datum'),
-            end_date=form_data.get('end_date'),
+            datum=to_iso_date(form_data.get('datum')),
+            end_date=to_iso_date(form_data.get('end_date')),
             raw_content=form_data.get('raw_content'),
             tags=form_data.get('tags') or [],
             kanboard_task_id=form_data.get('kanboard_task_id'),
@@ -475,8 +475,12 @@ def update_candidate(candidate_id, form_data: Dict, user_id: int = None):
         
         for key in valid_fields:
             if key in form_data:
-                setattr(row, key, form_data[key])
-        
+                value = form_data[key]
+                # Store dates ISO-normalized per the "intern ISO" convention.
+                if key in ('datum', 'end_date'):
+                    value = to_iso_date(value)
+                setattr(row, key, value)
+
         return True
 
 
@@ -534,7 +538,8 @@ def sync_with_kanboard(user_id: int):
             parsed = task.get('parsed_data', {})
             tags = task.get('tags', [])
             
-            # Convert Kanboard date_due (Unix timestamp) to DD.MM.YYYY
+            # Convert Kanboard date_due (Unix timestamp) to ISO (YYYY-MM-DD),
+            # matching the "intern ISO" storage convention.
             datum = ''
             date_due = task.get('date_due', '')
             if date_due and date_due != '0':
@@ -545,14 +550,14 @@ def sync_with_kanboard(user_id: int):
                     except ImportError:
                         # Fallback for Python < 3.9
                         from dateutil.tz import gettz as ZoneInfo
-                        
+
                     ts = int(date_due)
                     # Use Europe/Berlin to interpret the midnight timestamp correctly
                     # Kanboard midnight (CET/CEST) -> Correct Date
                     tz = ZoneInfo('Europe/Berlin')
-                    datum = dt_cls.fromtimestamp(ts, tz=tz).strftime('%d.%m.%Y')
+                    datum = dt_cls.fromtimestamp(ts, tz=tz).strftime('%Y-%m-%d')
                 except (ValueError, OSError):
-                    datum = date_due  # Use as-is if not a timestamp
+                    datum = to_iso_date(date_due)  # normalize whatever we got
 
             if tid in existing_map:
                 # Update existing candidate if needed
@@ -627,48 +632,73 @@ def sync_with_kanboard(user_id: int):
     return {'updated': updated, 'created': created}
 
 
-def get_calendar_events(user_id=None):
-    """Get calendar events for dashboard (shared across all users)."""
+def _parse_calendar_date(value):
+    """Parse a stored date into a date object (or None). Thin alias for the
+    canonical parser so the calendar and the write paths stay in sync."""
+    return parse_flexible_date(value)
+
+
+def get_calendar_events(user_id=None, range_start=None, range_end=None):
+    """Get calendar events for dashboard (shared across all users).
+
+    range_start / range_end are the ISO date/datetime strings FullCalendar sends
+    for the visible window; when given, only events overlapping [start, end) are
+    returned. Candidates whose date cannot be parsed are logged and skipped
+    (instead of being dropped silently)."""
     candidates = get_candidates('ALL')
     events = []
-    
+    today = datetime.now().date()
+
+    win_start = _parse_calendar_date(range_start)
+    win_end = _parse_calendar_date(range_end)
+
     for c in candidates:
-        if c.get('datum'):
-            try:
-                # Convert German date to ISO
-                dt = datetime.strptime(c['datum'], '%d.%m.%Y')
-                iso_date = dt.strftime('%Y-%m-%d')
-                
-                # Determine color based on date and status
-                event_date = dt.date()
-                today = datetime.now().date()
-                status = c.get('status', 'pending')
-                
-                color = '#3788d8' # Fallback
-                
-                if event_date < today:
-                    color = '#6c757d' # Gray (Past)
-                elif status in ('processed', 'done'):
-                    color = '#10b981' # Green (processed/done)
-                else:
-                    color = '#f59e0b' # Amber/Yellow (pending)
-                
-                events.append({
-                    'title': c.get('veranstaltungsname') or c.get('subject'),
-                    'start': iso_date,
-                    'url': f"/emails?highlight={c['id']}",
-                    'backgroundColor': color,
-                    'borderColor': color,
-                    'extendedProps': {
-                        'status': c.get('status', 'pending'),
-                        'location': c.get('veranstaltungsort'),
-                        'persons': c.get('personenzahl'),
-                        'name': c.get('vorname_nachname'),
-                        'tags': c.get('tags') if isinstance(c.get('tags'), list) else []
-                    }
-                })
-            except:
-                pass
+        event_date = _parse_calendar_date(c.get('datum'))
+        if event_date is None:
+            # Keep these visible in the logs so undated/misformatted requests can
+            # be found and fixed, rather than vanishing from the calendar unnoticed.
+            print(f"[calendar] skipping candidate {c.get('id')} "
+                  f"({c.get('veranstaltungsname') or c.get('subject')!r}): "
+                  f"unparseable datum {c.get('datum')!r}")
+            continue
+
+        end_date = _parse_calendar_date(c.get('end_date'))
+        # FullCalendar treats all-day `end` as exclusive, so add one day so a
+        # multi-day loan spans through its last day.
+        span_end = (end_date if end_date and end_date >= event_date else event_date)
+
+        # Skip events entirely outside the requested window (if one was given).
+        if win_start and span_end < win_start:
+            continue
+        if win_end and event_date >= win_end:
+            continue
+
+        status = c.get('status', 'pending')
+        if span_end < today:
+            color = '#6c757d'  # Gray (Past)
+        elif status in ('processed', 'done'):
+            color = '#10b981'  # Green (processed/done)
+        else:
+            color = '#f59e0b'  # Amber/Yellow (pending)
+
+        event = {
+            'title': c.get('veranstaltungsname') or c.get('subject'),
+            'start': event_date.strftime('%Y-%m-%d'),
+            'url': f"/emails?highlight={c['id']}",
+            'backgroundColor': color,
+            'borderColor': color,
+            'extendedProps': {
+                'status': status,
+                'location': c.get('veranstaltungsort'),
+                'persons': c.get('personenzahl'),
+                'name': c.get('vorname_nachname'),
+                'tags': c.get('tags') if isinstance(c.get('tags'), list) else []
+            }
+        }
+        if end_date and end_date > event_date:
+            event['end'] = (end_date + timedelta(days=1)).strftime('%Y-%m-%d')
+        events.append(event)
+
     return events
 
 
