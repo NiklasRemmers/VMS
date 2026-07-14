@@ -29,7 +29,7 @@ COPY app.py auth.py database.py email_client.py \
     inventory_routes.py invoice_routes.py verleih_routes.py \
     gunicorn.conf.py requirements.txt ./
 
-COPY template.odt ./
+COPY template.odt template_rechnung.odt template_umbuchung.odt ./
 COPY templates/ ./templates/
 COPY static/ ./static/
 COPY entrypoint.sh ./
