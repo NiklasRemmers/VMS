@@ -174,7 +174,9 @@ def api_send_invoice():
         if row:
             row.laufende_nummer = str(laufende_nummer)
             row.nummer_typ = nummer_typ
-            row.status = 'done'
+            # 'invoiced' beendet den Vorgang endgültig: taucht nicht mehr in den
+            # Rückgaben auf und landet (wie 'returned') im Archiv.
+            row.status = 'invoiced'
             row.contract_created = True
 
             # Idempotently advance the sequential counter.

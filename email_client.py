@@ -737,7 +737,7 @@ def get_archived_candidates(user_id: int = None, page: int = 1, limit: int = 10,
             current_date_str = func.to_char(func.current_date(), 'YYYY-MM-DD')
             q = q.filter(or_(
                 iso_date_expr < current_date_str,
-                EmailCandidate.status.in_(['returned'])
+                EmailCandidate.status.in_(['returned', 'invoiced'])
             ))
             
             # Apply filters

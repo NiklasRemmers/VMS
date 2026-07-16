@@ -379,7 +379,7 @@ def reconcile_candidate(user_id: int, candidate: Dict) -> None:
                 move_task(user_id, task_id, COLUMN_VERLIEHEN)
             else:
                 move_task(user_id, task_id, COLUMN_DONE)
-        elif status == 'returned':
+        elif status in ('returned', 'invoiced'):
             close_task(user_id, task_id)
         elif status == 'invoice_pending':
             move_task(user_id, task_id, COLUMN_INVOICE)
