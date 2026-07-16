@@ -1121,8 +1121,15 @@ def get_candidates_for_contract():
             except:
                 c['datum_iso'] = c.get('datum', '')
         
-        # Skip if date is in the past
-        if parsed_date and parsed_date < today:
+        # Skip if the rental is fully in the past (end of span counts if set)
+        parsed_end = None
+        if c.get('end_date'):
+            try:
+                parsed_end = datetime.strptime(c['end_date'], '%Y-%m-%d').date()
+            except (ValueError, TypeError):
+                pass
+        relevant_date = parsed_end if (parsed_end and parsed_date and parsed_end >= parsed_date) else parsed_date
+        if relevant_date and relevant_date < today:
             continue
         
         result.append(c)

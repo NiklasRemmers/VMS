@@ -878,12 +878,16 @@ function fillFormFromCandidate() {
         document.getElementById('abholzeit_stunde').value = '12';
         document.getElementById('abholzeit_minute').value = '00';
 
-        // Rückgabedatum: Next day at 18:00
-        const eventDate = new Date(dateIso);
-        eventDate.setDate(eventDate.getDate() + 1);
-        const nextDay = eventDate.toISOString().split('T')[0];
-        document.getElementById('rueckgabedatum').value = nextDay;
-        document.getElementById('rueckgabezeit_stunde').value = '18';
+        // Rückgabedatum: Tag nach Veranstaltungsende um 12:00
+        // (bei Zeitspanne zählt end_date, sonst das Veranstaltungsdatum)
+        const endIso = (candidate.end_date && candidate.end_date >= dateIso)
+            ? candidate.end_date
+            : dateIso;
+        const endDate = new Date(endIso);
+        endDate.setDate(endDate.getDate() + 1);
+        const returnDay = endDate.toISOString().split('T')[0];
+        document.getElementById('rueckgabedatum').value = returnDay;
+        document.getElementById('rueckgabezeit_stunde').value = '12';
         document.getElementById('rueckgabezeit_minute').value = '00';
     }
 
