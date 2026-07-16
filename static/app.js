@@ -594,7 +594,8 @@ function getSelectedMaterials() {
     // Equipment items
     document.querySelectorAll('.equipment-select').forEach(select => {
         if (select.value && equipment[select.value]) {
-            const quantity = select.parentElement.querySelector('.quantity-select').value;
+            // closest() statt parentElement: SearchableSelect wickelt das Select in einen .ss-wrapper ein
+            const quantity = select.closest('.material-item').querySelector('.quantity-select').value;
             selectedItems.push(`${quantity} x ${equipment[select.value]}`);
         }
     });
@@ -733,10 +734,12 @@ async function handleSubmit(e) {
 function showError(message) {
     errorMessage.textContent = message;
     errorToast.classList.remove('hidden');
-    errorToast.classList.add('show');
+    // translate-y-full entfernen (Toast liegt sonst unterhalb des Viewports);
+    // rAF, damit die Slide-in-Transition nach dem Einblenden greift
+    requestAnimationFrame(() => errorToast.classList.remove('translate-y-full'));
 
     setTimeout(() => {
-        errorToast.classList.remove('show');
+        errorToast.classList.add('translate-y-full');
         setTimeout(() => {
             errorToast.classList.add('hidden');
         }, 300);
@@ -752,10 +755,10 @@ function showSuccess(message) {
     errorToast.classList.remove('error-toast');
     errorToast.classList.add('success-toast');
     errorToast.classList.remove('hidden');
-    errorToast.classList.add('show');
+    requestAnimationFrame(() => errorToast.classList.remove('translate-y-full'));
 
     setTimeout(() => {
-        errorToast.classList.remove('show');
+        errorToast.classList.add('translate-y-full');
         setTimeout(() => {
             errorToast.classList.add('hidden');
             errorToast.classList.remove('success-toast');
