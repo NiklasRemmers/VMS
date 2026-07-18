@@ -123,6 +123,7 @@ def api_send_invoice():
     laufende_nummer = data.get('laufende_nummer')
     email = (data.get('email') or '').strip()
     adresse = data.get('adresse') or ''
+    kostenstelle = (data.get('kostenstelle') or '').strip()
     mail_text = data.get('mail_text') or ''
     items = data.get('items') or []
 
@@ -135,6 +136,8 @@ def api_send_invoice():
         return jsonify({'error': 'Empfänger-E-Mail fehlt'}), 400
     if not isinstance(items, list) or len(items) == 0:
         return jsonify({'error': 'Mindestens ein Posten erforderlich'}), 400
+    if nummer_typ == 'umbuchung' and not kostenstelle:
+        return jsonify({'error': 'Kostenstelle fehlt'}), 400
 
     candidate = get_candidate_by_id(candidate_id, current_user.id)
     if not candidate:
@@ -155,10 +158,15 @@ def api_send_invoice():
         '#HEUTE#': now.strftime('%d.%m.%Y'),
         '#GESAMTPREIS#': format_money_de(total),
         '#VERLEIHER#': current_user.display_name,
-        '#VORNAME NACHNAME#': candidate.get('vorname_nachname') or '',
-        '#ADRESSE#': adresse,
         '#VERANSTALTUNG#': candidate.get('veranstaltungsname') or '',
     }
+    if nummer_typ == 'umbuchung':
+        # Die Umbuchung ist intern adressiert (kein Empfänger-Name/-Adresse),
+        # nennt dafür aber die zu belastende Kostenstelle.
+        replacements['#KOSTENSTELLE#'] = kostenstelle
+    else:
+        replacements['#VORNAME NACHNAME#'] = candidate.get('vorname_nachname') or ''
+        replacements['#ADRESSE#'] = adresse
 
     label = 'Rechnung' if nummer_typ == 'rechnung' else 'Umbuchung'
 

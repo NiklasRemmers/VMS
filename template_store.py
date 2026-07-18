@@ -60,7 +60,7 @@ REQUIRED_PLACEHOLDERS = {
     # recipient name or address — those two must not be required here.
     'umbuchung': [
         '#NUMMER#', '#JAHR#', '#HEUTE#', '#GESAMTPREIS#', '#VERLEIHER#',
-        '#VERANSTALTUNG#',
+        '#VERANSTALTUNG#', '#KOSTENSTELLE#',
         '#ARTIKEL#', '#MENGE#', '#STÜCKPREIS#', '#GESAMTPREIS_POS#',
     ],
 }

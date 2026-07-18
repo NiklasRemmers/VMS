@@ -104,6 +104,38 @@
         </main>
     </div>
 
+    <!-- Type Chooser Modal -->
+    <div id="invoiceTypeModal" class="fixed inset-0 z-50 overflow-y-auto hidden" role="dialog" aria-modal="true">
+        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity backdrop-blur-sm" aria-hidden="true" onclick="closeInvoiceTypeModal()"></div>
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+
+            <div class="inline-block align-bottom bg-white dark:bg-gray-800 rounded-xl px-4 pt-5 pb-4 text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6 border border-gray-100 dark:border-gray-700">
+                <div class="flex justify-between items-center mb-2">
+                    <h3 class="text-xl font-bold text-gray-900 dark:text-white">Was soll erstellt werden?</h3>
+                    <button type="button" onclick="closeInvoiceTypeModal()" class="text-gray-400 hover:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 p-2 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500">
+                        <span class="sr-only">Schließen</span>
+                        <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mb-5" id="invTypeSubtitle">-</p>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <button type="button" onclick="openInvoiceModal('rechnung')" class="text-left rounded-lg border border-gray-200 dark:border-gray-600 hover:border-purple-500 dark:hover:border-purple-500 hover:bg-purple-50 dark:hover:bg-purple-900/20 p-4 transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500">
+                        <span class="block font-medium text-gray-900 dark:text-white">Rechnung</span>
+                        <span class="block text-sm text-gray-500 dark:text-gray-400 mt-1">An eine externe Empfängeranschrift.</span>
+                    </button>
+                    <button type="button" onclick="openInvoiceModal('umbuchung')" class="text-left rounded-lg border border-gray-200 dark:border-gray-600 hover:border-emerald-500 dark:hover:border-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 p-4 transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                        <span class="block font-medium text-gray-900 dark:text-white">Umbuchung</span>
+                        <span class="block text-sm text-gray-500 dark:text-gray-400 mt-1">Intern, zu Lasten einer Kostenstelle.</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Invoice Modal -->
     <div id="invoiceModal" class="fixed inset-0 z-50 overflow-y-auto hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
         <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
@@ -117,7 +149,15 @@
                 
                 <!-- Modal Header -->
                 <div class="flex justify-between items-center mb-5 pb-4 border-b border-gray-200 dark:border-gray-700">
-                    <h3 class="text-xl font-bold text-gray-900 dark:text-white" id="invoiceModalTitle">Rechnung erstellen</h3>
+                    <div class="flex items-center gap-2 min-w-0">
+                        <button type="button" onclick="backToInvoiceType()" title="Typ ändern" class="text-gray-400 hover:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 p-2 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500">
+                            <span class="sr-only">Zurück zur Typ-Auswahl</span>
+                            <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                            </svg>
+                        </button>
+                        <h3 class="text-xl font-bold text-gray-900 dark:text-white truncate" id="invoiceModalTitle">Rechnung erstellen</h3>
+                    </div>
                     <button type="button" onclick="closeInvoiceModal()" class="text-gray-400 hover:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 p-2 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500">
                         <span class="sr-only">Schließen</span>
                         <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
@@ -144,18 +184,10 @@
 
                 <!-- Laufende Nummer -->
                 <div class="mb-6">
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Laufende Nummer</label>
-                    <div class="flex gap-3">
-                        <select id="invNummerTyp" onchange="fetchInvNextNumber()"
-                            class="rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-purple-500 focus:ring-purple-500 sm:text-sm px-4 py-2 border">
-                            <option value="">-- Typ wählen --</option>
-                            <option value="rechnung">Rechnung</option>
-                            <option value="umbuchung">Umbuchung</option>
-                        </select>
-                        <input type="number" id="invLaufendeNummer"
-                            class="flex-1 rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-purple-500 focus:ring-purple-500 sm:text-sm px-4 py-2 border"
-                            placeholder="Nummer" min="1">
-                    </div>
+                    <label for="invLaufendeNummer" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Laufende Nummer</label>
+                    <input type="number" id="invLaufendeNummer"
+                        class="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-purple-500 focus:ring-purple-500 sm:text-sm px-4 py-2 border"
+                        placeholder="Nummer" min="1">
                 </div>
 
                 <!-- Recipient Email -->
@@ -164,15 +196,22 @@
                     <input type="email" id="invEmail" class="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-purple-500 focus:ring-purple-500 sm:text-sm px-4 py-2 border">
                 </div>
 
-                <!-- Billing Address (Rechnung) -->
-                <div class="mb-6">
-                    <label for="invAdresse" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Rechnungsanschrift <span class="text-gray-400 font-normal">(nur Rechnung)</span></label>
+                <!-- Billing Address (nur Rechnung) -->
+                <div class="mb-6" id="invAdresseBlock">
+                    <label for="invAdresse" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Rechnungsanschrift</label>
                     <textarea id="invAdresse" rows="3" class="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-purple-500 focus:ring-purple-500 sm:text-sm px-4 py-2 border"></textarea>
+                </div>
+
+                <!-- Kostenstelle (nur Umbuchung) -->
+                <div class="mb-6 hidden" id="invKostenstelleBlock">
+                    <label for="invKostenstelle" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Kostenstelle</label>
+                    <input type="text" id="invKostenstelle" class="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-emerald-500 focus:ring-emerald-500 sm:text-sm px-4 py-2 border">
+                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Kostenstelle, von der der Betrag zu 300 420 umgebucht wird.</p>
                 </div>
 
                 <!-- Invoice Items Table -->
                 <div class="mb-6">
-                    <h4 class="text-lg font-medium text-gray-900 dark:text-white mb-3">Rechnungsposten</h4>
+                    <h4 class="text-lg font-medium text-gray-900 dark:text-white mb-3" id="invItemsHeading">Rechnungsposten</h4>
                     <div class="overflow-x-auto border border-gray-200 dark:border-gray-700 rounded-lg">
                         <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                             <thead class="bg-gray-50 dark:bg-gray-700 sticky top-0 z-10 shadow-sm border-b border-gray-200 dark:border-gray-700">
@@ -244,21 +283,14 @@
 
                 <!-- Mail Body Textarea -->
                 <div class="mb-6">
-                    <label for="invMailText" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Mail-Nachricht (inkl. Rechnung als PDF im Anhang)</label>
-                    <textarea id="invMailText" rows="6" class="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-purple-500 focus:ring-purple-500 px-4 py-2 border font-mono text-sm">Hallo,
-
-anbei die Rechnung für die Verbrauchsmaterialien.
-
-Viele Grüße.</textarea>
+                    <label for="invMailText" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1" id="invMailTextLabel">Mail-Nachricht (inkl. Rechnung als PDF im Anhang)</label>
+                    <textarea id="invMailText" rows="6" class="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-purple-500 focus:ring-purple-500 px-4 py-2 border font-mono text-sm"></textarea>
                 </div>
 
                 <!-- Action Buttons -->
                 <div class="mt-5 sm:mt-6 sm:flex sm:flex-row-reverse gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
-                    <button type="button" id="btnSendRechnung" onclick="sendInvoice('rechnung')" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-purple-600 text-base font-medium text-white hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 sm:w-auto sm:text-sm dark:focus:ring-offset-gray-800 disabled:opacity-60 disabled:cursor-not-allowed">
+                    <button type="button" id="btnSendInvoice" onclick="sendInvoice()" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-purple-600 text-base font-medium text-white hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 sm:w-auto sm:text-sm dark:focus:ring-offset-gray-800 disabled:opacity-60 disabled:cursor-not-allowed">
                         Rechnung verschicken
-                    </button>
-                    <button type="button" id="btnSendUmbuchung" onclick="sendInvoice('umbuchung')" class="mt-3 sm:mt-0 w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-emerald-600 text-base font-medium text-white hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 sm:w-auto sm:text-sm dark:focus:ring-offset-gray-800 disabled:opacity-60 disabled:cursor-not-allowed">
-                        Umlagenerstattung verschicken
                     </button>
                     <button type="button" onclick="closeInvoiceModal()" class="mt-3 sm:mt-0 w-full inline-flex justify-center rounded-md border border-gray-300 dark:border-gray-600 shadow-sm px-4 py-2 bg-white dark:bg-gray-700 text-base font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 sm:w-auto sm:text-sm dark:focus:ring-offset-gray-800">
                         Abbrechen
@@ -276,6 +308,7 @@ Viele Grüße.</textarea>
         let consumables = [];
         let invoiceItems = [];
         let activeCandidate = null;
+        let activeInvoiceType = null;
         const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
 
         // Number formatter
@@ -402,7 +435,7 @@ Viele Grüße.</textarea>
                         <td class="px-6 py-4 whitespace-nowrap" data-label="Tags">${tagsHtml}</td>
                         <td class="px-6 py-4 text-sm text-gray-700 dark:text-gray-300" data-label="Hinweis">${noteHtml}</td>
                         <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium cell-actions">
-                            <button onclick='openInvoiceModal(${JSON.stringify(c).replace(/'/g, "&#39;")})' class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded shadow-sm text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500">
+                            <button onclick='chooseInvoiceType(${JSON.stringify(c).replace(/'/g, "&#39;")})' class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded shadow-sm text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500">
                                 Erstellen
                             </button>
                         </td>
@@ -413,12 +446,68 @@ Viele Grüße.</textarea>
         }
 
         // Modal Logic
-        function openInvoiceModal(candidate) {
+
+        // Per-type wording and defaults for the shared invoice modal.
+        const INVOICE_TYPES = {
+            rechnung: {
+                label: 'Rechnung',
+                itemsHeading: 'Rechnungsposten',
+                mailLabel: 'Mail-Nachricht (inkl. Rechnung als PDF im Anhang)',
+                mailText: 'Hallo,\n\nanbei die Rechnung für die Verbrauchsmaterialien.\n\nViele Grüße.',
+                btnClasses: ['bg-purple-600', 'hover:bg-purple-700', 'focus:ring-purple-500'],
+            },
+            umbuchung: {
+                label: 'Umbuchung',
+                itemsHeading: 'Umbuchungsposten',
+                mailLabel: 'Mail-Nachricht (inkl. Umbuchungsbeleg als PDF im Anhang)',
+                mailText: 'Hallo,\n\nanbei der Umbuchungsbeleg für die Verbrauchsmaterialien.\n\nViele Grüße.',
+                btnClasses: ['bg-emerald-600', 'hover:bg-emerald-700', 'focus:ring-emerald-500'],
+            },
+        };
+
+        function chooseInvoiceType(candidate) {
             activeCandidate = candidate;
+            document.getElementById('invTypeSubtitle').textContent =
+                candidate.veranstaltungsname || candidate.vorname_nachname || 'Unbekannt';
+            document.getElementById('invoiceTypeModal').classList.remove('hidden');
+        }
+
+        function closeInvoiceTypeModal() {
+            document.getElementById('invoiceTypeModal').classList.add('hidden');
+            activeCandidate = null;
+        }
+
+        function backToInvoiceType() {
+            document.getElementById('invoiceModal').classList.add('hidden');
+            document.getElementById('invoiceTypeModal').classList.remove('hidden');
+        }
+
+        function openInvoiceModal(typ) {
+            const candidate = activeCandidate;
+            if (!candidate) return;
+            document.getElementById('invoiceTypeModal').classList.add('hidden');
+
+            activeInvoiceType = typ;
+            const cfg = INVOICE_TYPES[typ];
             invoiceItems = []; // reset
-            
+
+            // Type-specific wording and fields
+            document.getElementById('invItemsHeading').textContent = cfg.itemsHeading;
+            document.getElementById('invMailTextLabel').textContent = cfg.mailLabel;
+            document.getElementById('invMailText').value = cfg.mailText;
+
+            const sendBtn = document.getElementById('btnSendInvoice');
+            sendBtn.textContent = `${cfg.label} verschicken`;
+            Object.values(INVOICE_TYPES).forEach(t => sendBtn.classList.remove(...t.btnClasses));
+            sendBtn.classList.add(...cfg.btnClasses);
+
+            const isUmbuchung = typ === 'umbuchung';
+            document.getElementById('invAdresseBlock').classList.toggle('hidden', isUmbuchung);
+            document.getElementById('invKostenstelleBlock').classList.toggle('hidden', !isUmbuchung);
+            document.getElementById('invKostenstelle').value = '';
+
             // Populate info
-            document.getElementById('invoiceModalTitle').textContent = `Rechnung — ${candidate.veranstaltungsname || candidate.vorname_nachname || 'Unbekannt'}`;
+            document.getElementById('invoiceModalTitle').textContent = `${cfg.label} — ${candidate.veranstaltungsname || candidate.vorname_nachname || 'Unbekannt'}`;
             document.getElementById('invCandidateName').textContent = candidate.vorname_nachname || 'Unbekannt';
             document.getElementById('invCandidateEvent').textContent = candidate.veranstaltungsname || '-';
             
@@ -440,13 +529,13 @@ Viele Grüße.</textarea>
             document.getElementById('invEmail').value = candidate.email_address || '';
             document.getElementById('invAdresse').value = candidate.anschrift || '';
 
-            // Reset Laufende Nummer
-            document.getElementById('invNummerTyp').value = '';
+            // Prefill the next sequential number for this type
             document.getElementById('invLaufendeNummer').value = '';
-            
+            fetchInvNextNumber();
+
             // Render table empty state
             renderInvoiceItems();
-            
+
             // Show modal
             document.getElementById('invoiceModal').classList.remove('hidden');
         }
@@ -454,10 +543,11 @@ Viele Grüße.</textarea>
         function closeInvoiceModal() {
             document.getElementById('invoiceModal').classList.add('hidden');
             activeCandidate = null;
+            activeInvoiceType = null;
         }
 
         async function fetchInvNextNumber() {
-            const typ = document.getElementById('invNummerTyp').value;
+            const typ = activeInvoiceType;
             const numInput = document.getElementById('invLaufendeNummer');
             if (!typ) {
                 numInput.value = '';
@@ -581,33 +671,28 @@ Viele Grüße.</textarea>
             }
         }
 
-        async function sendInvoice(typ) {
-            if (!activeCandidate) return;
+        async function sendInvoice() {
+            if (!activeCandidate || !activeInvoiceType) return;
 
-            // The clicked button is the source of truth for the type; reflect it
-            // in the dropdown and fetch the next number if none is entered yet.
-            const typSelect = document.getElementById('invNummerTyp');
-            if (typSelect.value !== typ) {
-                typSelect.value = typ;
-                await fetchInvNextNumber();
-            }
+            const typ = activeInvoiceType;
+            const isUmbuchung = typ === 'umbuchung';
+            const cfg = INVOICE_TYPES[typ];
 
             const laufendeNummer = document.getElementById('invLaufendeNummer').value;
             const email = document.getElementById('invEmail').value.trim();
             const adresse = document.getElementById('invAdresse').value;
+            const kostenstelle = document.getElementById('invKostenstelle').value.trim();
             const mailText = document.getElementById('invMailText').value;
 
             if (!laufendeNummer) { showToast("Bitte laufende Nummer angeben", "error"); return; }
             if (!email) { showToast("Bitte Empfänger-E-Mail angeben", "error"); return; }
+            if (isUmbuchung && !kostenstelle) { showToast("Bitte Kostenstelle angeben", "error"); return; }
             if (invoiceItems.length === 0) { showToast("Bitte mindestens einen Posten hinzufügen", "error"); return; }
 
-            const btnR = document.getElementById('btnSendRechnung');
-            const btnU = document.getElementById('btnSendUmbuchung');
-            const activeBtn = (typ === 'rechnung') ? btnR : btnU;
-            const originalLabel = activeBtn.textContent;
-            btnR.disabled = true;
-            btnU.disabled = true;
-            activeBtn.textContent = 'Wird gesendet…';
+            const btn = document.getElementById('btnSendInvoice');
+            const originalLabel = btn.textContent;
+            btn.disabled = true;
+            btn.textContent = 'Wird gesendet…';
 
             try {
                 const resp = await fetch('/api/invoices/send', {
@@ -621,7 +706,10 @@ Viele Grüße.</textarea>
                         nummer_typ: typ,
                         laufende_nummer: laufendeNummer,
                         email: email,
-                        adresse: adresse,
+                        // Die Umbuchung ist intern adressiert und kennt dafür
+                        // eine Kostenstelle — jeweils nur das relevante Feld.
+                        adresse: isUmbuchung ? '' : adresse,
+                        kostenstelle: isUmbuchung ? kostenstelle : '',
                         mail_text: mailText,
                         items: invoiceItems.map(i => ({
                             name: i.name, price: i.price, unit: i.unit, quantity: i.quantity
@@ -630,7 +718,7 @@ Viele Grüße.</textarea>
                 });
                 const data = await resp.json();
                 if (resp.ok && data.success) {
-                    showToast(typ === 'rechnung' ? "Rechnung verschickt" : "Umbuchung verschickt", "success");
+                    showToast(`${cfg.label} verschickt`, "success");
                     // Remove the candidate from the open list.
                     candidates = candidates.filter(c => c.id !== activeCandidate.id);
                     closeInvoiceModal();
@@ -642,9 +730,8 @@ Viele Grüße.</textarea>
                 console.error("Send invoice failed", err);
                 showToast("Versand fehlgeschlagen", "error");
             } finally {
-                btnR.disabled = false;
-                btnU.disabled = false;
-                activeBtn.textContent = originalLabel;
+                btn.disabled = false;
+                btn.textContent = originalLabel;
             }
         }
 
