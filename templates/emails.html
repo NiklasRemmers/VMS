@@ -423,6 +423,9 @@
                                                     Verantwortlich</th>
                                                 <th
                                                     class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                                    Hinweis</th>
+                                                <th
+                                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                                                     Status</th>
                                             </tr>
                                         </thead>
@@ -430,7 +433,7 @@
                                             class="divide-y divide-gray-200 dark:divide-gray-700">
                                             <!-- Rows loaded via JS -->
                                             <tr class="is-placeholder">
-                                                <td colspan="5" class="px-6 py-4 text-center text-sm text-gray-500">
+                                                <td colspan="6" class="px-6 py-4 text-center text-sm text-gray-500">
                                                     Lade Daten...</td>
                                             </tr>
                                         </tbody>
@@ -523,7 +526,7 @@
                         function renderArchiveTable(items) {
                             const tbody = document.getElementById('archiveBody');
                             if (!items || items.length === 0) {
-                                tbody.innerHTML = '<tr class="is-placeholder"><td colspan="5" class="px-6 py-8 text-center text-sm text-gray-500">Keine vergangenen Anfragen gefunden.</td></tr>';
+                                tbody.innerHTML = '<tr class="is-placeholder"><td colspan="6" class="px-6 py-8 text-center text-sm text-gray-500">Keine vergangenen Anfragen gefunden.</td></tr>';
                                 return;
                             }
 
@@ -546,6 +549,9 @@
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400" data-label="Verantwortlich">
                         ${c.responsible_name || '—'}
+                    </td>
+                    <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400" data-label="Hinweis">
+                        ${c.return_note ? `<span class="truncate max-w-xs inline-block" title="${c.return_note}">${c.return_note}</span>` : '<span class="text-gray-400">—</span>'}
                     </td>
                     <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400" data-label="Status">
                          ${c.status === 'returned' ?
