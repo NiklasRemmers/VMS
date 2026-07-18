@@ -32,6 +32,20 @@ def parse_german_date(date_str):
     except ValueError:
         return None
 
+def format_anschrift(raw):
+    """Normalize a stored address into one line per address part.
+
+    Handles literal "\\n" sequences from imported mails and single-line,
+    comma-separated addresses. Expected result: Straße / PLZ Ort / Land.
+    """
+    if not raw:
+        return ''
+    lines = [l.strip() for l in raw.replace('\\n', '\n').split('\n')]
+    lines = [l for l in lines if l]
+    if len(lines) == 1 and ',' in lines[0]:
+        lines = [p.strip() for p in lines[0].split(',') if p.strip()]
+    return '\n'.join(lines)
+
 @invoice_bp.route('/invoices')
 @login_required
 def invoices_page():
@@ -62,6 +76,7 @@ def api_get_invoice_candidates():
                 'end_date': format_de_date(c.end_date),
                 'tags': c.tags,
                 'email_address': c.email_address,
+                'anschrift': format_anschrift(c.anschrift),
                 'return_note': c.return_note
             })
             
