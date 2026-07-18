@@ -52,6 +52,7 @@ def process_odt_template(
         # Build the layout-constrained blocks before any placeholder is filled in,
         # so the generated markup takes part in the normal replacement pass.
         content = _expand_signature_block(content)
+        content = _autogrow_text_frames(content)
         content = _apply_keep_together(content)
 
         # Replace placeholders
@@ -186,6 +187,60 @@ def _expand_signature_block(content: str) -> str:
         content = content.replace(SIGNATURE_BLOCK_PLACEHOLDER, block)
 
     return _inject_styles(content, _SIGNATURE_STYLES)
+
+
+# A frame open tag followed by its text box, e.g. the "vertreten durch #VERLEIHER#"
+# box in the Leihvertrag. Only frames shaped like this are auto-grown.
+_TEXT_FRAME_RE = re.compile(
+    r'(<draw:frame\b[^>]*>)(\s*)(<draw:text-box\b[^>]*?>)', re.DOTALL
+)
+
+
+def _autogrow_text_frames(content: str) -> str:
+    """Let paragraph-anchored text frames grow with the text put into them.
+
+    The templates draw the contracting parties in fixed-height text boxes sized
+    around the placeholder, not around the value. A #VERLEIHER# or address that
+    wraps to one line more than the author's sample overflows the box, and
+    the box clips it mid-glyph.
+
+    Converting the fixed svg:height into fo:min-height on the text box makes the
+    frame grow with its content instead. The frames keep their "run-through"
+    wrap: the paragraphs below them sit at fixed flow positions with a few lines
+    of slack, and making them yield instead would reserve each frame's full
+    height and push the rest of the contract onto the next page. Frames
+    positioned relative to the *page* — the letterhead and address blocks — are
+    left alone: they are meant to sit at a fixed spot.
+    """
+    # Styles that place their frame relative to the running text, not the page.
+    flow_styles = {
+        m.group(1)
+        for m in re.finditer(
+            r'<style:style style:name="([^"]*)" style:family="graphic".*?</style:style>',
+            content, re.DOTALL,
+        )
+        if 'style:vertical-rel="paragraph"' in m.group(0)
+    }
+    if not flow_styles:
+        return content
+
+    def convert(match):
+        frame_tag, gap, box_tag = match.groups()
+        style = re.search(r'draw:style-name="([^"]*)"', frame_tag)
+        height = re.search(r'\ssvg:height="([^"]*)"', frame_tag)
+        if not style or not height or style.group(1) not in flow_styles:
+            return match.group(0)
+
+        frame_tag = frame_tag.replace(height.group(0), '')
+        # The box keeps the authored height as a floor, so a short value still
+        # occupies the space the layout was designed around.
+        if 'fo:min-height' not in box_tag:
+            box_tag = box_tag.replace(
+                '<draw:text-box', f'<draw:text-box fo:min-height="{height.group(1)}"', 1
+            )
+        return frame_tag + gap + box_tag
+
+    return _TEXT_FRAME_RE.sub(convert, content)
 
 
 def _ensure_keep_style(content: str, parent_style: str):

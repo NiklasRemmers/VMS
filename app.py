@@ -297,7 +297,7 @@ def get_kanboard_task(task_id):
 def generate_pdf():
     """Generate PDF from template with provided data."""
     try:
-        from models import format_de_date
+        from models import format_de_date, format_de_datetime
         data = request.get_json()
 
         # Extract form data
@@ -328,8 +328,10 @@ def generate_pdf():
             '#VORNAME NACHNAME#': data.get('vorname_nachname', ''),
             '#PRIVATANSCHRIFT#': data.get('privatanschrift', ''),
             '#RECHNUNGSANSCHRIFT#': data.get('rechnungsanschrift', ''),
-            '#ABHOLDATUM#': format_de_date(data.get('abholdatum', '')),
-            '#RÜCKGABEDATUM#': format_de_date(data.get('rueckgabedatum', '')),
+            # Both carry a pickup/return time from the form, which must survive
+            # the date normalization.
+            '#ABHOLDATUM#': format_de_datetime(data.get('abholdatum', '')),
+            '#RÜCKGABEDATUM#': format_de_datetime(data.get('rueckgabedatum', '')),
             '#VERANSTALTUNGSNAME#': data.get('veranstaltungsname', ''),
             '#VERANSTALTUNGSDATUM#': format_de_date(data.get('veranstaltungsdatum', '')),
             '#VERANSTALTUNGSORT#': data.get('veranstaltungsort', ''),

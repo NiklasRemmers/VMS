@@ -32,6 +32,35 @@ def format_de_date(value):
     return value
 
 
+# Matches the time a contract form appends to a date, e.g. "18.07.2026, 14:00 Uhr",
+# and the ISO "…T14:30" form. The leading comma/T is required: without it a short
+# German date like "18.07.26" would have its "07.26" read as a time.
+_TIME_SUFFIX_RE = re.compile(
+    r'[,T]\s*(\d{1,2})[:.](\d{2})(?::\d{2})?\s*(?:Uhr)?\s*$', re.IGNORECASE
+)
+
+
+def format_de_datetime(value):
+    """Format a stored date as DD.MM.YYYY, keeping a time part if one is present.
+
+    `format_de_date` normalizes the date by parsing only its first ten characters,
+    which silently drops the ", HH:MM Uhr" the Leihvertrag form sends along. This
+    keeps that suffix and re-attaches it in a consistent "DD.MM.YYYY, HH:MM Uhr"."""
+    if not value:
+        return value
+    if hasattr(value, 'strftime'):
+        # A plain `date` has no time, and midnight reads as "no time given".
+        if getattr(value, 'hour', 0) or getattr(value, 'minute', 0):
+            return value.strftime('%d.%m.%Y, %H:%M Uhr')
+        return format_de_date(value)
+    s = str(value).strip()
+    match = _TIME_SUFFIX_RE.search(s)
+    if not match:
+        return format_de_date(s)
+    formatted_date = format_de_date(s[:match.start()].strip())
+    return f"{formatted_date}, {int(match.group(1)):02d}:{match.group(2)} Uhr"
+
+
 def parse_flexible_date(value):
     """Parse a date from many shapes into a `date` object, or None.
 
