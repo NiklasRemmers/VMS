@@ -254,7 +254,7 @@ function validateForm() {
     if (!isValid) missingFields.push('Pflichtfelder');
 
     // Check material selection — either equipment OR custom material
-    const equipmentSelects = document.querySelectorAll('.equipment-select');
+    const equipmentSelects = document.querySelectorAll('select.equipment-select');
     const customTexts = document.querySelectorAll('.custom-text');
     let hasEquipment = false;
     let hasCustom = false;
@@ -400,7 +400,7 @@ function addCustomMaterialItem(quantity, name, text) {
  * Refresh all material dropdowns after adding a new material
  */
 function refreshMaterialDropdowns() {
-    const selects = document.querySelectorAll('.equipment-select');
+    const selects = document.querySelectorAll('select.equipment-select');
     selects.forEach(select => {
         const currentValue = select.value;
 
@@ -478,7 +478,7 @@ function addDropdownItem(quantity = 1, materialKey = '') {
     removeBtn.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>';
     removeBtn.addEventListener('click', () => {
         item.remove();
-        const remaining = container.querySelectorAll('.equipment-select');
+        const remaining = container.querySelectorAll('select.equipment-select');
         if (remaining.length === 1) {
             remaining[0].required = true;
         }
@@ -592,7 +592,7 @@ function getSelectedMaterials() {
     });
 
     // Equipment items
-    document.querySelectorAll('.equipment-select').forEach(select => {
+    document.querySelectorAll('select.equipment-select').forEach(select => {
         if (select.value && equipment[select.value]) {
             // closest() statt parentElement: SearchableSelect wickelt das Select in einen .ss-wrapper ein
             const quantity = select.closest('.material-item').querySelector('.quantity-select').value;
@@ -621,7 +621,7 @@ async function handleSubmit(e) {
     }
 
     // Validate that at least one equipment OR custom material is selected
-    const eqSelects = document.querySelectorAll('.equipment-select');
+    const eqSelects = document.querySelectorAll('select.equipment-select');
     const ctTexts = document.querySelectorAll('.custom-text');
     let hasAnyMaterial = false;
     eqSelects.forEach(sel => { if (sel.value) hasAnyMaterial = true; });

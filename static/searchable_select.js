@@ -34,11 +34,16 @@
         // Natives Select verstecken (bleibt aber funktional)
         select.style.display = 'none';
 
-        // Anzeige-/Sucheingabe – übernimmt das Aussehen des Selects
+        // Anzeige-/Sucheingabe – übernimmt das Aussehen des Selects.
+        // Achtung: dabei werden ALLE Klassen des Selects mitkopiert, also auch
+        // fachliche Marker wie .equipment-select. Ein querySelectorAll('.equipment-select')
+        // findet deshalb Select UND Input und zählt jeden Eintrag doppelt – solche
+        // Abfragen müssen mit dem Tag qualifiziert werden ('select.equipment-select').
+        // Die Zusatzklasse ss-input macht den Anzeige-Input erkennbar.
         const input = document.createElement('input');
         input.type = 'text';
         input.autocomplete = 'off';
-        input.className = select.className + ' cursor-text';
+        input.className = select.className + ' ss-input cursor-text';
         input.classList.remove('flex-1'); // Breite regelt der Wrapper
         input.classList.add('block', 'w-full'); // füllt die volle Breite des Dialogs/Wrappers
         wrapper.appendChild(input);
