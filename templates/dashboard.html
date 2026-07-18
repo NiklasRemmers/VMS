@@ -7,6 +7,7 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Dashboard - Anlagenreferat</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/static/mobile.css">
     <script>
         tailwind.config = {
             darkMode: 'class',
@@ -166,13 +167,13 @@
         {% include '_sidebar.html' %}
 
         <!-- Main Content -->
-        <div class="flex flex-col flex-1 w-full">
+        <div class="flex flex-col flex-1 w-full min-w-0">
             <!-- Header -->
             {% include '_navbar.html' %}
 
 
             <main class="h-full overflow-y-auto">
-                <div class="container px-6 mx-auto py-8">
+                <div class="container px-4 sm:px-6 mx-auto py-8">
 
                     <!-- Welcome Message -->
                     <div class="mb-8">
@@ -319,15 +320,28 @@
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             var calendarEl = document.getElementById('calendar');
+            // Auf dem Handy ist das Monatsraster unlesbar - dort startet der
+            // Kalender in der Listenansicht mit reduzierter Toolbar.
+            var isMobile = window.matchMedia('(max-width: 767px)').matches;
             var calendar = new FullCalendar.Calendar(calendarEl, {
-                initialView: 'dayGridMonth',
+                initialView: isMobile ? 'listWeek' : 'dayGridMonth',
                 locale: 'de',
                 firstDay: 1, // Monday
-                headerToolbar: {
-                    left: 'prev,next today',
-                    center: 'title',
-                    right: 'dayGridMonth,dayGridWeek'
-                },
+                headerToolbar: isMobile
+                    ? {
+                        left: 'prev,next',
+                        center: 'title',
+                        right: 'listWeek,dayGridMonth'
+                    }
+                    : {
+                        left: 'prev,next today',
+                        center: 'title',
+                        right: 'dayGridMonth,dayGridWeek'
+                    },
+                // Kurzer Titel, damit er auf dem Handy nicht mehrzeilig umbricht
+                titleFormat: isMobile
+                    ? { day: 'numeric', month: 'short' }
+                    : { year: 'numeric', month: 'long' },
                 events: '/api/calendar/events',
                 height: 'auto',
                 businessHours: true,

@@ -1,0 +1,280 @@
+/* ===========================================================
+   Mobile-Optimierungen
+   Ergaenzt Tailwind (CDN). Alles hier greift nur unter 768px,
+   die Desktop-Ansicht bleibt unveraendert.
+   =========================================================== */
+
+/* -----------------------------------------------------------
+   Sidebar-Drawer: Slide-In statt hartem Ein-/Ausblenden
+   ----------------------------------------------------------- */
+#mobileSidebar .drawer-panel {
+    transform: translateX(-100%);
+    transition: transform 0.25s ease-in-out;
+}
+
+#mobileSidebar.is-open .drawer-panel {
+    transform: translateX(0);
+}
+
+#mobileSidebar #mobileOverlay {
+    opacity: 0;
+    transition: opacity 0.25s ease-in-out;
+}
+
+#mobileSidebar.is-open #mobileOverlay {
+    opacity: 0.5;
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+    #mobileSidebar .drawer-panel,
+    #mobileSidebar #mobileOverlay {
+        transition: none;
+    }
+}
+
+/* Umschaltpunkt bewusst bei 1023px, nicht bei Tailwinds md (768px):
+   Ab 768px blendet die Desktop-Sidebar 256px Breite ein, waehrend fuer die
+   Tabellen nur der Rest bleibt. Zwischen 768px und 1023px reicht das nicht
+   fuer eine echte Tabelle - dort bleibt das Kartenlayout aktiv. */
+@media (max-width: 1023px) {
+
+    /* -------------------------------------------------------
+       Kein horizontales Scrollen der Seite
+       ------------------------------------------------------- */
+    body {
+        overflow-x: hidden;
+    }
+
+    /* -------------------------------------------------------
+       iOS Safari zoomt beim Fokus, wenn die Schrift < 16px ist
+       ------------------------------------------------------- */
+    input,
+    select,
+    textarea {
+        font-size: 16px !important;
+    }
+
+    /* -------------------------------------------------------
+       Tabellen als Karten
+       Aktiv nur fuer <table class="responsive-table">.
+       Jede <td> braucht data-label="<Spaltenname>"; Ausnahmen:
+       .cell-title (Titelzeile) und .cell-actions (Buttonleiste).
+       ------------------------------------------------------- */
+    table.responsive-table thead {
+        display: none;
+    }
+
+    /* `table.responsive-table` ist spezifischer als Tailwinds `.hidden`
+       bzw. `[hidden]` - ohne diese Regel wuerden versteckte Tabellen
+       (z.B. #invoicesTable vor dem Laden) sichtbar. */
+    table.responsive-table.hidden,
+    table.responsive-table[hidden] {
+        display: none !important;
+    }
+
+    table.responsive-table,
+    table.responsive-table tbody,
+    table.responsive-table tr,
+    table.responsive-table td {
+        display: block;
+        width: 100%;
+    }
+
+    table.responsive-table tr {
+        border: 1px solid rgb(229 231 235);
+        border-radius: 0.5rem;
+        margin-bottom: 0.75rem;
+        padding: 0.875rem 1rem;
+        background: inherit;
+    }
+
+    .dark table.responsive-table tr {
+        border-color: rgb(55 65 81);
+    }
+
+    table.responsive-table td {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+        padding: 0.375rem 0 !important;
+        border: none !important;
+        white-space: normal !important;
+        text-align: left !important;
+        overflow-wrap: anywhere;
+    }
+
+    table.responsive-table td::before {
+        content: attr(data-label);
+        font-weight: 600;
+        font-size: 0.75rem;
+        letter-spacing: 0.03em;
+        text-transform: uppercase;
+        color: rgb(107 114 128);
+        flex-shrink: 0;
+    }
+
+    .dark table.responsive-table td::before {
+        color: rgb(156 163 175);
+    }
+
+    /* Zellen ohne data-label bekommen kein Label */
+    table.responsive-table td:not([data-label])::before {
+        display: none;
+    }
+
+    /* Titelzeile der Karte: volle Breite, groesser, ohne Label */
+    table.responsive-table td.cell-title {
+        display: block;
+        font-size: 1rem;
+        font-weight: 600;
+        padding-bottom: 0.5rem !important;
+    }
+
+    /* Aktionsleiste am Kartenfuss */
+    table.responsive-table td.cell-actions {
+        justify-content: flex-end;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        padding-top: 0.75rem !important;
+        margin-top: 0.25rem;
+        border-top: 1px solid rgb(229 231 235) !important;
+    }
+
+    .dark table.responsive-table td.cell-actions {
+        border-top-color: rgb(55 65 81) !important;
+    }
+
+    /* Leere Zellen (z.B. Platzhalter) ausblenden */
+    table.responsive-table td:empty {
+        display: none;
+    }
+
+    /* Aktionsleisten, die keinen Button/Link enthalten (z.B. wenn eine
+       Aktion per Bedingung ausgeblendet ist), duerfen keine leere Leiste
+       mit Trennlinie hinterlassen. Enthalten nur Whitespace, greift
+       :empty nicht - daher :has(). */
+    table.responsive-table td.cell-actions:not(:has(button)):not(:has(a)) {
+        display: none;
+    }
+
+    /* "Keine Eintraege"-Zeilen und Skeleton-Loader bleiben einfache Bloecke */
+    table.responsive-table tr.is-placeholder td {
+        display: block;
+        text-align: center !important;
+    }
+
+    table.responsive-table tr.is-placeholder td::before {
+        display: none;
+    }
+
+    /* -------------------------------------------------------
+       Scroll-Container um Tabellen: Karten brauchen mehr Hoehe
+       als die 400px der Desktop-Ansicht.
+       Bewusst NICHT auf overflow:visible gesetzt - der
+       Infinite-Scroll-IntersectionObserver in emails.html nutzt
+       diesen Container als `root`. Ohne Scroll-Kontext waere der
+       Sentinel dauerhaft sichtbar und wuerde alle Seiten am
+       Stueck nachladen.
+       ------------------------------------------------------- */
+    .table-scroll-container {
+        max-height: 70vh !important;
+    }
+
+    /* Sentinel-Zeilen des Infinite Scroll duerfen keine leere
+       Karte rendern - muessen aber sichtbar bleiben, damit der
+       Observer sie weiterhin erfassen kann. */
+    table.responsive-table tr.row-sentinel {
+        border: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    table.responsive-table tr.row-sentinel td {
+        display: block;
+        padding: 0 !important;
+    }
+
+    /* -------------------------------------------------------
+       Touch-Targets: Buttons und Aktionslinks gross genug
+       ------------------------------------------------------- */
+    button,
+    a.btn,
+    table.responsive-table td.cell-actions a,
+    table.responsive-table td.cell-actions button {
+        min-height: 40px;
+    }
+
+    table.responsive-table td.cell-actions a,
+    table.responsive-table td.cell-actions button {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.5rem 0.875rem;
+        border-radius: 0.375rem;
+    }
+
+    /* Neutraler Chip-Hintergrund nur fuer Buttons/Links ohne eigene
+       bg-Utility - sonst wuerde z.B. das rote `bg-red-100` eines
+       Loeschen-Buttons ueberschrieben und die Warnfarbe ginge verloren. */
+    table.responsive-table td.cell-actions a:not([class*="bg-"]),
+    table.responsive-table td.cell-actions button:not([class*="bg-"]) {
+        background: rgb(243 244 246);
+    }
+
+    .dark table.responsive-table td.cell-actions a:not([class*="bg-"]),
+    .dark table.responsive-table td.cell-actions button:not([class*="bg-"]) {
+        background: rgb(55 65 81);
+    }
+
+    /* -------------------------------------------------------
+       Searchable-Select (static/searchable_select.js):
+       Optionszeilen als Touch-Targets, Panel hoeher
+       ------------------------------------------------------- */
+    .ss-option {
+        display: flex;
+        align-items: center;
+        min-height: 44px;
+    }
+
+    .ss-panel {
+        max-height: 50vh;
+    }
+
+    /* -------------------------------------------------------
+       FullCalendar (dashboard.html): Toolbar bricht auf
+       schmalen Screens sauber um statt den Titel zu quetschen
+       ------------------------------------------------------- */
+    .fc .fc-toolbar.fc-header-toolbar {
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-bottom: 0.75rem;
+    }
+
+    .fc .fc-toolbar-title {
+        font-size: 1.05rem;
+        line-height: 1.3;
+    }
+
+    .fc .fc-button {
+        padding: 0.35rem 0.6rem;
+        font-size: 0.85rem;
+    }
+
+    /* -------------------------------------------------------
+       Horizontal scrollbare Tab-Leisten
+       ------------------------------------------------------- */
+    .tab-scroll {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+    }
+
+    .tab-scroll::-webkit-scrollbar {
+        display: none;
+    }
+
+    .tab-scroll>* {
+        white-space: nowrap;
+    }
+}

@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lagerbestand - VMS</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/static/mobile.css">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <script>
         tailwind.config = {
@@ -53,11 +54,11 @@
         {% include '_sidebar.html' %}
 
         <!-- Main Content -->
-        <div class="flex flex-col flex-1 w-full">
+        <div class="flex flex-col flex-1 w-full min-w-0">
             {% include '_navbar.html' %}
 
             <main class="h-full overflow-y-auto">
-                <div class="container px-6 mx-auto grid">
+                <div class="container px-4 sm:px-6 mx-auto grid">
                     <h2 class="my-6 text-2xl font-semibold text-gray-700 dark:text-gray-200">
                         Lagerbestand
                     </h2>
@@ -66,8 +67,8 @@
                     <div id="flashMessages"></div>
 
                     <!-- Tabs -->
-                    <div class="mb-4 border-b border-gray-200 dark:border-gray-700">
-                        <ul class="flex flex-wrap -mb-px text-sm font-medium text-center" id="inventoryTabs"
+                    <div class="mb-4 border-b border-gray-200 dark:border-gray-700 tab-scroll">
+                        <ul class="flex -mb-px text-sm font-medium text-center" id="inventoryTabs"
                             role="tablist">
                             <li class="mr-2" role="presentation">
                                 <button
@@ -95,14 +96,14 @@
                         <div class="p-4" id="equipment" role="tabpanel" aria-labelledby="equipment-tab">
                             <div class="flex justify-end mb-4">
                                 <button onclick="openEquipmentModal()"
-                                    class="px-4 py-2 text-sm font-medium leading-5 text-white transition-colors duration-150 bg-purple-600 border border-transparent rounded-lg active:bg-purple-600 hover:bg-purple-700 focus:outline-none focus:shadow-outline-purple">
+                                    class="inline-flex items-center justify-center w-full lg:w-auto px-4 py-2 text-sm font-medium leading-5 text-white transition-colors duration-150 bg-purple-600 border border-transparent rounded-lg active:bg-purple-600 hover:bg-purple-700 focus:outline-none focus:shadow-outline-purple">
                                     + Equipment hinzufügen
                                 </button>
                             </div>
 
                             <div class="w-full overflow-hidden rounded-lg shadow-xs">
                                 <div class="w-full overflow-x-auto">
-                                    <table class="w-full whitespace-no-wrap table-fixed">
+                                    <table class="w-full whitespace-no-wrap responsive-table">
                                         <thead class="sticky top-0 z-10">
                                             <tr
                                                 class="text-xs font-semibold tracking-wide text-left text-gray-500 uppercase border-b dark:border-gray-700 bg-gray-50 dark:text-gray-400 dark:bg-gray-800">
@@ -114,7 +115,7 @@
                                         <tbody id="equipmentTableBody"
                                             class="bg-white divide-y dark:divide-gray-700 dark:bg-gray-800">
                                             <!-- Skeleton Loader -->
-                                            <tr class="animate-pulse">
+                                            <tr class="animate-pulse is-placeholder">
                                                 <td class="px-4 py-3">
                                                     <div class="h-4 bg-gray-200 rounded dark:bg-gray-700 w-3/4"></div>
                                                 </td>
@@ -125,7 +126,7 @@
                                                     <div class="h-8 bg-gray-200 rounded dark:bg-gray-700 w-24"></div>
                                                 </td>
                                             </tr>
-                                            <tr class="animate-pulse">
+                                            <tr class="animate-pulse is-placeholder">
                                                 <td class="px-4 py-3">
                                                     <div class="h-4 bg-gray-200 rounded dark:bg-gray-700 w-3/4"></div>
                                                 </td>
@@ -136,7 +137,7 @@
                                                     <div class="h-8 bg-gray-200 rounded dark:bg-gray-700 w-24"></div>
                                                 </td>
                                             </tr>
-                                            <tr class="animate-pulse">
+                                            <tr class="animate-pulse is-placeholder">
                                                 <td class="px-4 py-3">
                                                     <div class="h-4 bg-gray-200 rounded dark:bg-gray-700 w-3/4"></div>
                                                 </td>
@@ -158,14 +159,14 @@
                         <div class="hidden p-4" id="bundles" role="tabpanel" aria-labelledby="bundles-tab">
                             <div class="flex justify-end mb-4">
                                 <button onclick="openBundleModal()"
-                                    class="px-4 py-2 text-sm font-medium leading-5 text-white transition-colors duration-150 bg-purple-600 border border-transparent rounded-lg active:bg-purple-600 hover:bg-purple-700 focus:outline-none focus:shadow-outline-purple">
+                                    class="inline-flex items-center justify-center w-full lg:w-auto px-4 py-2 text-sm font-medium leading-5 text-white transition-colors duration-150 bg-purple-600 border border-transparent rounded-lg active:bg-purple-600 hover:bg-purple-700 focus:outline-none focus:shadow-outline-purple">
                                     + Bundle hinzufügen
                                 </button>
                             </div>
 
                             <div class="w-full overflow-hidden rounded-lg shadow-xs">
                                 <div class="w-full overflow-x-auto">
-                                    <table class="w-full whitespace-no-wrap table-fixed">
+                                    <table class="w-full whitespace-no-wrap responsive-table">
                                         <thead class="sticky top-0 z-10">
                                             <tr
                                                 class="text-xs font-semibold tracking-wide text-left text-gray-500 uppercase border-b dark:border-gray-700 bg-gray-50 dark:text-gray-400 dark:bg-gray-800">
@@ -177,7 +178,7 @@
                                         <tbody id="bundlesTableBody"
                                             class="bg-white divide-y dark:divide-gray-700 dark:bg-gray-800">
                                             <!-- Skeleton Loader -->
-                                            <tr class="animate-pulse">
+                                            <tr class="animate-pulse is-placeholder">
                                                 <td class="px-4 py-3">
                                                     <div class="h-4 bg-gray-200 rounded dark:bg-gray-700 w-3/4"></div>
                                                 </td>
@@ -188,7 +189,7 @@
                                                     <div class="h-8 bg-gray-200 rounded dark:bg-gray-700 w-24"></div>
                                                 </td>
                                             </tr>
-                                            <tr class="animate-pulse">
+                                            <tr class="animate-pulse is-placeholder">
                                                 <td class="px-4 py-3">
                                                     <div class="h-4 bg-gray-200 rounded dark:bg-gray-700 w-3/4"></div>
                                                 </td>
@@ -209,14 +210,14 @@
                         <div class="hidden p-4" id="consumables" role="tabpanel" aria-labelledby="consumables-tab">
                             <div class="flex justify-end mb-4">
                                 <button onclick="openConsumableModal()"
-                                    class="px-4 py-2 text-sm font-medium leading-5 text-white transition-colors duration-150 bg-purple-600 border border-transparent rounded-lg active:bg-purple-600 hover:bg-purple-700 focus:outline-none focus:shadow-outline-purple">
+                                    class="inline-flex items-center justify-center w-full lg:w-auto px-4 py-2 text-sm font-medium leading-5 text-white transition-colors duration-150 bg-purple-600 border border-transparent rounded-lg active:bg-purple-600 hover:bg-purple-700 focus:outline-none focus:shadow-outline-purple">
                                     + Verbrauchsmaterial hinzufügen
                                 </button>
                             </div>
 
                             <div class="w-full overflow-hidden rounded-lg shadow-xs">
                                 <div class="w-full overflow-x-auto">
-                                    <table class="w-full whitespace-no-wrap table-fixed">
+                                    <table class="w-full whitespace-no-wrap responsive-table">
                                         <thead class="sticky top-0 z-10">
                                             <tr
                                                 class="text-xs font-semibold tracking-wide text-left text-gray-500 uppercase border-b dark:border-gray-700 bg-gray-50 dark:text-gray-400 dark:bg-gray-800">
@@ -229,7 +230,7 @@
                                         <tbody id="consumablesTableBody"
                                             class="bg-white divide-y dark:divide-gray-700 dark:bg-gray-800">
                                             <!-- Skeleton Loader -->
-                                            <tr class="animate-pulse">
+                                            <tr class="animate-pulse is-placeholder">
                                                 <td class="px-4 py-3">
                                                     <div class="h-4 bg-gray-200 rounded dark:bg-gray-700 w-3/4"></div>
                                                 </td>
@@ -243,7 +244,7 @@
                                                     <div class="h-8 bg-gray-200 rounded dark:bg-gray-700 w-24"></div>
                                                 </td>
                                             </tr>
-                                            <tr class="animate-pulse">
+                                            <tr class="animate-pulse is-placeholder">
                                                 <td class="px-4 py-3">
                                                     <div class="h-4 bg-gray-200 rounded dark:bg-gray-700 w-3/4"></div>
                                                 </td>
@@ -271,9 +272,9 @@
     <!-- Equipment Modal -->
     <div id="equipmentModal" class="fixed inset-0 z-50 hidden">
         <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" onclick="closeEquipmentModal()"></div>
-        <div class="relative flex items-center justify-center min-h-screen p-4 pointer-events-none">
+        <div class="relative flex items-center justify-center min-h-screen p-3 sm:p-4 pointer-events-none">
             <div
-                class="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-lg w-full p-6 border border-gray-200 dark:border-gray-700 pointer-events-auto">
+                class="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-4 sm:p-6 border border-gray-200 dark:border-gray-700 pointer-events-auto">
                 <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4" id="equipmentModalTitle">
                     Neues Equipment</h3>
                 <div class="space-y-4">
@@ -291,7 +292,7 @@
                         <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Text, der im PDF erscheint.</p>
                     </div>
                 </div>
-                <div class="flex justify-end space-x-3 mt-6">
+                <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 sm:gap-3 mt-6">
                     <button type="button" onclick="closeEquipmentModal()"
                         class="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-sm font-medium rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">Abbrechen</button>
                     <button type="button" onclick="saveEquipment()"
@@ -305,9 +306,9 @@
     <!-- Bundle Modal -->
     <div id="bundleModal" class="fixed inset-0 z-50 hidden">
         <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" onclick="closeBundleModal()"></div>
-        <div class="relative flex items-center justify-center min-h-screen p-4 pointer-events-none">
+        <div class="relative flex items-center justify-center min-h-screen p-3 sm:p-4 pointer-events-none">
             <div
-                class="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 border border-gray-200 dark:border-gray-700 pointer-events-auto">
+                class="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-4 sm:p-6 border border-gray-200 dark:border-gray-700 pointer-events-auto">
                 <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4" id="bundleModalTitle">Neues
                     Bundle</h3>
                 <div class="space-y-4">
@@ -336,7 +337,7 @@
                     <div>
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Inhalt</label>
                         <div class="border border-gray-200 dark:border-gray-600 rounded-lg overflow-hidden">
-                            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700 table-fixed">
+                            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700 responsive-table">
                                 <thead class="bg-gray-50 dark:bg-gray-700 sticky top-0 z-10">
                                     <tr>
                                         <th
@@ -357,7 +358,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="flex justify-end space-x-3 mt-6">
+                <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 sm:gap-3 mt-6">
                     <button type="button" onclick="closeBundleModal()"
                         class="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-sm font-medium rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">Abbrechen</button>
                     <button type="button" onclick="saveBundle()"
@@ -372,9 +373,9 @@
     <!-- Consumable Modal -->
     <div id="consumableModal" class="fixed inset-0 z-50 hidden">
         <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" onclick="closeConsumableModal()"></div>
-        <div class="relative flex items-center justify-center min-h-screen p-4 pointer-events-none">
+        <div class="relative flex items-center justify-center min-h-screen p-3 sm:p-4 pointer-events-none">
             <div
-                class="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-lg w-full p-6 border border-gray-200 dark:border-gray-700 pointer-events-auto">
+                class="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-4 sm:p-6 border border-gray-200 dark:border-gray-700 pointer-events-auto">
                 <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4" id="consumableModalTitle">
                     Neues Verbrauchsmaterial</h3>
                 <div class="space-y-4">
@@ -390,7 +391,7 @@
                         <textarea id="consumableDescription" rows="2"
                             class="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 resize-y"></textarea>
                     </div>
-                    <div class="grid grid-cols-2 gap-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Preis (€)</label>
                             <input type="number" id="consumablePrice" step="0.01" min="0" placeholder="0,00"
@@ -411,7 +412,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="flex justify-end space-x-3 mt-6">
+                <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 sm:gap-3 mt-6">
                     <button type="button" onclick="closeConsumableModal()"
                         class="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-sm font-medium rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">Abbrechen</button>
                     <button type="button" onclick="saveConsumable()"
@@ -488,7 +489,7 @@
 
         function showTableError(tbodyId) {
             const tbody = document.getElementById(tbodyId);
-            if (tbody) tbody.innerHTML = `<tr><td colspan="3" class="px-4 py-3 text-center text-red-500">Fehler beim Laden der Daten. Bitte Seite neu laden.</td></tr>`;
+            if (tbody) tbody.innerHTML = `<tr class="is-placeholder"><td colspan="3" class="px-4 py-3 text-center text-red-500">Fehler beim Laden der Daten. Bitte Seite neu laden.</td></tr>`;
         }
 
         function renderEquipmentTable(items) {
@@ -502,14 +503,14 @@
             if (!tbody) return;
 
             if (items.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="3" class="px-4 py-3 text-center text-gray-500 dark:text-gray-400">${emptyMsg}</td></tr>`;
+                tbody.innerHTML = `<tr class="is-placeholder"><td colspan="3" class="px-4 py-3 text-center text-gray-500 dark:text-gray-400">${emptyMsg}</td></tr>`;
                 return;
             }
             tbody.innerHTML = items.map(item => `
                 <tr class="text-gray-700 dark:text-gray-400">
-                    <td class="px-4 py-3 text-sm font-semibold">${item.name}</td>
-                    <td class="px-4 py-3 text-sm truncate max-w-xs" title="${item.description || ''}">${item.description ? item.description.replace(/\n/g, '<br>') : ''}</td>
-                    <td class="px-4 py-3 text-sm">
+                    <td class="px-4 py-3 text-sm font-semibold cell-title">${item.name}</td>
+                    <td class="px-4 py-3 text-sm truncate max-w-xs" data-label="Vertragstext" title="${item.description || ''}">${item.description ? item.description.replace(/\n/g, '<br>') : ''}</td>
+                    <td class="px-4 py-3 text-sm cell-actions">
                         <button onclick="editItem(${item.id})" class="px-2 py-1 font-semibold leading-tight text-gray-700 bg-gray-100 rounded-full dark:text-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600">Edit</button>
                         <button onclick="deleteItem(${item.id})" class="ml-2 px-2 py-1 font-semibold leading-tight text-red-700 bg-red-100 rounded-full dark:text-red-100 dark:bg-red-700 hover:bg-red-200 dark:hover:bg-red-600">Delete</button>
                     </td>
@@ -524,7 +525,7 @@
             if (!tbody) return;
 
             if (consumables.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="4" class="px-4 py-3 text-center text-gray-500 dark:text-gray-400">Kein Verbrauchsmaterial vorhanden</td></tr>`;
+                tbody.innerHTML = `<tr class="is-placeholder"><td colspan="4" class="px-4 py-3 text-center text-gray-500 dark:text-gray-400">Kein Verbrauchsmaterial vorhanden</td></tr>`;
                 return;
             }
             tbody.innerHTML = consumables.map(item => {
@@ -533,10 +534,10 @@
                 const priceUnit = priceStr && unitStr ? `${priceStr}/${unitStr}` : priceStr || unitStr || '';
                 return `
                 <tr class="text-gray-700 dark:text-gray-400">
-                    <td class="px-4 py-3 text-sm font-semibold">${item.name}</td>
-                    <td class="px-4 py-3 text-sm truncate max-w-xs" title="${item.description || ''}">${item.description ? item.description.replace(/\n/g, '<br>') : ''}</td>
-                    <td class="px-4 py-3 text-sm">${priceUnit}</td>
-                    <td class="px-4 py-3 text-sm">
+                    <td class="px-4 py-3 text-sm font-semibold cell-title">${item.name}</td>
+                    <td class="px-4 py-3 text-sm truncate max-w-xs" data-label="Beschreibung" title="${item.description || ''}">${item.description ? item.description.replace(/\n/g, '<br>') : ''}</td>
+                    <td class="px-4 py-3 text-sm" data-label="Preis/Einheit">${priceUnit}</td>
+                    <td class="px-4 py-3 text-sm cell-actions">
                         <button onclick="editItem(${item.id})" class="px-2 py-1 font-semibold leading-tight text-gray-700 bg-gray-100 rounded-full dark:text-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600">Edit</button>
                         <button onclick="deleteItem(${item.id})" class="ml-2 px-2 py-1 font-semibold leading-tight text-red-700 bg-red-100 rounded-full dark:text-red-100 dark:bg-red-700 hover:bg-red-200 dark:hover:bg-red-600">Delete</button>
                     </td>
@@ -547,16 +548,16 @@
         function renderBundlesTable(bundles) {
             const tbody = document.getElementById('bundlesTableBody');
             if (bundles.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="3" class="px-4 py-3 text-center text-gray-500 dark:text-gray-400">Keine Bundles vorhanden</td></tr>`;
+                tbody.innerHTML = `<tr class="is-placeholder"><td colspan="3" class="px-4 py-3 text-center text-gray-500 dark:text-gray-400">Keine Bundles vorhanden</td></tr>`;
                 return;
             }
             tbody.innerHTML = bundles.map(bundle => {
                 const contents = bundle.items.map(i => `${i.count}x ${i.item_name}`).join(', ');
                 return `
                 <tr class="text-gray-700 dark:text-gray-400">
-                    <td class="px-4 py-3 text-sm font-semibold">${bundle.name}</td>
-                    <td class="px-4 py-3 text-sm">${contents}</td>
-                    <td class="px-4 py-3 text-sm">
+                    <td class="px-4 py-3 text-sm font-semibold cell-title">${bundle.name}</td>
+                    <td class="px-4 py-3 text-sm" data-label="Inhalt">${contents}</td>
+                    <td class="px-4 py-3 text-sm cell-actions">
                         <button onclick='editBundle(${JSON.stringify(bundle).replace(/'/g, "&#39;")})' class="px-2 py-1 font-semibold leading-tight text-gray-700 bg-gray-100 rounded-full dark:text-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600">Edit</button>
                         <button onclick="deleteBundle(${bundle.id})" class="ml-2 px-2 py-1 font-semibold leading-tight text-red-700 bg-red-100 rounded-full dark:text-red-100 dark:bg-red-700 hover:bg-red-200 dark:hover:bg-red-600">Delete</button>
                     </td>
@@ -652,16 +653,16 @@
         function renderBundleItems() {
             const tbody = document.getElementById('bundleItemsTableBody');
             if (currentBundleItems.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="3" class="px-4 py-3 text-center text-sm text-gray-500 dark:text-gray-400">Noch keine Gegenstände hinzugefügt</td></tr>`;
+                tbody.innerHTML = `<tr class="is-placeholder"><td colspan="3" class="px-4 py-3 text-center text-sm text-gray-500 dark:text-gray-400">Noch keine Gegenstände hinzugefügt</td></tr>`;
                 return;
             }
             tbody.innerHTML = currentBundleItems.map((item, index) => `
                 <tr>
-                    <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">${item.name}</td>
-                    <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                    <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100" data-label="Gegenstand">${item.name}</td>
+                    <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400" data-label="Anzahl">
                         <input type="number" min="1" value="${item.count}" onchange="updateBundleItemCount(${index}, this.value)" class="w-16 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 dark:text-white text-sm">
                     </td>
-                    <td class="px-4 py-3 whitespace-nowrap text-right text-sm font-medium">
+                    <td class="px-4 py-3 whitespace-nowrap text-right text-sm font-medium cell-actions">
                         <button onclick="removeBundleItem(${index})" class="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300">Entfernen</button>
                     </td>
                 </tr>

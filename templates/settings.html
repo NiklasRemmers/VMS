@@ -7,6 +7,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Einstellungen - Anlagenreferat</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/static/mobile.css">
     <script>
         tailwind.config = {
             darkMode: 'class',
@@ -43,13 +44,13 @@
         {% include '_sidebar.html' %}
 
         <!-- Main Content -->
-        <div class="flex flex-col flex-1 w-full">
+        <div class="flex flex-col flex-1 w-full min-w-0">
 
             <!-- Header -->
             {% include '_navbar.html' %}
 
             <main class="h-full overflow-y-auto">
-                <div class="container px-6 mx-auto py-8 max-w-2xl">
+                <div class="container px-4 sm:px-6 mx-auto py-8 max-w-2xl">
 
                     <!-- Flash Messages -->
                     {% with messages = get_flashed_messages(with_categories=true) %}
@@ -153,7 +154,7 @@
                                     <input type="email" name="email_address" value="{{ email_settings.address or '' }}"
                                         class="w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded px-3 py-2 text-sm text-gray-800 dark:text-gray-200 focus:outline-none focus:border-primary-500">
                                 </div>
-                                <div class="grid grid-cols-2 gap-4">
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div>
                                         <label class="block text-xs text-gray-500 mb-1">IMAP Server</label>
                                         <input type="text" name="imap_server"
@@ -173,7 +174,7 @@
                                             class="w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded px-3 py-2 text-sm text-gray-800 dark:text-gray-200 focus:outline-none focus:border-primary-500">
                                     </div>
                                 </div>
-                                <div class="grid grid-cols-2 gap-4">
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div>
                                         <label class="block text-xs text-gray-500 mb-1">SMTP Server</label>
                                         <input type="text" name="smtp_server"

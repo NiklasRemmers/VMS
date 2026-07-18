@@ -108,15 +108,39 @@
         const mobileMenuBtn = document.getElementById('mobileMenuBtn');
         const mobileSidebar = document.getElementById('mobileSidebar');
         const mobileOverlay = document.getElementById('mobileOverlay');
+        const mobileSidebarClose = document.getElementById('mobileSidebarClose');
 
-        if (mobileMenuBtn && mobileSidebar && mobileOverlay) {
-            mobileMenuBtn.addEventListener('click', function () {
-                mobileSidebar.classList.remove('hidden');
-            });
+        if (!mobileMenuBtn || !mobileSidebar || !mobileOverlay) return;
 
-            mobileOverlay.addEventListener('click', function () {
-                mobileSidebar.classList.add('hidden');
+        function openSidebar() {
+            mobileSidebar.classList.remove('hidden');
+            // Erst im naechsten Frame die Klasse setzen, damit der
+            // Browser den Ausgangszustand rendert und die Transition greift.
+            requestAnimationFrame(function () {
+                mobileSidebar.classList.add('is-open');
             });
+            document.body.style.overflow = 'hidden';
         }
+
+        function closeSidebar() {
+            mobileSidebar.classList.remove('is-open');
+            document.body.style.overflow = '';
+            // Erst nach der Slide-Out-Animation ausblenden
+            setTimeout(function () {
+                if (!mobileSidebar.classList.contains('is-open')) {
+                    mobileSidebar.classList.add('hidden');
+                }
+            }, 250);
+        }
+
+        mobileMenuBtn.addEventListener('click', openSidebar);
+        mobileOverlay.addEventListener('click', closeSidebar);
+        if (mobileSidebarClose) mobileSidebarClose.addEventListener('click', closeSidebar);
+
+        document.addEventListener('keydown', function (event) {
+            if (event.key === 'Escape' && mobileSidebar.classList.contains('is-open')) {
+                closeSidebar();
+            }
+        });
     });
 </script>
