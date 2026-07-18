@@ -127,7 +127,8 @@ class User(Base):
 
     # Relationships
     settings = relationship('UserSettings', back_populates='user', uselist=False, cascade='all, delete-orphan')
-    candidates = relationship('EmailCandidate', back_populates='user', cascade='all, delete-orphan')
+    candidates = relationship('EmailCandidate', back_populates='user', cascade='all, delete-orphan',
+                              foreign_keys='EmailCandidate.user_id')
     sync_state = relationship('EmailSyncState', back_populates='user', uselist=False, cascade='all, delete-orphan')
 
     def to_dict(self):
@@ -238,8 +239,12 @@ class EmailCandidate(Base):
     laufende_nummer = Column(String(20), nullable=True)
     nummer_typ = Column(String(30), nullable=True)  # 'rechnung' or 'umbuchung'
 
+    # The VMS user in charge of this loan (not the importing user).
+    responsible_user_id = Column(Integer, ForeignKey('users.id', ondelete='SET NULL'), nullable=True)
+
     # Relationships
-    user = relationship('User', back_populates='candidates')
+    user = relationship('User', back_populates='candidates', foreign_keys=[user_id])
+    responsible = relationship('User', foreign_keys=[responsible_user_id])
 
     __table_args__ = (
         Index('idx_candidates_user_id', 'user_id'),
@@ -248,7 +253,14 @@ class EmailCandidate(Base):
     )
 
     def to_dict(self):
-        return {col.name: getattr(self, col.name) for col in self.__table__.columns}
+        d = {col.name: getattr(self, col.name) for col in self.__table__.columns}
+        # Resolve the responsible user to a display string for the frontend,
+        # the same way DocumentTemplate exposes its uploader.
+        d['responsible_name'] = (
+            (self.responsible.display_name or self.responsible.username)
+            if self.responsible else None
+        )
+        return d
 
 
 class EmailSyncState(Base):

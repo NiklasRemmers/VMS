@@ -17,6 +17,9 @@
                         class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                         Tags</th>
                     <th
+                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                        Verantwortlich</th>
+                    <th
                         class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                         Aktionen</th>
                 </tr>
@@ -61,6 +64,9 @@
                             {% endif %}
                         </div>
                     </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400" data-label="Verantwortlich">
+                        {{ c.responsible_name or '—' }}
+                    </td>
                     <td class="px-6 py-4 whitespace-nowrap text-right text-sm space-x-2 cell-actions">
                         <button onclick="editCandidate({{ c.id }})"
                             class="text-primary-600 hover:text-primary-800 dark:text-primary-400">
@@ -82,13 +88,13 @@
                 </tr>
                 {% else %}
                 <tr class="is-placeholder">
-                    <td colspan="4" class="px-6 py-8 text-center text-gray-500 dark:text-gray-400">
+                    <td colspan="5" class="px-6 py-8 text-center text-gray-500 dark:text-gray-400">
                         Keine offenen Anfragen. Klicke "E-Mails synchronisieren" um neue Anfragen zu
                         importieren.
                     </td>
                 </tr>
                 {% endfor %}
-                <tr id="openSentinel" class="h-1 row-sentinel"><td colspan="4"></td></tr>
+                <tr id="openSentinel" class="h-1 row-sentinel"><td colspan="5"></td></tr>
             </tbody>
         </table>
       </div>
@@ -114,6 +120,9 @@
                     <th
                         class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                         Tags</th>
+                    <th
+                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                        Verantwortlich</th>
                     <th
                         class="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                         Vertrag</th>
@@ -151,6 +160,9 @@
                             <span class="text-xs text-gray-400">Keine Tags</span>
                             {% endif %}
                         </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400" data-label="Verantwortlich">
+                        {{ c.responsible_name or '—' }}
                     </td>
                     <td class="px-6 py-4 text-center" data-label="Vertrag">
                         {% if c.contract_created %}
@@ -193,7 +205,7 @@
                     </td>
                 </tr>
                 {% endfor %}
-                <tr id="processedSentinel" class="h-1 row-sentinel"><td colspan="5"></td></tr>
+                <tr id="processedSentinel" class="h-1 row-sentinel"><td colspan="6"></td></tr>
             </tbody>
         </table>
       </div>

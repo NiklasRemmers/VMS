@@ -117,6 +117,9 @@
                                                 class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                                                 Tags</th>
                                             <th
+                                                class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                                Verantwortlich</th>
+                                            <th
                                                 class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                                                 Aktionen</th>
                                         </tr>
@@ -161,6 +164,10 @@
                                                     {% endif %}
                                                 </div>
                                             </td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400"
+                                                data-label="Verantwortlich">
+                                                {{ c.responsible_name or '—' }}
+                                            </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-right text-sm space-x-2 cell-actions">
                                                 <button onclick="editCandidate({{ c.id }})"
                                                     class="text-primary-600 hover:text-primary-800 dark:text-primary-400">
@@ -186,7 +193,7 @@
                                         </tr>
                                         {% else %}
                                         <tr class="is-placeholder">
-                                            <td colspan="4"
+                                            <td colspan="5"
                                                 class="px-6 py-8 text-center text-gray-500 dark:text-gray-400">
                                                 Keine offenen Anfragen. Klicke "E-Mails synchronisieren" um neue
                                                 Anfragen zu
@@ -194,7 +201,7 @@
                                             </td>
                                         </tr>
                                         {% endfor %}
-                                        <tr id="openSentinel" class="h-1 row-sentinel"><td colspan="4"></td></tr>
+                                        <tr id="openSentinel" class="h-1 row-sentinel"><td colspan="5"></td></tr>
                                     </tbody>
                                 </table>
                               </div>
@@ -221,6 +228,9 @@
                                             <th
                                                 class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                                                 Tags</th>
+                                            <th
+                                                class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                                Verantwortlich</th>
                                             <th
                                                 class="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                                                 Vertrag</th>
@@ -260,6 +270,10 @@
                                                     <span class="text-xs text-gray-400">Keine Tags</span>
                                                     {% endif %}
                                                 </div>
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400"
+                                                data-label="Verantwortlich">
+                                                {{ c.responsible_name or '—' }}
                                             </td>
                                             <td class="px-6 py-4 text-center" data-label="Vertrag">
                                                 {% if c.contract_created %}
@@ -313,7 +327,7 @@
                                             </td>
                                         </tr>
                                         {% endfor %}
-                                        <tr id="processedSentinel" class="h-1 row-sentinel"><td colspan="5"></td></tr>
+                                        <tr id="processedSentinel" class="h-1 row-sentinel"><td colspan="6"></td></tr>
                                     </tbody>
                                 </table>
                               </div>
@@ -335,11 +349,12 @@
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Name / Veranstaltung</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Datum</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Tags</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Verantwortlich</th>
                                         <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Aktionen</th>
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y divide-gray-200 dark:divide-gray-700" id="returnsTbody">
-                                    <tr class="is-placeholder"><td colspan="4" class="px-6 py-4 text-center text-sm text-gray-500">Lade Rückgaben...</td></tr>
+                                    <tr class="is-placeholder"><td colspan="5" class="px-6 py-4 text-center text-sm text-gray-500">Lade Rückgaben...</td></tr>
                                 </tbody>
                             </table>
                           </div>
@@ -405,6 +420,9 @@
                                                     Tags</th>
                                                 <th
                                                     class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                                    Verantwortlich</th>
+                                                <th
+                                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                                                     Status</th>
                                             </tr>
                                         </thead>
@@ -412,7 +430,7 @@
                                             class="divide-y divide-gray-200 dark:divide-gray-700">
                                             <!-- Rows loaded via JS -->
                                             <tr class="is-placeholder">
-                                                <td colspan="4" class="px-6 py-4 text-center text-sm text-gray-500">
+                                                <td colspan="5" class="px-6 py-4 text-center text-sm text-gray-500">
                                                     Lade Daten...</td>
                                             </tr>
                                         </tbody>
@@ -469,7 +487,7 @@
                             const tag = document.getElementById('archiveTag').value;
 
                             const tbody = document.getElementById('archiveBody');
-                            tbody.innerHTML = '<tr class="is-placeholder"><td colspan="4" class="px-6 py-4 text-center text-sm text-gray-500">Lade Daten...</td></tr>';
+                            tbody.innerHTML = '<tr class="is-placeholder"><td colspan="5" class="px-6 py-4 text-center text-sm text-gray-500">Lade Daten...</td></tr>';
 
                             // Build URL
                             let url = `/api/emails/archive?page=${page}&limit=${archiveLimit}`;
@@ -491,7 +509,7 @@
 
                             } catch (e) {
                                 console.error(e);
-                                tbody.innerHTML = '<tr class="is-placeholder"><td colspan="4" class="px-6 py-4 text-center text-red-500">Fehler beim Laden.</td></tr>';
+                                tbody.innerHTML = '<tr class="is-placeholder"><td colspan="5" class="px-6 py-4 text-center text-red-500">Fehler beim Laden.</td></tr>';
                             }
                         }
 
@@ -505,7 +523,7 @@
                         function renderArchiveTable(items) {
                             const tbody = document.getElementById('archiveBody');
                             if (!items || items.length === 0) {
-                                tbody.innerHTML = '<tr class="is-placeholder"><td colspan="4" class="px-6 py-8 text-center text-sm text-gray-500">Keine vergangenen Anfragen gefunden.</td></tr>';
+                                tbody.innerHTML = '<tr class="is-placeholder"><td colspan="5" class="px-6 py-8 text-center text-sm text-gray-500">Keine vergangenen Anfragen gefunden.</td></tr>';
                                 return;
                             }
 
@@ -525,6 +543,9 @@
                             ).join('')}
                             ${(!c.tags || c.tags.length === 0) ? '<span class="text-xs text-gray-400">-</span>' : ''}
                         </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400" data-label="Verantwortlich">
+                        ${c.responsible_name || '—'}
                     </td>
                     <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400" data-label="Status">
                          ${c.status === 'returned' ?
@@ -700,6 +721,17 @@
                             (optional)</label>
                         <input type="date" id="endDate"
                             class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm">
+                    </div>
+                    <div>
+                        <label
+                            class="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-1">Verantwortlich</label>
+                        <select id="editResponsible" data-searchable
+                            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm">
+                            <option value="">— niemand —</option>
+                            {% for u in vms_users %}
+                            <option value="{{ u.id }}">{{ u.display_name or u.username }}</option>
+                            {% endfor %}
+                        </select>
                     </div>
                 </div>
 
@@ -1098,6 +1130,7 @@
             document.getElementById('rawContent').value = '';
             document.getElementById('startDate').value = new Date().toISOString().split('T')[0];
             document.getElementById('endDate').value = '';
+            setResponsibleValue('');
 
             // Reset tags
             selectedTags = [];
@@ -1110,6 +1143,18 @@
             document.getElementById('unmarkDoneBtn').classList.add('hidden');
 
             document.getElementById('editModal').classList.remove('hidden');
+        }
+
+        // The "Verantwortlich" select is enhanced by SearchableSelect, which only
+        // refreshes its display on a change event — setting .value alone is invisible.
+        function setResponsibleValue(value) {
+            const select = document.getElementById('editResponsible');
+            select.value = value;
+            select.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+
+        function getResponsibleValue() {
+            return document.getElementById('editResponsible').value || null;
         }
 
         async function editCandidate(id) {
@@ -1146,6 +1191,7 @@
                 const isoDate = convertToIsoDate(candidate.datum);
                 document.getElementById('startDate').value = isoDate;
                 document.getElementById('endDate').value = candidate.end_date || '';
+                setResponsibleValue(candidate.responsible_user_id || '');
 
                 // Update Button Text
                 const saveBtn = document.getElementById('saveTaskBtn');
@@ -1279,7 +1325,8 @@
                         veranstaltungsort,
                         email_address,
                         personenzahl,
-                        anschrift
+                        anschrift,
+                        responsible_user_id: getResponsibleValue()
                     })
                 });
 
@@ -1328,7 +1375,8 @@
                         veranstaltungsort,
                         email_address,
                         personenzahl,
-                        anschrift
+                        anschrift,
+                        responsible_user_id: getResponsibleValue()
                     })
                 });
 
@@ -1381,7 +1429,8 @@
                         veranstaltungsort,
                         email_address,
                         personenzahl,
-                        anschrift
+                        anschrift,
+                        responsible_user_id: getResponsibleValue()
                     })
                 });
 
@@ -1530,6 +1579,7 @@
                 <td class="px-6 py-4" data-label="Tags"><div class="flex flex-wrap gap-1">${
                     (c.tags && c.tags.length > 0) ? c.tags.map(t => '<span class="inline-flex px-2 py-0.5 text-xs rounded bg-primary-100 dark:bg-primary-900/30 text-primary-800 dark:text-primary-400">' + t + '</span>').join('') : '<span class="text-xs text-gray-400">Keine Tags</span>'
                 }</div></td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400" data-label="Verantwortlich">${c.responsible_name || '—'}</td>
                 <td class="px-6 py-4 whitespace-nowrap text-right text-sm space-x-2 cell-actions">
                     <button onclick="editCandidate(${c.id})" class="text-primary-600 hover:text-primary-800 dark:text-primary-400">
                         <svg class="w-5 h-5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
@@ -1552,6 +1602,7 @@
                     <td class="px-6 py-4" data-label="Tags"><div class="flex flex-wrap gap-1">${
                         (c.tags && c.tags.length > 0) ? c.tags.map(t => '<span class="inline-flex px-2 py-0.5 text-xs rounded bg-primary-100 dark:bg-primary-900/30 text-primary-800 dark:text-primary-400">' + t + '</span>').join('') : '<span class="text-xs text-gray-400">Keine Tags</span>'
                     }</div></td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400" data-label="Verantwortlich">${c.responsible_name || '—'}</td>
                     <td class="px-6 py-4 text-center" data-label="Vertrag">
                         ${c.contract_created
                             ? '<span class="text-green-600 dark:text-green-400"><svg class="w-6 h-6 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></span>'
@@ -1644,7 +1695,7 @@
 
         async function loadReturns() {
             const tbody = document.getElementById('returnsTbody');
-            tbody.innerHTML = '<tr class="is-placeholder"><td colspan="4" class="px-6 py-4 text-center text-sm text-gray-500">Lade Rückgaben...</td></tr>';
+            tbody.innerHTML = '<tr class="is-placeholder"><td colspan="5" class="px-6 py-4 text-center text-sm text-gray-500">Lade Rückgaben...</td></tr>';
             returnsOffset = 0;
             returnsHasMore = true;
             try {
@@ -1665,16 +1716,16 @@
                     const sentinel = document.createElement('tr');
                     sentinel.id = 'returnsSentinel';
                     sentinel.className = 'h-1 row-sentinel';
-                    sentinel.innerHTML = '<td colspan="4"></td>';
+                    sentinel.innerHTML = '<td colspan="5"></td>';
                     tbody.appendChild(sentinel);
                     setupReturnScroll();
                 } else {
-                    tbody.innerHTML = '<tr class="is-placeholder"><td colspan="4" class="px-6 py-8 text-center text-sm text-gray-500">Keine Rückgaben vorhanden.</td></tr>';
+                    tbody.innerHTML = '<tr class="is-placeholder"><td colspan="5" class="px-6 py-8 text-center text-sm text-gray-500">Keine Rückgaben vorhanden.</td></tr>';
                 }
 
             } catch (e) {
                 console.error(e);
-                tbody.innerHTML = '<tr class="is-placeholder"><td colspan="4" class="px-6 py-4 text-center text-red-500">Fehler beim Laden.</td></tr>';
+                tbody.innerHTML = '<tr class="is-placeholder"><td colspan="5" class="px-6 py-4 text-center text-red-500">Fehler beim Laden.</td></tr>';
             }
         }
 
@@ -1690,6 +1741,7 @@
                 <td class="px-6 py-4" data-label="Tags"><div class="flex flex-wrap gap-1">${
                     (c.tags && c.tags.length > 0) ? c.tags.map(t => '<span class="inline-flex px-2 py-0.5 text-xs rounded bg-primary-100 dark:bg-primary-900/30 text-primary-800 dark:text-primary-400">' + t + '</span>').join('') : '<span class="text-xs text-gray-400">-</span>'
                 }</div></td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400" data-label="Verantwortlich">${c.responsible_name || '—'}</td>
                 <td class="px-6 py-4 whitespace-nowrap text-right text-sm cell-actions">
                     <span class="text-primary-600 dark:text-primary-400 hover:underline">Rückgabe bearbeiten →</span>
                 </td>`;

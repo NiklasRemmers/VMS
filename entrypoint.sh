@@ -144,6 +144,22 @@ with engine.connect() as conn:
     print('✓ Return migrations complete')
 "
 
+# ─── 4d. Migrate: Responsible user column ───
+python -c "
+import os
+os.environ['KMS_MASTER_KEY_PATH'] = '$KMS_KEY'
+from database import get_engine
+from sqlalchemy import text
+engine = get_engine()
+with engine.connect() as conn:
+    result = conn.execute(text(\"SELECT column_name FROM information_schema.columns WHERE table_name='email_candidates' AND column_name='responsible_user_id'\"))
+    if result.fetchone() is None:
+        conn.execute(text('ALTER TABLE email_candidates ADD COLUMN responsible_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL'))
+        print('  + Added column: responsible_user_id')
+    conn.commit()
+    print('✓ Responsible migration complete')
+"
+
 echo ""
 echo "═══════════════════════════════════════════"
 echo "  Starting Gunicorn..."

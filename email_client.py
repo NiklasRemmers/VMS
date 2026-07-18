@@ -369,6 +369,7 @@ def create_manual_candidate(form_data: Dict, user_id: int) -> int:
             raw_content=form_data.get('raw_content'),
             tags=form_data.get('tags') or [],
             kanboard_task_id=form_data.get('kanboard_task_id'),
+            responsible_user_id=form_data.get('responsible_user_id'),
             status='processed',
             contract_created=False,
         )
@@ -465,7 +466,7 @@ def update_candidate(candidate_id, form_data: Dict, user_id: int = None):
         'veranstaltungsbereich', 'personenzahl', 'datum', 'material',
         'sonstiges', 'rahmenbedingungen', 'raw_content', 'contract_created',
         'kanboard_task_id', 'end_date', 'tags', 'status',
-        'return_note', 'returned_at'
+        'return_note', 'returned_at', 'responsible_user_id'
     ]
     
     with get_session() as s:

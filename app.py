@@ -505,13 +505,18 @@ def emails():
     except Exception as e:
         app.logger.warning('Failed to load materials for tag selection: %s', e)
         materials = {'materials': {}}
-    
-    return render_template('emails.html', 
-                           user=current_user, 
+
+    # Active VMS users for the "Verantwortlich" dropdown in the edit modal.
+    from auth import User as AuthUser
+    vms_users = [u for u in AuthUser.get_all() if u.get('is_active')]
+
+    return render_template('emails.html',
+                           user=current_user,
                            open_candidates=open_candidates,
                            processed_candidates=processed_candidates,
                            last_sync=last_sync.strftime('%d.%m.%Y %H:%M') if last_sync else None,
                            materials=materials,
+                           vms_users=vms_users,
                            tags_by_date=tags_by_date)
 
 
@@ -940,6 +945,10 @@ def update_email_candidate(candidate_id):
     
     form_data = {k: v for k, v in form_data.items() if v is not None}
 
+    # Applied after the None-filter so clearing the responsible user actually sticks.
+    if 'responsible_user_id' in data:
+        form_data['responsible_user_id'] = data['responsible_user_id'] or None
+
     if update_candidate(candidate_id, form_data, current_user.id):
         return jsonify({'success': True})
     return jsonify({'error': 'Kandidat nicht gefunden oder keine Änderungen'}), 404
@@ -1000,7 +1009,9 @@ def create_task_from_candidate(candidate_id):
             'anschrift': data.get('anschrift')
         }
         form_data = {k: v for k, v in form_data.items() if v is not None}
-        
+        if 'responsible_user_id' in data:
+            form_data['responsible_user_id'] = data['responsible_user_id'] or None
+
         update_candidate(candidate_id, form_data, current_user.id)
         mark_candidate_processed(candidate_id, current_user.id)
         
@@ -1051,6 +1062,7 @@ def create_manual_candidate_route():
             'personenzahl': data.get('personenzahl'),
             'anschrift': data.get('anschrift'),
             'kanboard_task_id': result.get('id'),
+            'responsible_user_id': data.get('responsible_user_id') or None,
         }
 
         candidate_id = create_manual_candidate(form_data, current_user.id)
