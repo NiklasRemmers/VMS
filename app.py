@@ -480,20 +480,31 @@ def emails():
     for c in open_candidates:
         c['has_conflict'] = c.get('datum') and date_counts.get(c['datum'], 0) > 1
     
-    # Calculate used tags per date (for smart tag filtering in editor)
-    # Include tags from ALL candidates (both open and processed)
-    tags_by_date = {}
+    # Tag-Belegung aller Verleihe (offen und bearbeitet) für die Ausgrau-Logik
+    # im Editor. Zeitraum in ISO, damit das Frontend Überschneidungen mit dem
+    # gerade bearbeiteten Zeitraum rechnen kann.
+    tag_usage = []
     for c in all_candidates:
-        datum = c.get('datum')
-        # Only use valid string dates
-        if datum and isinstance(datum, str) and c.get('tags'):
-            if datum not in tags_by_date:
-                tags_by_date[datum] = set()
-            tags_by_date[datum].update(c['tags'])
-    
-    # Convert sets to lists for JSON serialization
-    tags_by_date = {str(k): list(v) for k, v in tags_by_date.items()}
-    
+        start = c.get('parsed_date')
+        if not start or not c.get('tags'):
+            continue
+        end = start
+        if c.get('end_date'):
+            for fmt, raw in (('%Y-%m-%d', str(c['end_date'])[:10]), ('%d.%m.%Y', str(c['end_date']))):
+                try:
+                    end = datetime.strptime(raw, fmt).date()
+                    break
+                except ValueError:
+                    continue
+        if end < start:
+            end = start
+        tag_usage.append({
+            'id': c.get('id'),
+            'start': start.isoformat(),
+            'end': end.isoformat(),
+            'tags': list(c['tags']),
+        })
+
     # Load available materials for tag selection from DB
     try:
         from models import InventoryItem
@@ -517,7 +528,7 @@ def emails():
                            last_sync=last_sync.strftime('%d.%m.%Y %H:%M') if last_sync else None,
                            materials=materials,
                            vms_users=vms_users,
-                           tags_by_date=tags_by_date)
+                           tag_usage=tag_usage)
 
 
 @app.route('/api/emails/list-html', methods=['GET'])

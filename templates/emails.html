@@ -944,7 +944,7 @@
         let isNewCandidate = false;
         let selectedTags = [];
         const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
-        const tagsUsedByDate = {{ tags_by_date | tojson }};
+        const tagUsage = {{ tag_usage | tojson }};
 
         // Helper to convert a stored/displayed date to YYYY-MM-DD for <input type="date">.
         // Mirrors parse_flexible_date() in models.py: accepts DD.MM.YYYY, DD.MM.YY,
@@ -977,6 +977,12 @@
 
         // Enter im Tag-Dropdown fügt den Tag direkt hinzu
         document.addEventListener('DOMContentLoaded', function () {
+            // Zeitraum ändern verschiebt, welche Tags anderweitig belegt sind
+            ['startDate', 'endDate'].forEach(function (id) {
+                const el = document.getElementById(id);
+                if (el) el.addEventListener('change', updateTagDropdownOptions);
+            });
+
             const tagSelect = document.getElementById('tagSelect');
             if (!tagSelect) return;
             tagSelect.addEventListener('ss:enter', function (e) {
@@ -1025,9 +1031,28 @@
             `).join('');
         }
 
+        // Tags, die im Zeitraum des gerade bearbeiteten Verleihs schon bei einem
+        // ANDEREN Verleih eingetragen sind. Zeiträume überschneiden sich, wenn
+        // weder der eine komplett vor noch komplett nach dem anderen liegt.
+        function tagsUsedByOtherRentals() {
+            const startEl = document.getElementById('startDate');
+            const endEl = document.getElementById('endDate');
+            const start = (startEl && startEl.value) || convertToIsoDate(currentCandidateDate);
+            if (!start) return new Set();
+            const end = (endEl && convertToIsoDate(endEl.value)) || start;
+
+            const used = new Set();
+            tagUsage.forEach(u => {
+                if (currentCandidateId !== null && String(u.id) === String(currentCandidateId)) return;
+                if (u.start > end || u.end < start) return; // keine Überschneidung
+                u.tags.forEach(t => used.add(t));
+            });
+            return used;
+        }
+
         function updateTagDropdownOptions() {
             const select = document.getElementById('tagSelect');
-            const usedTags = currentCandidateDate ? (tagsUsedByDate[currentCandidateDate] || []) : [];
+            const usedTags = tagsUsedByOtherRentals();
 
             // Update all options
             Array.from(select.options).forEach(opt => {
@@ -1041,7 +1066,7 @@
                     const isAlreadySelected = selectedTags.includes(opt.value);
 
                     // Check if this tag is used by OTHER requests on the same date
-                    const isUsedByOthers = usedTags.includes(opt.value) && !selectedTags.includes(opt.value);
+                    const isUsedByOthers = usedTags.has(opt.value) && !isAlreadySelected;
 
                     if (isAlreadySelected) {
                         opt.disabled = true;
