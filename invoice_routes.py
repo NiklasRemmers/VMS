@@ -2,6 +2,7 @@ from flask import Blueprint, render_template, jsonify, request
 from flask_login import login_required, current_user
 from models import EmailCandidate, InventoryItem, SequentialNumber, format_de_date
 from database import get_session
+from template_store import load_template
 from datetime import datetime
 import os
 import re
@@ -10,10 +11,9 @@ import tempfile
 invoice_bp = Blueprint('invoice', __name__)
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-INVOICE_TEMPLATES = {
-    'rechnung': os.path.join(BASE_DIR, 'template_rechnung.odt'),
-    'umbuchung': os.path.join(BASE_DIR, 'template_umbuchung.odt'),
-}
+# The template files themselves now live in the template store (versioned in the
+# DB); this is only the whitelist of accepted invoice types.
+INVOICE_TYPES = ('rechnung', 'umbuchung')
 
 def parse_german_date(date_str):
     if not date_str:
@@ -112,7 +112,7 @@ def api_send_invoice():
     items = data.get('items') or []
 
     # --- Validation -----------------------------------------------------------
-    if nummer_typ not in INVOICE_TEMPLATES:
+    if nummer_typ not in INVOICE_TYPES:
         return jsonify({'error': 'Ungültiger Typ'}), 400
     if not laufende_nummer:
         return jsonify({'error': 'Laufende Nummer fehlt'}), 400
@@ -133,10 +133,6 @@ def api_send_invoice():
         except (TypeError, ValueError):
             pass
 
-    template_path = INVOICE_TEMPLATES[nummer_typ]
-    if not os.path.exists(template_path):
-        return jsonify({'error': 'Vorlage nicht gefunden'}), 500
-
     now = datetime.now()
     replacements = {
         '#NUMMER#': str(laufende_nummer),
@@ -153,6 +149,8 @@ def api_send_invoice():
 
     try:
         with tempfile.TemporaryDirectory() as temp_dir:
+            # Active version from the template store
+            template_path = load_template(nummer_typ, temp_dir)
             output_odt = os.path.join(temp_dir, 'output.odt')
             process_odt_template(template_path, output_odt, replacements, row_items=items)
             pdf_path = convert_to_pdf(output_odt, temp_dir)

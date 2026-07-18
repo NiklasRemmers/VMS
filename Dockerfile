@@ -27,6 +27,7 @@ COPY app.py auth.py database.py email_client.py \
     kanboard_client.py kms.py kms_setup.py models.py \
     odt_processor.py security.py settings_routes.py \
     inventory_routes.py invoice_routes.py verleih_routes.py \
+    template_routes.py template_store.py \
     gunicorn.conf.py requirements.txt ./
 
 COPY template.odt template_rechnung.odt template_umbuchung.odt ./

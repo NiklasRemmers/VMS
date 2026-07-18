@@ -907,14 +907,30 @@
         const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
         const tagsUsedByDate = {{ tags_by_date | tojson }};
 
-        // Helper to convert DD.MM.YYYY to YYYY-MM-DD
+        // Helper to convert a stored/displayed date to YYYY-MM-DD for <input type="date">.
+        // Mirrors parse_flexible_date() in models.py: accepts DD.MM.YYYY, DD.MM.YY,
+        // ISO (with optional time part), a date embedded in extra text ("Freitag,
+        // 13.11.2026") and the German range shorthand "13.-15.11.26" (start day).
         function convertToIsoDate(dateStr) {
             if (!dateStr) return '';
-            if (dateStr.includes('-')) return dateStr; // Already ISO?
-            const parts = dateStr.split('.');
-            if (parts.length === 3) {
-                return `${parts[2]}-${parts[1]}-${parts[0]}`;
+            const s = String(dateStr).trim();
+            const pad = n => String(n).padStart(2, '0');
+
+            // German range shorthand "DD.-DD.MM.YY(YY)": the first day shares the
+            // month/year of the second, so resolve it to the start day.
+            let m = s.match(/^\s*(\d{1,2})\.\s*-\s*\d{1,2}\.(\d{1,2})\.(\d{2,4})/)
+                 // First German-style token DD.MM.YYYY / DD.MM.YY.
+                 || s.match(/(\d{1,2})\.(\d{1,2})\.(\d{2,4})/);
+            if (m) {
+                let [day, month, year] = m.slice(1).map(Number);
+                if (year < 100) year += 2000;
+                return `${year}-${pad(month)}-${pad(day)}`;
             }
+
+            // ISO token YYYY-MM-DD (also strips any trailing time part).
+            m = s.match(/(\d{4})-(\d{2})-(\d{2})/);
+            if (m) return `${m[1]}-${m[2]}-${m[3]}`;
+
             return '';
         }
 

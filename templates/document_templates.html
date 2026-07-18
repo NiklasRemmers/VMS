@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="de" class="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vorlagen - VMS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f5f3ff',
+                            100: '#ede9fe',
+                            200: '#ddd6fe',
+                            300: '#c4b5fd',
+                            400: '#a78bfa',
+                            500: '#8b5cf6',
+                            600: '#7c3aed',
+                            700: '#6d28d9',
+                            800: '#5b21b6',
+                            900: '#4c1d95',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <script>
+        if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+    <script src="/static/theme.js"></script>
+</head>
+
+<body class="bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-200 transition-colors duration-200">
+    <div class="flex h-screen overflow-hidden">
+        {% include '_sidebar.html' %}
+
+        <div class="flex flex-col flex-1 w-full">
+            {% include '_navbar.html' %}
+
+            <main class="h-full overflow-y-auto">
+                <div class="container px-6 mx-auto grid">
+
+                    <div class="flex items-center justify-between mt-6 mb-4">
+                        <h2 class="text-2xl font-semibold text-gray-700 dark:text-gray-200">Vorlagen</h2>
+                        <button type="button" onclick="openSyntaxModal()"
+                            class="inline-flex items-center px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg transition-colors">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z">
+                                </path>
+                            </svg>
+                            Syntax &amp; Platzhalter
+                        </button>
+                    </div>
+
+                    <p class="mb-6 text-sm text-gray-600 dark:text-gray-400 max-w-3xl">
+                        Hier werden die ODT-Vorlagen verwaltet, aus denen die PDFs erzeugt werden.
+                        Jeder Upload wird vor der Aktivierung geprüft und als neue Version abgelegt —
+                        ältere Versionen bleiben erhalten und lassen sich jederzeit wieder aktivieren.
+                    </p>
+
+                    <div id="templateCards" class="space-y-6 mb-8">
+                        <p class="text-sm text-gray-500 dark:text-gray-400">Wird geladen …</p>
+                    </div>
+
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Syntax explanation modal -->
+    <div id="syntaxModal" class="fixed inset-0 z-50 hidden">
+        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" onclick="closeSyntaxModal()"></div>
+        <div class="relative flex items-start justify-center min-h-screen p-4 pointer-events-none">
+            <div
+                class="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-3xl w-full my-8 p-6 border border-gray-200 dark:border-gray-700 pointer-events-auto">
+                <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">Syntax &amp; Platzhalter</h3>
+
+                <div class="space-y-6 max-h-[70vh] overflow-y-auto pr-2 text-sm">
+
+                    <section>
+                        <h4 class="font-semibold text-gray-800 dark:text-gray-200 mb-2">So funktioniert es</h4>
+                        <p class="text-gray-600 dark:text-gray-400">
+                            Eine Vorlage ist ein normales LibreOffice-Writer-Dokument (<code
+                                class="px-1 rounded bg-gray-100 dark:bg-gray-700">.odt</code>). An den Stellen, an
+                            denen später Daten stehen sollen, schreibst du einen Platzhalter in der Form
+                            <code class="px-1 rounded bg-gray-100 dark:bg-gray-700">#NAME#</code>. Beim Erzeugen des
+                            PDFs wird jeder Platzhalter durch den echten Wert ersetzt.
+                        </p>
+                        <p class="mt-2 text-gray-600 dark:text-gray-400">
+                            Tippe einen Platzhalter möglichst <strong>in einem Zug</strong>. Wenn mitten im Wort die
+                            Formatierung wechselt oder die Autokorrektur eingreift, zerlegt LibreOffice ihn intern —
+                            das wird zwar meist automatisch repariert, aber nicht in jedem Fall.
+                        </p>
+                    </section>
+
+                    <section>
+                        <h4 class="font-semibold text-gray-800 dark:text-gray-200 mb-2">
+                            <code class="px-1 rounded bg-gray-100 dark:bg-gray-700">#UNTERSCHRIFTSBLOCK#</code>
+                            — nur Leihvertrag
+                        </h4>
+                        <p class="text-gray-600 dark:text-gray-400">
+                            Dieser eine Platzhalter erzeugt den <strong>kompletten</strong> Unterschriftsbereich:
+                            beide Datumszeilen, die Unterschrift, die beiden Linien und die Namen darunter.
+                        </p>
+                        <p class="mt-2 text-gray-600 dark:text-gray-400">
+                            Setze ihn allein in einen leeren Absatz und baue den Block <strong>nicht</strong> selbst
+                            nach. Genau deshalb bleibt er garantiert auf einer Seite zusammen und die Spalten sind
+                            immer exakt bündig — unabhängig davon, wie lang die eingesetzten Namen sind. Ein von Hand
+                            mit Tabs gebauter Block verrutscht dagegen, sobald ein Name länger wird.
+                        </p>
+                    </section>
+
+                    <section>
+                        <h4 class="font-semibold text-gray-800 dark:text-gray-200 mb-2">
+                            <code class="px-1 rounded bg-gray-100 dark:bg-gray-700">#ZUSAMMEN_START#</code> …
+                            <code class="px-1 rounded bg-gray-100 dark:bg-gray-700">#ZUSAMMEN_ENDE#</code>
+                        </h4>
+                        <p class="text-gray-600 dark:text-gray-400">
+                            Alles zwischen diesen beiden Markern wird nicht durch einen Seitenumbruch getrennt.
+                            Nützlich für Abschnitte, bei denen die Überschrift nicht allein am Seitenende stehen soll.
+                            Die Marker selbst erscheinen nicht im PDF; steht ein Marker allein in einem Absatz,
+                            verschwindet der Absatz mit.
+                        </p>
+                    </section>
+
+                    <section>
+                        <h4 class="font-semibold text-gray-800 dark:text-gray-200 mb-2">
+                            Artikeltabelle — nur Rechnung &amp; Umbuchung
+                        </h4>
+                        <p class="text-gray-600 dark:text-gray-400">
+                            Lege in der Tabelle <strong>genau eine</strong> Zeile mit den Platzhaltern
+                            <code class="px-1 rounded bg-gray-100 dark:bg-gray-700">#ARTIKEL#</code>,
+                            <code class="px-1 rounded bg-gray-100 dark:bg-gray-700">#MENGE#</code>,
+                            <code class="px-1 rounded bg-gray-100 dark:bg-gray-700">#STÜCKPREIS#</code> und
+                            <code class="px-1 rounded bg-gray-100 dark:bg-gray-700">#GESAMTPREIS_POS#</code> an.
+                            Diese Zeile wird pro Rechnungsposten automatisch vervielfältigt. Zwei solcher Zeilen
+                            werden beim Upload abgelehnt.
+                        </p>
+                    </section>
+
+                    <section>
+                        <h4 class="font-semibold text-gray-800 dark:text-gray-200 mb-2">Pflicht-Platzhalter</h4>
+                        <div id="placeholderReference" class="space-y-4"></div>
+                    </section>
+
+                    <section>
+                        <h4 class="font-semibold text-gray-800 dark:text-gray-200 mb-2">Prüfung beim Upload</h4>
+                        <ul class="list-disc ml-5 space-y-1 text-gray-600 dark:text-gray-400">
+                            <li>Ist die Datei ein echtes ODF-Textdokument?</li>
+                            <li>Sind alle Pflicht-Platzhalter vorhanden?</li>
+                            <li>Enthält die Artikeltabelle genau eine Musterzeile?</li>
+                            <li>Zum Schluss ein <strong>Testdruck</strong>: Die Vorlage wird einmal komplett mit
+                                Beispieldaten nach PDF gerendert. Nur wenn das klappt, wird sie aktiv.</li>
+                        </ul>
+                        <p class="mt-2 text-gray-600 dark:text-gray-400">
+                            Unbekannte Platzhalter blockieren den Upload nicht, werden aber als Warnung gemeldet —
+                            sie erscheinen sonst unersetzt im fertigen PDF.
+                        </p>
+                    </section>
+                </div>
+
+                <div class="flex justify-end mt-6">
+                    <button type="button" onclick="closeSyntaxModal()"
+                        class="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg transition-colors">Schließen</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% include '_confirm_modal.html' %}
+
+    <script>
+        const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+        let templateData = [];
+
+        function escapeHtml(value) {
+            const div = document.createElement('div');
+            div.textContent = value == null ? '' : value;
+            return div.innerHTML;
+        }
+
+        function formatSize(bytes) {
+            return (bytes / 1024).toFixed(0) + ' KB';
+        }
+
+        async function fetchTemplates() {
+            const res = await fetch('/api/templates');
+            templateData = await res.json();
+            renderCards();
+            renderPlaceholderReference();
+        }
+
+        function renderCards() {
+            document.getElementById('templateCards').innerHTML = templateData.map(renderCard).join('');
+        }
+
+        function renderCard(entry) {
+            const active = entry.active;
+            const activeLine = active
+                ? `Version ${active.version} · ${escapeHtml(active.filename)} · ${formatSize(active.size_bytes)}
+                   · ${escapeHtml(active.created_at || '')}${active.uploaded_by ? ' · ' + escapeHtml(active.uploaded_by) : ''}`
+                : 'Noch keine Version gespeichert — die mitgelieferte Vorlage wird verwendet.';
+
+            const history = entry.versions.length
+                ? entry.versions.map(v => `
+                    <tr class="border-b border-gray-100 dark:border-gray-700">
+                        <td class="px-3 py-2">${v.version}</td>
+                        <td class="px-3 py-2">${escapeHtml(v.filename)}</td>
+                        <td class="px-3 py-2 text-gray-500 dark:text-gray-400">${escapeHtml(v.created_at || '')}</td>
+                        <td class="px-3 py-2 text-gray-500 dark:text-gray-400">${escapeHtml(v.uploaded_by || '—')}</td>
+                        <td class="px-3 py-2 text-gray-500 dark:text-gray-400">${escapeHtml(v.note || '—')}</td>
+                        <td class="px-3 py-2">
+                            ${v.is_active
+                        ? '<span class="px-2 py-1 text-xs font-medium rounded bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">aktiv</span>'
+                        : `<button onclick="activateVersion(${v.id}, ${v.version})" class="text-primary-600 hover:text-primary-700 dark:text-primary-400">Aktivieren</button>`}
+                        </td>
+                        <td class="px-3 py-2">
+                            <a href="/api/templates/${v.id}/download" class="text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200">Herunterladen</a>
+                        </td>
+                    </tr>`).join('')
+                : '<tr><td colspan="7" class="px-3 py-3 text-gray-500 dark:text-gray-400">Keine Versionen</td></tr>';
+
+            return `
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                <div class="flex items-start justify-between mb-4">
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-200">${escapeHtml(entry.label)}</h3>
+                        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">${activeLine}</p>
+                    </div>
+                </div>
+
+                <div class="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center hover:border-primary-500 transition-colors">
+                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">Neue ODT-Vorlage hochladen</p>
+                    <input type="text" id="note-${entry.template_type}" placeholder="Änderungsnotiz (optional)"
+                        class="w-full max-w-md mb-3 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200">
+                    <label class="inline-block px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg transition-colors cursor-pointer">
+                        Datei auswählen
+                        <input type="file" accept=".odt" class="hidden"
+                            onchange="uploadTemplate('${entry.template_type}', this)">
+                    </label>
+                </div>
+
+                <div id="result-${entry.template_type}" class="mt-4"></div>
+
+                <div class="mt-5 overflow-x-auto">
+                    <table class="w-full text-sm whitespace-nowrap">
+                        <thead class="text-xs font-semibold tracking-wide text-left text-gray-500 uppercase border-b dark:border-gray-700 dark:text-gray-400">
+                            <tr>
+                                <th class="px-3 py-2">Version</th>
+                                <th class="px-3 py-2">Datei</th>
+                                <th class="px-3 py-2">Hochgeladen</th>
+                                <th class="px-3 py-2">Von</th>
+                                <th class="px-3 py-2">Notiz</th>
+                                <th class="px-3 py-2">Status</th>
+                                <th class="px-3 py-2"></th>
+                            </tr>
+                        </thead>
+                        <tbody>${history}</tbody>
+                    </table>
+                </div>
+            </div>`;
+        }
+
+        function renderPlaceholderReference() {
+            document.getElementById('placeholderReference').innerHTML = templateData.map(entry => `
+                <div>
+                    <p class="font-medium text-gray-700 dark:text-gray-300 mb-1">${escapeHtml(entry.label)}</p>
+                    <div class="flex flex-wrap gap-1">
+                        ${entry.required_placeholders.map(p =>
+                `<code class="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-xs">${escapeHtml(p)}</code>`).join('')}
+                    </div>
+                </div>`).join('');
+        }
+
+        function showResult(templateType, html) {
+            document.getElementById('result-' + templateType).innerHTML = html;
+        }
+
+        function renderMessages(title, messages, tone) {
+            const styles = tone === 'error'
+                ? 'bg-red-50 dark:bg-red-900/30 border-red-200 dark:border-red-800 text-red-800 dark:text-red-200'
+                : 'bg-yellow-50 dark:bg-yellow-900/30 border-yellow-200 dark:border-yellow-800 text-yellow-800 dark:text-yellow-200';
+            return `
+                <div class="border rounded-lg p-4 mb-3 ${styles}">
+                    <p class="font-semibold text-sm mb-1">${escapeHtml(title)}</p>
+                    <ul class="list-disc ml-5 text-sm space-y-1">
+                        ${messages.map(m => `<li>${escapeHtml(m)}</li>`).join('')}
+                    </ul>
+                </div>`;
+        }
+
+        async function uploadTemplate(templateType, input) {
+            const file = input.files[0];
+            if (!file) return;
+
+            const note = document.getElementById('note-' + templateType).value;
+            const formData = new FormData();
+            formData.append('template', file);
+            formData.append('template_type', templateType);
+            formData.append('note', note);
+
+            showResult(templateType,
+                '<p class="text-sm text-gray-500 dark:text-gray-400">Vorlage wird geprüft — der Testdruck dauert einen Moment …</p>');
+            // Allow re-selecting the same file after a failed attempt.
+            input.value = '';
+
+            try {
+                const res = await fetch('/api/templates/upload', {
+                    method: 'POST',
+                    headers: { 'X-CSRFToken': csrfToken },
+                    body: formData
+                });
+                const data = await res.json();
+
+                if (!res.ok) {
+                    let html = renderMessages(data.error || 'Upload fehlgeschlagen',
+                        data.errors || [data.error || 'Unbekannter Fehler'], 'error');
+                    if (data.warnings && data.warnings.length) {
+                        html += renderMessages('Warnungen', data.warnings, 'warning');
+                    }
+                    showResult(templateType, html);
+                    return;
+                }
+
+                let html = '';
+                if (data.warnings && data.warnings.length) {
+                    html = renderMessages('Übernommen, mit Warnungen', data.warnings, 'warning');
+                }
+                showResult(templateType, html);
+                showToast(`Version ${data.template.version} ist jetzt aktiv`, 'success');
+                await fetchTemplates();
+            } catch (e) {
+                showResult(templateType, renderMessages('Upload fehlgeschlagen', [String(e)], 'error'));
+            }
+        }
+
+        function activateVersion(id, version) {
+            showConfirmDialog(
+                'Version aktivieren',
+                `Version ${version} wird ab sofort für alle neuen Dokumente verwendet. Fortfahren?`,
+                async () => {
+                    const res = await fetch(`/api/templates/${id}/activate`, {
+                        method: 'POST',
+                        headers: { 'X-CSRFToken': csrfToken }
+                    });
+                    if (res.ok) {
+                        showToast(`Version ${version} ist jetzt aktiv`, 'success');
+                        await fetchTemplates();
+                    } else {
+                        const data = await res.json();
+                        showToast(data.error || 'Aktivierung fehlgeschlagen', 'error');
+                    }
+                },
+                { confirmText: 'Aktivieren', type: 'warning' }
+            );
+        }
+
+        function openSyntaxModal() {
+            document.getElementById('syntaxModal').classList.remove('hidden');
+        }
+
+        function closeSyntaxModal() {
+            document.getElementById('syntaxModal').classList.add('hidden');
+        }
+
+        fetchTemplates();
+    </script>
+</body>
+
+</html>

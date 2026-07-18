@@ -49,13 +49,21 @@ def process_odt_template(
         if row_items is not None:
             content = _expand_item_rows(content, row_items)
 
+        # Build the layout-constrained blocks before any placeholder is filled in,
+        # so the generated markup takes part in the normal replacement pass.
+        content = _expand_signature_block(content)
+        content = _apply_keep_together(content)
+
         # Replace placeholders
         content = replace_placeholders(content, replacements)
-        
+
         # Insert signature if provided
         if signature_path and os.path.exists(signature_path):
             content = insert_signature(content, temp_dir, signature_path)
-        
+        else:
+            # Without a signature the placeholder would otherwise be printed verbatim.
+            content = content.replace('#UNTERSCHRIFT#', '')
+
         # Write modified content.xml
         with open(content_xml_path, 'w', encoding='utf-8') as f:
             f.write(content)
@@ -68,6 +76,207 @@ def process_odt_template(
         create_odt_from_directory(temp_dir, output_path)
         
     return output_path
+
+
+SIGNATURE_BLOCK_PLACEHOLDER = '#UNTERSCHRIFTSBLOCK#'
+KEEP_TOGETHER_START = '#ZUSAMMEN_START#'
+KEEP_TOGETHER_END = '#ZUSAMMEN_ENDE#'
+
+# Styles for the generated signature block. The table must never split across a
+# page, and both columns are pinned to fixed cells so the underline and the text
+# beneath it always start at the same x position — regardless of how long the
+# names substituted into them turn out to be.
+_SIGNATURE_STYLES = (
+    '<style:style style:name="TSig" style:family="table">'
+    '<style:table-properties style:rel-width="100%" table:align="margins" '
+    'style:may-break-between-rows="false"/></style:style>'
+    '<style:style style:name="TSig.col" style:family="table-column">'
+    '<style:table-column-properties style:rel-column-width="1*"/></style:style>'
+    '<style:style style:name="TSig.row" style:family="table-row">'
+    '<style:table-row-properties fo:keep-together="always"/></style:style>'
+    '<style:style style:name="TSig.cell" style:family="table-cell">'
+    '<style:table-cell-properties fo:padding="0cm" fo:border="none"/></style:style>'
+    '<style:style style:name="PSig" style:family="paragraph" '
+    'style:parent-style-name="Standard">'
+    '<style:paragraph-properties fo:margin-left="0cm" fo:margin-right="0cm" '
+    'fo:text-indent="0cm" fo:text-align="start" fo:keep-with-next="always"/>'
+    '<style:text-properties fo:font-size="11pt" style:font-size-asian="11pt" '
+    'style:font-size-complex="11pt"/></style:style>'
+    '<style:style style:name="TSigName" style:family="text">'
+    '<style:text-properties fo:font-weight="bold" style:font-weight-asian="bold" '
+    'style:font-weight-complex="bold"/></style:style>'
+)
+
+
+def _inject_styles(content: str, styles: str) -> str:
+    """Add automatic styles to the document, skipping any that are already there."""
+    missing = []
+    for style in re.findall(r'<style:style .*?</style:style>', styles, re.DOTALL):
+        name = re.search(r'style:name="([^"]*)"', style).group(1)
+        if f'style:name="{name}"' not in content:
+            missing.append(style)
+    if not missing:
+        return content
+    return content.replace('</office:automatic-styles>',
+                           ''.join(missing) + '</office:automatic-styles>')
+
+
+def _signature_block_xml() -> str:
+    """Build the two-column signature table that replaces #UNTERSCHRIFTSBLOCK#.
+
+    The placeholders inside it (#HEUTE#, #VERLEIHER#, #VORNAME NACHNAME#,
+    #UNTERSCHRIFT#) are filled in by the regular replacement pass that runs
+    afterwards.
+    """
+    def p(inner=''):
+        return f'<text:p text:style-name="PSig">{inner}</text:p>'
+
+    def cell(inner):
+        return ('<table:table-cell table:style-name="TSig.cell" office:value-type="string">'
+                + inner + '</table:table-cell>')
+
+    def row(left, right):
+        return ('<table:table-row table:style-name="TSig.row">'
+                + cell(left) + cell(right) + '</table:table-row>')
+
+    def named(label, placeholder):
+        return (f'{label} <text:span text:style-name="TSigName">{placeholder}</text:span>')
+
+    date = 'Ulm, den #HEUTE#'
+    line = '_' * 27
+
+    return (
+        '<table:table table:name="Unterschriften" table:style-name="TSig">'
+        '<table:table-column table:style-name="TSig.col" table:number-columns-repeated="2"/>'
+        + row(p(date), p(date))
+        + row(p(), p())
+        + row(p('#UNTERSCHRIFT#'), p())
+        + row(p(line), p(line))
+        + row(p(named('Für die StuVe:', '#VERLEIHER#')),
+              p(named('Für den Entleiher:', '#VORNAME NACHNAME#')))
+        + '</table:table>'
+        # A table must not be the last element in the body, and this restores the
+        # trailing spacing the original block had.
+        + '<text:p text:style-name="PSig"/>'
+    )
+
+
+def _expand_signature_block(content: str) -> str:
+    """Replace the #UNTERSCHRIFTSBLOCK# paragraph with the generated table.
+
+    Anchoring on the placeholder — rather than on LibreOffice's auto-generated
+    style names, which change on every save — is what lets uploaded templates
+    keep the layout guarantees without containing the table themselves.
+    """
+    content = normalize_fragmented_placeholders(content)
+    if SIGNATURE_BLOCK_PLACEHOLDER not in content:
+        return content
+
+    block = _signature_block_xml()
+    # Swallow the whole enclosing <text:p>, otherwise the table would be nested
+    # inside a paragraph, which ODF does not allow.
+    pattern = re.compile(
+        r'<text:p\b[^>]*>(?:(?!</text:p>).)*?'
+        + re.escape(SIGNATURE_BLOCK_PLACEHOLDER)
+        + r'(?:(?!</text:p>).)*?</text:p>',
+        re.DOTALL,
+    )
+    content, replaced = pattern.subn(lambda _m: block, content)
+    if not replaced:
+        content = content.replace(SIGNATURE_BLOCK_PLACEHOLDER, block)
+
+    return _inject_styles(content, _SIGNATURE_STYLES)
+
+
+def _ensure_keep_style(content: str, parent_style: str):
+    """Return (content, style_name) for a keep-with-next variant of parent_style."""
+    keep_style_name = f'{parent_style}_keep'
+    if f'style:name="{keep_style_name}"' not in content:
+        keep_style_def = (
+            f'<style:style style:name="{keep_style_name}" style:family="paragraph" '
+            f'style:parent-style-name="{parent_style}">'
+            f'<style:paragraph-properties fo:keep-with-next="always"/>'
+            f'</style:style>'
+        )
+        content = content.replace(
+            '</office:automatic-styles>',
+            keep_style_def + '</office:automatic-styles>'
+        )
+    return content, keep_style_name
+
+
+_PARAGRAPH_RE = re.compile(r'<text:p\b[^>]*/>|<text:p\b[^>]*>.*?</text:p>', re.DOTALL)
+
+
+def _paragraph_text(paragraph: str) -> str:
+    """Strip all XML tags from a paragraph, leaving its visible text."""
+    return re.sub(r'<[^>]*>', '', paragraph).strip()
+
+
+def _set_keep_with_next(content: str, paragraph: str):
+    """Return (content, paragraph) with the paragraph switched to a keep style."""
+    open_tag = re.match(r'<text:p\b[^>]*?/?>', paragraph).group(0)
+    style_match = re.search(r'text:style-name="([^"]*)"', open_tag)
+    parent_style = style_match.group(1) if style_match else 'Standard'
+
+    content, keep_style_name = _ensure_keep_style(content, parent_style)
+
+    if style_match:
+        new_open = open_tag.replace(
+            f'text:style-name="{parent_style}"',
+            f'text:style-name="{keep_style_name}"',
+        )
+    else:
+        new_open = open_tag.replace('<text:p', f'<text:p text:style-name="{keep_style_name}"', 1)
+
+    return content, new_open + paragraph[len(open_tag):]
+
+
+def _apply_keep_together(content: str) -> str:
+    """Keep everything between #ZUSAMMEN_START# and #ZUSAMMEN_ENDE# on one page.
+
+    Every paragraph in the range but the last gets fo:keep-with-next, which
+    chains them together. The markers themselves are removed: a paragraph that
+    holds nothing but a marker disappears entirely, otherwise just the marker
+    text is stripped so surrounding text survives.
+    """
+    content = normalize_fragmented_placeholders(content)
+
+    # Bounded loop — each pass consumes one marker pair.
+    while KEEP_TOGETHER_START in content and KEEP_TOGETHER_END in content:
+        start = content.index(KEEP_TOGETHER_START)
+        end = content.index(KEEP_TOGETHER_END, start)
+        if end < start:
+            break
+
+        # Widen to whole paragraphs so we never cut a tag in half.
+        region_start = content.rfind('<text:p', 0, start)
+        region_end = content.find('</text:p>', end)
+        if region_start == -1 or region_end == -1:
+            break
+        region_end += len('</text:p>')
+
+        region = content[region_start:region_end]
+        paragraphs = _PARAGRAPH_RE.findall(region)
+        if not paragraphs:
+            break
+
+        rebuilt = []
+        for paragraph in paragraphs:
+            cleaned = paragraph.replace(KEEP_TOGETHER_START, '').replace(KEEP_TOGETHER_END, '')
+            # A paragraph that only carried a marker leaves no blank line behind.
+            if _paragraph_text(paragraph) in (KEEP_TOGETHER_START, KEEP_TOGETHER_END):
+                continue
+            rebuilt.append(cleaned)
+
+        for i in range(len(rebuilt) - 1):
+            content, rebuilt[i] = _set_keep_with_next(content, rebuilt[i])
+
+        # _set_keep_with_next may have inserted styles, so re-locate the region.
+        region_start = content.index(region)
+        content = content[:region_start] + ''.join(rebuilt) + content[region_start + len(region):]
+
+    return content
 
 
 def normalize_fragmented_placeholders(content: str) -> str:
@@ -148,18 +357,9 @@ def replace_placeholders(content: str, replacements: Dict[str, str]) -> str:
                 
                 content = content[:match.start()] + ''.join(replacement_paragraphs) + content[match.end():]
                 
-                # Inject the keep-with-next style into automatic-styles
-                keep_style_def = (
-                    f'<style:style style:name="{keep_style_name}" style:family="paragraph" '
-                    f'style:parent-style-name="{parent_style}">'
-                    f'<style:paragraph-properties fo:keep-with-next="always"/>'
-                    f'</style:style>'
-                )
-                if keep_style_name not in content:
-                    content = content.replace(
-                        '</office:automatic-styles>',
-                        keep_style_def + '</office:automatic-styles>'
-                    )
+                # Inject the keep-with-next style — only now that the splice above
+                # is done, since inserting styles shifts every offset in `match`.
+                content, _ = _ensure_keep_style(content, parent_style)
             else:
                 # Fallback: simple replacement with line breaks
                 escaped_value = escape_xml(value)

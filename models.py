@@ -5,7 +5,8 @@ Defines the database schema for PostgreSQL.
 import re
 from datetime import datetime, timezone
 from sqlalchemy import (
-    Column, Integer, String, Text, Boolean, DateTime, ForeignKey, Index, LargeBinary, Numeric
+    Column, Integer, String, Text, Boolean, DateTime, ForeignKey, Index, LargeBinary, Numeric,
+    UniqueConstraint
 )
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, relationship
@@ -363,4 +364,45 @@ class CodeShareLink(Base):
             'id': self.id,
             'token': self.token,
             'candidate_id': self.candidate_id,
+        }
+
+
+class DocumentTemplate(Base):
+    """An uploaded ODT template. Exactly one version per template_type is active.
+
+    Older versions are kept so a bad upload can be rolled back without needing
+    the previous file at hand.
+    """
+    __tablename__ = 'document_templates'
+
+    id = Column(Integer, primary_key=True)
+    template_type = Column(String(30), nullable=False)  # leihvertrag | rechnung | umbuchung
+    version = Column(Integer, nullable=False)
+    filename = Column(String(255), nullable=False)
+    encrypted_content = Column(LargeBinary, nullable=False)
+    content_hash = Column(String(64), nullable=False)  # sha256 of the plaintext ODT
+    size_bytes = Column(Integer, nullable=False)
+    is_active = Column(Boolean, default=False, nullable=False)
+    note = Column(Text)  # change note supplied by the uploader
+    uploaded_by = Column(Integer, ForeignKey('users.id', ondelete='SET NULL'))
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+
+    uploader = relationship('User')
+
+    __table_args__ = (
+        Index('idx_document_templates_type_active', 'template_type', 'is_active'),
+        UniqueConstraint('template_type', 'version', name='uq_document_templates_type_version'),
+    )
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'template_type': self.template_type,
+            'version': self.version,
+            'filename': self.filename,
+            'size_bytes': self.size_bytes,
+            'is_active': self.is_active,
+            'note': self.note,
+            'uploaded_by': self.uploader.display_name if self.uploader else None,
+            'created_at': self.created_at.strftime('%d.%m.%Y %H:%M') if self.created_at else None,
         }

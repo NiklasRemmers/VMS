@@ -18,6 +18,7 @@ from flask_wtf.csrf import CSRFProtect
 from flask_mail import Mail
 
 from odt_processor import convert_to_pdf, process_odt_template
+from template_store import load_template
 import kanboard_client
 from auth import init_auth, login_required, current_user, limiter
 from settings_routes import settings_bp
@@ -62,6 +63,8 @@ app.config['REMEMBER_COOKIE_SECURE'] = _is_production
 app.config['REMEMBER_COOKIE_HTTPONLY'] = True
 app.config['REMEMBER_COOKIE_SAMESITE'] = 'Lax'
 app.config['WTF_CSRF_ENABLED'] = True
+# Upper bound for uploads (ODT templates are the largest thing accepted).
+app.config['MAX_CONTENT_LENGTH'] = 10 * 1024 * 1024
 
 # Email configuration
 app.config['MAIL_SERVER'] = os.environ.get('MAIL_SERVER', 'localhost')
@@ -86,11 +89,15 @@ app.register_blueprint(invoice_bp)
 from verleih_routes import verleih_bp
 app.register_blueprint(verleih_bp)
 
+from template_routes import doc_templates_bp
+app.register_blueprint(doc_templates_bp)
+
 # Exempt API blueprints from CSRF (they use X-CSRFToken header in JS)
 csrf.exempt(settings_bp)
 csrf.exempt(inventory_bp)
 csrf.exempt(invoice_bp)
 csrf.exempt(verleih_bp)
+csrf.exempt(doc_templates_bp)
 
 # Initialize authentication
 init_auth(app)
@@ -346,10 +353,11 @@ def generate_pdf():
                 with open(signature_path, 'wb') as f:
                     f.write(base64.b64decode(signature_data))
             
-            # Process template
+            # Process template (active version from the template store)
+            template_path = load_template('leihvertrag', temp_dir)
             output_odt = os.path.join(temp_dir, 'output.odt')
             process_odt_template(
-                TEMPLATE_PATH,
+                template_path,
                 output_odt,
                 replacements,
                 signature_path
