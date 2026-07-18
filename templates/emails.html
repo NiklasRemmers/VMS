@@ -975,6 +975,19 @@
 
         // Tag Pill Functions
 
+        // Enter im Tag-Dropdown fügt den Tag direkt hinzu
+        document.addEventListener('DOMContentLoaded', function () {
+            const tagSelect = document.getElementById('tagSelect');
+            if (!tagSelect) return;
+            tagSelect.addEventListener('ss:enter', function (e) {
+                const addTagBtn = document.querySelector('button[onclick="addSelectedTag()"]');
+                if (addTagBtn && addTagBtn.style.display === 'none') return; // Read-only
+                if (!tagSelect.value) return;
+                e.preventDefault();
+                addSelectedTag();
+            });
+        });
+
         function addSelectedTag() {
             const select = document.getElementById('tagSelect');
             const tag = select.value;

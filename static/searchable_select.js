@@ -168,6 +168,16 @@
             renderList(input.value);
         });
 
+        // Signalisiert "Enter gedrückt" an den umgebenden Code (z.B. um den
+        // gewählten Eintrag direkt hinzuzufügen, statt den Button zu klicken).
+        // Der Listener bestätigt die Behandlung mit preventDefault(); nur dann
+        // wird auch das Enter im Formular unterdrückt.
+        function emitEnter() {
+            const ev = new CustomEvent('ss:enter', { bubbles: true, cancelable: true });
+            select.dispatchEvent(ev);
+            return ev.defaultPrevented;
+        }
+
         input.addEventListener('keydown', (e) => {
             if (e.key === 'ArrowDown') {
                 e.preventDefault();
@@ -180,6 +190,10 @@
                 if (isOpen && activeIndex >= 0 && rendered[activeIndex] && !rendered[activeIndex].disabled) {
                     e.preventDefault();
                     choose(rendered[activeIndex].value);
+                    emitEnter();
+                } else if (!isOpen) {
+                    // Auswahl steht bereits – Enter bestätigt sie erneut
+                    if (emitEnter()) e.preventDefault();
                 }
             } else if (e.key === 'Escape') {
                 if (isOpen) { e.preventDefault(); close(); }
@@ -207,7 +221,15 @@
         document.querySelectorAll(selector).forEach(enhance);
     }
 
-    window.SearchableSelect = { enhance: enhance, enhanceAll: enhanceAll };
+    // Fokussiert die Anzeige-Eingabe eines aufgewerteten Selects
+    function focus(select) {
+        if (!select) return;
+        const input = select.parentNode && select.parentNode.querySelector('.ss-input');
+        if (input) input.focus();
+        else select.focus();
+    }
+
+    window.SearchableSelect = { enhance: enhance, enhanceAll: enhanceAll, focus: focus };
 
     // Auto-Enhance für statische Selects mit [data-searchable]
     document.addEventListener('DOMContentLoaded', function () {

@@ -489,6 +489,22 @@ function addDropdownItem(quantity = 1, materialKey = '') {
     item.appendChild(removeBtn);
     container.appendChild(item);
 
+    // Enter im Dropdown hängt direkt eine weitere Zeile an
+    select.addEventListener('ss:enter', (e) => {
+        if (!select.value) return;
+        e.preventDefault();
+        const rows = container.querySelectorAll('select.equipment-select');
+        const last = rows[rows.length - 1];
+        // Nur anhängen, wenn die letzte Zeile bereits belegt ist
+        if (last && !last.value) {
+            if (window.SearchableSelect) SearchableSelect.focus(last);
+            return;
+        }
+        addDropdownItem();
+        const newRows = container.querySelectorAll('select.equipment-select');
+        if (window.SearchableSelect) SearchableSelect.focus(newRows[newRows.length - 1]);
+    });
+
     // Dropdown durchsuchbar machen
     if (window.SearchableSelect) SearchableSelect.enhance(select);
 }

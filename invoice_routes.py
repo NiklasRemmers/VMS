@@ -172,8 +172,13 @@ def api_send_invoice():
             with open(pdf_path, 'rb') as f:
                 pdf_bytes = f.read()
 
-        filename = f"{label}_{laufende_nummer}_{_safe_filename_part(candidate.get('vorname_nachname'))}.pdf"
-        subject = f"{label} Nr. {laufende_nummer}"
+        veranstaltung = (candidate.get('veranstaltungsname') or '').strip()
+        if veranstaltung:
+            subject = f"{label} {veranstaltung}"
+            filename = f"{label}_{_safe_filename_part(veranstaltung)}.pdf"
+        else:
+            subject = f"{label} Nr. {laufende_nummer}"
+            filename = f"{label}_{laufende_nummer}_{_safe_filename_part(candidate.get('vorname_nachname'))}.pdf"
 
         send_email_with_attachment(email, subject, mail_text, pdf_bytes, filename)
     except Exception as e:
