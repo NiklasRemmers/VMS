@@ -533,8 +533,8 @@
                             tbody.innerHTML = items.map(c => `
                 <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer" onclick="viewArchivedCandidate(${c.id})">
                     <td class="px-6 py-4 cell-title">
-                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">${c.vorname_nachname || 'Unbekannt'}</div>
-                        <div class="text-sm text-gray-500 dark:text-gray-400">${c.veranstaltungsname || 'Keine Veranstaltung'}</div>
+                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">${escapeHtml(c.vorname_nachname || 'Unbekannt')}</div>
+                        <div class="text-sm text-gray-500 dark:text-gray-400">${escapeHtml(c.veranstaltungsname || 'Keine Veranstaltung')}</div>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400" data-label="Datum">
                         ${c.datum || '-'}
@@ -542,16 +542,16 @@
                     <td class="px-6 py-4" data-label="Tags">
                         <div class="flex flex-wrap gap-1">
                             ${(c.tags || []).map(tag =>
-                                `<span class="inline-flex px-2 py-0.5 text-xs rounded bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">${tag}</span>`
+                                `<span class="inline-flex px-2 py-0.5 text-xs rounded bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">${escapeHtml(tag)}</span>`
                             ).join('')}
                             ${(!c.tags || c.tags.length === 0) ? '<span class="text-xs text-gray-400">-</span>' : ''}
                         </div>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400" data-label="Verantwortlich">
-                        ${c.responsible_name || '—'}
+                        ${escapeHtml(c.responsible_name || '—')}
                     </td>
                     <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400" data-label="Hinweis">
-                        ${c.return_note ? `<span class="truncate max-w-xs inline-block" title="${c.return_note}">${c.return_note}</span>` : '<span class="text-gray-400">—</span>'}
+                        ${c.return_note ? `<span class="truncate max-w-xs inline-block" title="${escapeHtml(c.return_note)}">${escapeHtml(c.return_note)}</span>` : '<span class="text-gray-400">—</span>'}
                     </td>
                     <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400" data-label="Status">
                          ${c.status === 'returned' ?
@@ -946,6 +946,13 @@
         const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
         const tagUsage = {{ tag_usage | tojson }};
 
+        // Escape user-controlled text before injecting into HTML (attribute-safe)
+        function escapeHtml(str) {
+            return (str ?? '').toString()
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        }
+
         // Helper to convert a stored/displayed date to YYYY-MM-DD for <input type="date">.
         // Mirrors parse_flexible_date() in models.py: accepts DD.MM.YYYY, DD.MM.YY,
         // ISO (with optional time part), a date embedded in extra text ("Freitag,
@@ -1020,8 +1027,8 @@
             }
             container.innerHTML = selectedTags.map(tag => `
                 <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-primary-100 dark:bg-primary-900/30 text-primary-800 dark:text-primary-400 text-sm">
-                    ${tag}
-                    <button type="button" onclick="removeTag('${tag.replace(/'/g, "\\'")}')"
+                    ${escapeHtml(tag)}
+                    <button type="button" onclick="removeTag('${escapeHtml(tag.replace(/\\/g, '\\\\').replace(/'/g, "\\'"))}')"
                         class="hover:text-primary-600 dark:hover:text-primary-300 ml-1">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
@@ -1613,17 +1620,17 @@
         function renderOpenRow(c) {
             return `
                 <td class="px-6 py-4 cell-title">
-                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">${c.vorname_nachname || 'Unbekannt'}</div>
-                    <div class="text-sm text-gray-500 dark:text-gray-400">${c.veranstaltungsname || 'Keine Veranstaltung'}</div>
+                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">${escapeHtml(c.vorname_nachname || 'Unbekannt')}</div>
+                    <div class="text-sm text-gray-500 dark:text-gray-400">${escapeHtml(c.veranstaltungsname || 'Keine Veranstaltung')}</div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap" data-label="Datum">
                     <div class="text-sm text-gray-500 dark:text-gray-400">${c.datum || '-'}${c.end_date_display ? ' - ' + c.end_date_display : ''}</div>
                     ${c.has_conflict ? '<span class="ml-2 inline-flex items-center px-2 py-0.5 text-xs rounded-full bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-400">⚠️ Konflikt</span>' : ''}
                 </td>
                 <td class="px-6 py-4" data-label="Tags"><div class="flex flex-wrap gap-1">${
-                    (c.tags && c.tags.length > 0) ? c.tags.map(t => '<span class="inline-flex px-2 py-0.5 text-xs rounded bg-primary-100 dark:bg-primary-900/30 text-primary-800 dark:text-primary-400">' + t + '</span>').join('') : '<span class="text-xs text-gray-400">Keine Tags</span>'
+                    (c.tags && c.tags.length > 0) ? c.tags.map(t => '<span class="inline-flex px-2 py-0.5 text-xs rounded bg-primary-100 dark:bg-primary-900/30 text-primary-800 dark:text-primary-400">' + escapeHtml(t) + '</span>').join('') : '<span class="text-xs text-gray-400">Keine Tags</span>'
                 }</div></td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400" data-label="Verantwortlich">${c.responsible_name || '—'}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400" data-label="Verantwortlich">${escapeHtml(c.responsible_name || '—')}</td>
                 <td class="px-6 py-4 whitespace-nowrap text-right text-sm space-x-2 cell-actions">
                     <button onclick="editCandidate(${c.id})" class="text-primary-600 hover:text-primary-800 dark:text-primary-400">
                         <svg class="w-5 h-5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
@@ -1637,16 +1644,16 @@
         function renderProcessedRow(c) {
             return `
                     <td class="px-6 py-4 cell-title">
-                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">${c.vorname_nachname || 'Unbekannt'}</div>
-                        <div class="text-sm text-gray-500 dark:text-gray-400">${c.veranstaltungsname || 'Keine Veranstaltung'}</div>
+                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">${escapeHtml(c.vorname_nachname || 'Unbekannt')}</div>
+                        <div class="text-sm text-gray-500 dark:text-gray-400">${escapeHtml(c.veranstaltungsname || 'Keine Veranstaltung')}</div>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400" data-label="Datum">
                         ${c.datum || '-'}${c.end_date_display ? ' - ' + c.end_date_display : ''}
                     </td>
                     <td class="px-6 py-4" data-label="Tags"><div class="flex flex-wrap gap-1">${
-                        (c.tags && c.tags.length > 0) ? c.tags.map(t => '<span class="inline-flex px-2 py-0.5 text-xs rounded bg-primary-100 dark:bg-primary-900/30 text-primary-800 dark:text-primary-400">' + t + '</span>').join('') : '<span class="text-xs text-gray-400">Keine Tags</span>'
+                        (c.tags && c.tags.length > 0) ? c.tags.map(t => '<span class="inline-flex px-2 py-0.5 text-xs rounded bg-primary-100 dark:bg-primary-900/30 text-primary-800 dark:text-primary-400">' + escapeHtml(t) + '</span>').join('') : '<span class="text-xs text-gray-400">Keine Tags</span>'
                     }</div></td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400" data-label="Verantwortlich">${c.responsible_name || '—'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400" data-label="Verantwortlich">${escapeHtml(c.responsible_name || '—')}</td>
                     <td class="px-6 py-4 text-center" data-label="Vertrag">
                         ${c.contract_created
                             ? '<span class="text-green-600 dark:text-green-400"><svg class="w-6 h-6 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></span>'
@@ -1776,16 +1783,16 @@
         function renderReturnRow(c) {
             return `
                 <td class="px-6 py-4 cell-title">
-                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">${c.vorname_nachname || 'Unbekannt'}</div>
-                    <div class="text-sm text-gray-500 dark:text-gray-400">${c.veranstaltungsname || 'Keine Veranstaltung'}</div>
+                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">${escapeHtml(c.vorname_nachname || 'Unbekannt')}</div>
+                    <div class="text-sm text-gray-500 dark:text-gray-400">${escapeHtml(c.veranstaltungsname || 'Keine Veranstaltung')}</div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400" data-label="Datum">
                     ${c.datum || '-'}${c.end_date_display ? ' - ' + c.end_date_display : ''}
                 </td>
                 <td class="px-6 py-4" data-label="Tags"><div class="flex flex-wrap gap-1">${
-                    (c.tags && c.tags.length > 0) ? c.tags.map(t => '<span class="inline-flex px-2 py-0.5 text-xs rounded bg-primary-100 dark:bg-primary-900/30 text-primary-800 dark:text-primary-400">' + t + '</span>').join('') : '<span class="text-xs text-gray-400">-</span>'
+                    (c.tags && c.tags.length > 0) ? c.tags.map(t => '<span class="inline-flex px-2 py-0.5 text-xs rounded bg-primary-100 dark:bg-primary-900/30 text-primary-800 dark:text-primary-400">' + escapeHtml(t) + '</span>').join('') : '<span class="text-xs text-gray-400">-</span>'
                 }</div></td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400" data-label="Verantwortlich">${c.responsible_name || '—'}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400" data-label="Verantwortlich">${escapeHtml(c.responsible_name || '—')}</td>
                 <td class="px-6 py-4 whitespace-nowrap text-right text-sm cell-actions">
                     <span class="text-primary-600 dark:text-primary-400 hover:underline">Rückgabe bearbeiten →</span>
                 </td>`;
@@ -1838,7 +1845,7 @@
             document.getElementById('returnEvent').textContent = c.veranstaltungsname || '-';
             document.getElementById('returnDatum').textContent = (c.datum || '-') + (c.end_date_display ? ' - ' + c.end_date_display : '');
             document.getElementById('returnTags').innerHTML = (c.tags && c.tags.length > 0)
-                ? c.tags.map(t => `<span class="inline-flex px-2 py-0.5 text-xs rounded bg-primary-100 dark:bg-primary-900/30 text-primary-800 dark:text-primary-400">${t}</span>`).join(' ')
+                ? c.tags.map(t => `<span class="inline-flex px-2 py-0.5 text-xs rounded bg-primary-100 dark:bg-primary-900/30 text-primary-800 dark:text-primary-400">${escapeHtml(t)}</span>`).join(' ')
                 : '<span class="text-xs text-gray-400">-</span>';
             document.getElementById('returnStorage').textContent = (c.storage_locations && c.storage_locations.length > 0)
                 ? c.storage_locations.join(', ')

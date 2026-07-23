@@ -13,11 +13,17 @@ secrets.enc
 .gitignore
 .agent/
 .gemini/
-deploy/
-migrate_to_postgres.py
-reset_users.py
-update_db_schema.py
-docker-compose.yml
-Dockerfile
+.claude/
+ops/deploy/
+ops/docker-compose.yml
+ops/Dockerfile
 DEPLOYMENT.md
 README.md
+# Tests, coverage & tooling artifacts (not needed in the image)
+tests/
+.pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
+graphify-out/
+docs/

@@ -427,6 +427,13 @@
         let allItems = []; // Store fetched items
         let currentBundleItems = []; // Temporary storage for Bundle modal
 
+        // Escape user-controlled text before injecting into HTML (attribute-safe)
+        function escapeHtml(str) {
+            return (str ?? '').toString()
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        }
+
         // Tabs Logic
         const tabs = document.querySelectorAll('[role="tab"]');
         const tabContents = document.querySelectorAll('[role="tabpanel"]');
@@ -480,7 +487,7 @@
             const equipment = allItems.filter(i => i.type === 'equipment');
 
             const equipmentOptions = '<option value="">Equipment auswählen...</option>' +
-                equipment.map(i => `<option value="${i.id}">${i.name}</option>`).join('');
+                equipment.map(i => `<option value="${i.id}">${escapeHtml(i.name)}</option>`).join('');
 
             // Bundle modal: equipment dropdown
             const bundleEquipmentSelect = document.getElementById('bundleEquipmentSelect');
@@ -508,8 +515,8 @@
             }
             tbody.innerHTML = items.map(item => `
                 <tr class="text-gray-700 dark:text-gray-400">
-                    <td class="px-4 py-3 text-sm font-semibold cell-title">${item.name}</td>
-                    <td class="px-4 py-3 text-sm truncate max-w-xs" data-label="Vertragstext" title="${item.description || ''}">${item.description ? item.description.replace(/\n/g, '<br>') : ''}</td>
+                    <td class="px-4 py-3 text-sm font-semibold cell-title">${escapeHtml(item.name)}</td>
+                    <td class="px-4 py-3 text-sm truncate max-w-xs" data-label="Vertragstext" title="${escapeHtml(item.description || '')}">${item.description ? escapeHtml(item.description).replace(/\n/g, '<br>') : ''}</td>
                     <td class="px-4 py-3 text-sm cell-actions">
                         <button onclick="editItem(${item.id})" class="px-2 py-1 font-semibold leading-tight text-gray-700 bg-gray-100 rounded-full dark:text-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600">Edit</button>
                         <button onclick="deleteItem(${item.id})" class="ml-2 px-2 py-1 font-semibold leading-tight text-red-700 bg-red-100 rounded-full dark:text-red-100 dark:bg-red-700 hover:bg-red-200 dark:hover:bg-red-600">Delete</button>
@@ -534,8 +541,8 @@
                 const priceUnit = priceStr && unitStr ? `${priceStr}/${unitStr}` : priceStr || unitStr || '';
                 return `
                 <tr class="text-gray-700 dark:text-gray-400">
-                    <td class="px-4 py-3 text-sm font-semibold cell-title">${item.name}</td>
-                    <td class="px-4 py-3 text-sm truncate max-w-xs" data-label="Beschreibung" title="${item.description || ''}">${item.description ? item.description.replace(/\n/g, '<br>') : ''}</td>
+                    <td class="px-4 py-3 text-sm font-semibold cell-title">${escapeHtml(item.name)}</td>
+                    <td class="px-4 py-3 text-sm truncate max-w-xs" data-label="Beschreibung" title="${escapeHtml(item.description || '')}">${item.description ? escapeHtml(item.description).replace(/\n/g, '<br>') : ''}</td>
                     <td class="px-4 py-3 text-sm" data-label="Preis/Einheit">${priceUnit}</td>
                     <td class="px-4 py-3 text-sm cell-actions">
                         <button onclick="editItem(${item.id})" class="px-2 py-1 font-semibold leading-tight text-gray-700 bg-gray-100 rounded-full dark:text-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600">Edit</button>
@@ -552,10 +559,10 @@
                 return;
             }
             tbody.innerHTML = bundles.map(bundle => {
-                const contents = bundle.items.map(i => `${i.count}x ${i.item_name}`).join(', ');
+                const contents = bundle.items.map(i => `${i.count}x ${escapeHtml(i.item_name)}`).join(', ');
                 return `
                 <tr class="text-gray-700 dark:text-gray-400">
-                    <td class="px-4 py-3 text-sm font-semibold cell-title">${bundle.name}</td>
+                    <td class="px-4 py-3 text-sm font-semibold cell-title">${escapeHtml(bundle.name)}</td>
                     <td class="px-4 py-3 text-sm" data-label="Inhalt">${contents}</td>
                     <td class="px-4 py-3 text-sm cell-actions">
                         <button onclick='editBundle(${JSON.stringify(bundle).replace(/'/g, "&#39;")})' class="px-2 py-1 font-semibold leading-tight text-gray-700 bg-gray-100 rounded-full dark:text-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600">Edit</button>
@@ -658,7 +665,7 @@
             }
             tbody.innerHTML = currentBundleItems.map((item, index) => `
                 <tr>
-                    <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100" data-label="Gegenstand">${item.name}</td>
+                    <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100" data-label="Gegenstand">${escapeHtml(item.name)}</td>
                     <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400" data-label="Anzahl">
                         <input type="number" min="1" value="${item.count}" onchange="updateBundleItemCount(${index}, this.value)" class="w-16 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 dark:text-white text-sm">
                     </td>

@@ -1,0 +1,39 @@
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["tests"]
+pythonpath = ["."]              # make the `vms` package importable from the repo root
+addopts = [
+    "-ra",
+    "--strict-markers",
+    "--cov=.",
+    "--cov-report=term-missing:skip-covered",
+    "--cov-report=xml",        # coverage.xml -> machine-readable for the coverage-driven loop
+    "--cov-report=html",       # htmlcov/ -> human review
+]
+markers = [
+    "unit: pure logic, no DB/app context",
+    "integration: hits the PostgreSQL testcontainer",
+    "route: exercises a Flask blueprint endpoint via the test client",
+    "slow: excluded from the fast feedback loop (run with -m slow)",
+]
+filterwarnings = ["ignore::DeprecationWarning"]
+
+[tool.coverage.run]
+branch = true                  # branch coverage is the real target, not just line coverage
+source = ["."]
+omit = [
+    "tests/*",
+    "migrations/*",            # one-shot migration scripts
+    "vms/infra/kms_setup.py",  # interactive provisioning CLI
+    "ops/*",                   # deploy config (gunicorn.conf.py, entrypoint.sh)
+]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = false
+exclude_lines = [
+    "pragma: no cover",
+    "if __name__ == .__main__.:",
+    "raise NotImplementedError",
+    "def __repr__",
+]

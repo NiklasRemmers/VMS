@@ -1,0 +1,10 @@
+# Test & coverage tooling for VMS
+# Install:  pip install -r requirements.txt -r requirements-dev.txt
+# Requires a running Docker daemon (Testcontainers spins up ephemeral PostgreSQL).
+
+pytest>=8.2
+pytest-cov>=5.0
+pytest-mock>=3.14
+testcontainers>=4.7      # postgres-Modul ist im Core; das [postgresql]-Extra gibt es in 4.x nicht
+responses>=0.25          # HTTP mocking for kanboard_client / requests
+freezegun>=1.5           # deterministic datetime for sequential-number / expiry logic

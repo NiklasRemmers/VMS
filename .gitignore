@@ -1,13 +1,35 @@
 # Secrets
 .env
+.env.*
+!.env.example
 secrets.enc
 *.key
 kms_local/
+
+# Datenbanken
+*.db
+*.db.bak
+*.sqlite
+*.sqlite3
 
 # Python
 venv/
 __pycache__/
 *.pyc
 
+# IDE
+.idea/
+.vscode/
+
+# Tests & Coverage
+.pytest_cache/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+
 # Logs
 *.log
+
+# Knowledge graph
+graphify-out/

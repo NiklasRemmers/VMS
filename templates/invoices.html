@@ -190,12 +190,6 @@
                         placeholder="Nummer" min="1">
                 </div>
 
-                <!-- Recipient Email -->
-                <div class="mb-6">
-                    <label for="invEmail" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Empfänger E-Mail</label>
-                    <input type="email" id="invEmail" class="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-purple-500 focus:ring-purple-500 sm:text-sm px-4 py-2 border">
-                </div>
-
                 <!-- Billing Address (nur Rechnung) -->
                 <div class="mb-6" id="invAdresseBlock">
                     <label for="invAdresse" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Rechnungsanschrift</label>
@@ -281,16 +275,10 @@
                     </div>
                 </div>
 
-                <!-- Mail Body Textarea -->
-                <div class="mb-6">
-                    <label for="invMailText" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1" id="invMailTextLabel">Mail-Nachricht (inkl. Rechnung als PDF im Anhang)</label>
-                    <textarea id="invMailText" rows="6" class="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-purple-500 focus:ring-purple-500 px-4 py-2 border font-mono text-sm"></textarea>
-                </div>
-
                 <!-- Action Buttons -->
                 <div class="mt-5 sm:mt-6 sm:flex sm:flex-row-reverse gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
-                    <button type="button" id="btnSendInvoice" onclick="sendInvoice()" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-purple-600 text-base font-medium text-white hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 sm:w-auto sm:text-sm dark:focus:ring-offset-gray-800 disabled:opacity-60 disabled:cursor-not-allowed">
-                        Rechnung verschicken
+                    <button type="button" id="btnSendInvoice" onclick="downloadInvoice()" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-purple-600 text-base font-medium text-white hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 sm:w-auto sm:text-sm dark:focus:ring-offset-gray-800 disabled:opacity-60 disabled:cursor-not-allowed">
+                        Rechnung herunterladen
                     </button>
                     <button type="button" onclick="closeInvoiceModal()" class="mt-3 sm:mt-0 w-full inline-flex justify-center rounded-md border border-gray-300 dark:border-gray-600 shadow-sm px-4 py-2 bg-white dark:bg-gray-700 text-base font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 sm:w-auto sm:text-sm dark:focus:ring-offset-gray-800">
                         Abbrechen
@@ -310,6 +298,13 @@
         let activeCandidate = null;
         let activeInvoiceType = null;
         const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+
+        // Escape user-controlled text before injecting into HTML (attribute-safe)
+        function escapeHtml(str) {
+            return (str ?? '').toString()
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        }
 
         // Number formatter
         const formatMoney = (amount) => amount.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " €";
@@ -401,7 +396,7 @@
                     let tagsHtml = '';
                     if (c.tags && c.tags.length > 0) {
                         tagsHtml = `<div class="flex flex-wrap gap-1">` + 
-                            c.tags.map(t => `<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300 border border-purple-200 dark:border-purple-800">${t}</span>`).join('') + 
+                            c.tags.map(t => `<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300 border border-purple-200 dark:border-purple-800">${escapeHtml(t)}</span>`).join('') +
                             `</div>`;
                     } else {
                         tagsHtml = `<span class="text-xs text-gray-500">-</span>`;
@@ -414,7 +409,7 @@
                     }
                     
                     // Note HTML
-                    let noteHtml = c.return_note ? `<span class="text-sm truncate max-w-xs inline-block" title="${c.return_note}">Neu: ${c.return_note}</span>` : `<span class="text-gray-400">-</span>`;
+                    let noteHtml = c.return_note ? `<span class="text-sm truncate max-w-xs inline-block" title="${escapeHtml(c.return_note)}">Neu: ${escapeHtml(c.return_note)}</span>` : `<span class="text-gray-400">-</span>`;
 
                     // Name may be null/empty (e.g. first or last name missing)
                     const displayName = c.vorname_nachname || 'Unbekannt';
@@ -423,11 +418,11 @@
                         <td class="px-6 py-4 whitespace-nowrap cell-title">
                             <div class="flex items-center">
                                 <div class="flex-shrink-0 h-8 w-8 rounded-full bg-purple-100 dark:bg-purple-900/50 flex items-center justify-center text-purple-600 dark:text-purple-400 font-bold">
-                                    ${displayName.charAt(0)}
+                                    ${escapeHtml(displayName.charAt(0))}
                                 </div>
                                 <div class="ml-4">
-                                    <div class="text-sm font-medium text-gray-900 dark:text-white">${displayName}</div>
-                                    <div class="text-sm text-gray-500 dark:text-gray-400">${c.veranstaltungsname || 'Keine Veranstaltung'}</div>
+                                    <div class="text-sm font-medium text-gray-900 dark:text-white">${escapeHtml(displayName)}</div>
+                                    <div class="text-sm text-gray-500 dark:text-gray-400">${escapeHtml(c.veranstaltungsname || 'Keine Veranstaltung')}</div>
                                 </div>
                             </div>
                         </td>
@@ -452,15 +447,11 @@
             rechnung: {
                 label: 'Rechnung',
                 itemsHeading: 'Rechnungsposten',
-                mailLabel: 'Mail-Nachricht (inkl. Rechnung als PDF im Anhang)',
-                mailText: 'Hallo,\n\nanbei die Rechnung für die Verbrauchsmaterialien.\n\nViele Grüße.',
                 btnClasses: ['bg-purple-600', 'hover:bg-purple-700', 'focus:ring-purple-500'],
             },
             umbuchung: {
                 label: 'Umbuchung',
                 itemsHeading: 'Umbuchungsposten',
-                mailLabel: 'Mail-Nachricht (inkl. Umbuchungsbeleg als PDF im Anhang)',
-                mailText: 'Hallo,\n\nanbei der Umbuchungsbeleg für die Verbrauchsmaterialien.\n\nViele Grüße.',
                 btnClasses: ['bg-emerald-600', 'hover:bg-emerald-700', 'focus:ring-emerald-500'],
             },
         };
@@ -493,11 +484,9 @@
 
             // Type-specific wording and fields
             document.getElementById('invItemsHeading').textContent = cfg.itemsHeading;
-            document.getElementById('invMailTextLabel').textContent = cfg.mailLabel;
-            document.getElementById('invMailText').value = cfg.mailText;
 
             const sendBtn = document.getElementById('btnSendInvoice');
-            sendBtn.textContent = `${cfg.label} verschicken`;
+            sendBtn.textContent = `${cfg.label} herunterladen`;
             Object.values(INVOICE_TYPES).forEach(t => sendBtn.classList.remove(...t.btnClasses));
             sendBtn.classList.add(...cfg.btnClasses);
 
@@ -520,13 +509,12 @@
             // Tags
             const tagsCont = document.getElementById('invCandidateTags');
             if (candidate.tags && candidate.tags.length > 0) {
-                tagsCont.innerHTML = candidate.tags.map(t => `<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-200 text-gray-800 dark:bg-gray-600 dark:text-gray-200">${t}</span>`).join('');
+                tagsCont.innerHTML = candidate.tags.map(t => `<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-200 text-gray-800 dark:bg-gray-600 dark:text-gray-200">${escapeHtml(t)}</span>`).join('');
             } else {
                 tagsCont.innerHTML = `<span class="text-xs text-gray-500">-</span>`;
             }
             
-            // Mail input
-            document.getElementById('invEmail').value = candidate.email_address || '';
+            // Recipient address (fills #ADRESSE# in the Rechnung PDF)
             document.getElementById('invAdresse').value = candidate.anschrift || '';
 
             // Prefill the next sequential number for this type
@@ -546,6 +534,9 @@
             activeInvoiceType = null;
         }
 
+        // Der zuletzt vom Server vorgeschlagene Wert des Nummernfeldes.
+        let vorgeschlageneNummer = '';
+
         async function fetchInvNextNumber() {
             const typ = activeInvoiceType;
             const numInput = document.getElementById('invLaufendeNummer');
@@ -558,6 +549,10 @@
                 const data = await resp.json();
                 if (resp.ok) {
                     numInput.value = data.next_number;
+                    // Merken, was der Server vorgeschlagen hat: nur eine davon
+                    // abweichende Eingabe wird beim Senden als ausdrücklicher
+                    // Override mitgeschickt.
+                    vorgeschlageneNummer = String(data.next_number);
                 }
             } catch (e) {
                 console.error('Error fetching next number:', e);
@@ -582,8 +577,8 @@
                 
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
-                    <td class="px-4 py-2 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">${item.name}</td>
-                    <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${formatMoney(item.price)} / ${item.unit}</td>
+                    <td class="px-4 py-2 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">${escapeHtml(item.name)}</td>
+                    <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${formatMoney(item.price)} / ${escapeHtml(item.unit)}</td>
                     <td class="px-4 py-2 whitespace-nowrap">
                         <input type="number" min="1" step="1" value="${item.quantity}" onchange="updateItemQuantity(${index}, this.value)" class="block w-20 rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-purple-500 focus:ring-purple-500 sm:text-sm px-2 py-1 border">
                     </td>
@@ -671,7 +666,7 @@
             }
         }
 
-        async function sendInvoice() {
+        async function downloadInvoice() {
             if (!activeCandidate || !activeInvoiceType) return;
 
             const typ = activeInvoiceType;
@@ -679,23 +674,20 @@
             const cfg = INVOICE_TYPES[typ];
 
             const laufendeNummer = document.getElementById('invLaufendeNummer').value;
-            const email = document.getElementById('invEmail').value.trim();
             const adresse = document.getElementById('invAdresse').value;
             const kostenstelle = document.getElementById('invKostenstelle').value.trim();
-            const mailText = document.getElementById('invMailText').value;
 
             if (!laufendeNummer) { showToast("Bitte laufende Nummer angeben", "error"); return; }
-            if (!email) { showToast("Bitte Empfänger-E-Mail angeben", "error"); return; }
             if (isUmbuchung && !kostenstelle) { showToast("Bitte Kostenstelle angeben", "error"); return; }
             if (invoiceItems.length === 0) { showToast("Bitte mindestens einen Posten hinzufügen", "error"); return; }
 
             const btn = document.getElementById('btnSendInvoice');
             const originalLabel = btn.textContent;
             btn.disabled = true;
-            btn.textContent = 'Wird gesendet…';
+            btn.textContent = 'Wird erstellt…';
 
             try {
-                const resp = await fetch('/api/invoices/send', {
+                const resp = await fetch('/api/invoices/download', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -704,31 +696,52 @@
                     body: JSON.stringify({
                         candidate_id: activeCandidate.id,
                         nummer_typ: typ,
-                        laufende_nummer: laufendeNummer,
-                        email: email,
+                        // Nur mitschicken, wenn der Nutzer den Vorschlag
+                        // überschrieben hat — sonst vergibt der Server die
+                        // Nummer verbindlich und kollisionsfrei selbst.
+                        laufende_nummer: laufendeNummer === vorgeschlageneNummer
+                            ? null : laufendeNummer,
                         // Die Umbuchung ist intern adressiert und kennt dafür
                         // eine Kostenstelle — jeweils nur das relevante Feld.
                         adresse: isUmbuchung ? '' : adresse,
                         kostenstelle: isUmbuchung ? kostenstelle : '',
-                        mail_text: mailText,
                         items: invoiceItems.map(i => ({
                             name: i.name, price: i.price, unit: i.unit, quantity: i.quantity
                         }))
                     })
                 });
-                const data = await resp.json();
-                if (resp.ok && data.success) {
-                    showToast(`${cfg.label} verschickt`, "success");
-                    // Remove the candidate from the open list.
-                    candidates = candidates.filter(c => c.id !== activeCandidate.id);
-                    closeInvoiceModal();
-                    renderCandidatesTable();
-                } else {
-                    showToast(data.error || "Versand fehlgeschlagen", "error");
+
+                if (!resp.ok) {
+                    let msg = "Erstellung fehlgeschlagen";
+                    try { msg = (await resp.json()).error || msg; } catch (e) { /* PDF-less error */ }
+                    showToast(msg, "error");
+                    return;
                 }
+
+                // Erfolg: der Body ist das PDF. Als Datei-Download auslösen.
+                const blob = await resp.blob();
+                const nummer = resp.headers.get('X-Laufende-Nummer') || laufendeNummer;
+                const disposition = resp.headers.get('Content-Disposition') || '';
+                const match = disposition.match(/filename="?([^"]+)"?/);
+                const filename = match ? match[1] : `${cfg.label}_${nummer}.pdf`;
+
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                URL.revokeObjectURL(url);
+
+                showToast(`${cfg.label} Nr. ${nummer} heruntergeladen`, "success");
+                // Remove the candidate from the open list.
+                candidates = candidates.filter(c => c.id !== activeCandidate.id);
+                closeInvoiceModal();
+                renderCandidatesTable();
             } catch (err) {
-                console.error("Send invoice failed", err);
-                showToast("Versand fehlgeschlagen", "error");
+                console.error("Download invoice failed", err);
+                showToast("Erstellung fehlgeschlagen", "error");
             } finally {
                 btn.disabled = false;
                 btn.textContent = originalLabel;
