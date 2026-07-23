@@ -20,7 +20,6 @@ verschlüsselter Secret-Verwaltung (KMS) und PostgreSQL-Backend.
 - [Tests](#tests)
 - [Deployment](#deployment)
 - [Sicherheit](#sicherheit)
-- [Dokumentation & Wissensgraph](#dokumentation--wissensgraph)
 
 ---
 
@@ -81,7 +80,6 @@ assets/                  gebündelte ODT-Vorlagen (template*.odt) — Fallback/S
 templates/               Jinja-HTML-Templates (Frontend)
 static/                  JS/CSS/Assets fürs Frontend
 tests/                   pytest-Suite + Fixtures (tests/conftest.py)
-docs/                    Specs, FINDINGS.md, TEST_PLAN.md
 ops/                     Deployment
   Dockerfile               Multi-Stage-Image (Build-Kontext = Repo-Root)
   docker-compose.yml       db + app + nginx + certbot
@@ -194,9 +192,6 @@ pytest tests/test_app.py   # einzelne Datei
 Coverage-Reports landen in `coverage.xml` (maschinell) und `htmlcov/` (Review).
 `pythonpath = ["."]` macht das `vms`-Paket im Testlauf importierbar.
 
-> Konventionen für neue Tests fasst der `testing`-Skill zusammen; für neue Features
-> gibt es die Skills `tdd`/`feature`, für Bugfixes `bugfix`.
-
 ---
 
 ## Deployment
@@ -239,11 +234,3 @@ kopieren, aktivieren und starten. Der Dienst startet aus dem Checkout-Verzeichni
 - **Web-Härtung:** CSRF-Schutz (Flask-WTF), Rate-Limiting (Flask-Limiter),
   Secure-/HttpOnly-/SameSite-Cookies in Produktion, `ProxyFix` hinter Nginx.
 - **Nie eingecheckt:** `.env`, `secrets.enc`, `*.key`, `kms_local/` (siehe `.gitignore`).
-
----
-
-## Dokumentation & Wissensgraph
-
-- `docs/` enthält Feature-Specs, `FINDINGS.md` (bekannte Probleme) und `TEST_PLAN.md`.
-- Das Repo pflegt einen **graphify**-Wissensgraph in `graphify-out/`. Für
-  Codebase-Fragen: `graphify query "<frage>"`; nach Code-Änderungen `graphify update .`.
