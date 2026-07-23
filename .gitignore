@@ -36,3 +36,6 @@ graphify-out/
 
 # Docs (nur lokal)
 docs/
+
+# Claude Code (nur lokal)
+.claude/
