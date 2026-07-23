@@ -33,3 +33,6 @@ htmlcov/
 
 # Knowledge graph
 graphify-out/
+
+# Docs (nur lokal)
+docs/
