@@ -1,55 +1,8 @@
-<!DOCTYPE html>
-<html lang="de">
+{% extends "_app.html" %}
 
+{% block title %}Einstellungen - Anlagenreferat{% endblock %}
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Einstellungen - Anlagenreferat</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="/static/mobile.css">
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        primary: {
-                            50: '#f5f3ff',
-                            500: '#8b5cf6',
-                            600: '#7c3aed',
-                            700: '#6d28d9',
-                        }
-                    }
-                }
-            }
-        }
-    </script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        body {
-            font-family: 'Inter', sans-serif;
-        }
-    </style>
-    <script src="/static/theme.js"></script>
-</head>
-
-<body class="bg-gray-50 dark:bg-gray-900 min-h-screen">
-    <div class="flex h-screen">
-
-        <!-- Sidebar -->
-        <!-- Sidebar -->
-        {% include '_sidebar.html' %}
-
-        <!-- Main Content -->
-        <div class="flex flex-col flex-1 w-full min-w-0">
-
-            <!-- Header -->
-            {% include '_navbar.html' %}
-
-            <main class="h-full overflow-y-auto">
+{% block content %}
                 <div class="container px-4 sm:px-6 mx-auto py-8 max-w-2xl">
 
                     <!-- Flash Messages -->
@@ -110,7 +63,7 @@
                             </div>
 
                             <button type="submit" name="update_profile"
-                                class="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg transition-colors">
+                                class="btn btn-primary">
                                 Profil speichern
                             </button>
                         </form>
@@ -195,7 +148,7 @@
                                     </div>
                                 </div>
                                 <button type="button" onclick="saveManualEmail()"
-                                    class="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg transition-colors">Speichern</button>
+                                    class="btn btn-primary">Speichern</button>
                             </form>
                         </div>
                         {% endif %}
@@ -242,7 +195,7 @@
                                     class="w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-gray-800 dark:text-gray-200 focus:outline-none focus:border-primary-500">
                             </div>
                             <button type="button" onclick="saveKanboard()"
-                                class="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg transition-colors">Speichern</button>
+                                class="btn btn-primary">Speichern</button>
                         </form>
                     </div>
 
@@ -273,7 +226,7 @@
                                 class="flex items-center gap-3">
                                 {{ profile_form.hidden_tag() }}
                                 <label
-                                    class="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg transition-colors cursor-pointer">
+                                    class="btn btn-primary">
                                     Ersetzen
                                     <input type="file" name="signature" accept=".png" class="hidden"
                                         onchange="this.form.submit()">
@@ -299,7 +252,7 @@
                                 <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">PNG-Datei der Unterschrift
                                     hochladen</p>
                                 <label
-                                    class="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg transition-colors cursor-pointer">
+                                    class="btn btn-primary">
                                     Datei auswählen
                                     <input type="file" name="signature" accept=".png" class="hidden"
                                         onchange="this.form.submit()">
@@ -375,10 +328,9 @@
                     </div>
 
                 </div>
-            </main>
-        </div>
-    </div>
+{% endblock %}
 
+{% block scripts %}
     {% include '_confirm_modal.html' %}
 
     <script>
@@ -453,6 +405,4 @@
             showConfirmDialog('Verbindung trennen', 'Um die Verbindung zu trennen, löschen Sie bitte die Anmeldedaten oder überschreiben Sie diese.', null, { type: 'info' });
         }
     </script>
-</body>
-
-</html>
+{% endblock %}

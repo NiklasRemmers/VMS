@@ -1,59 +1,8 @@
-<!DOCTYPE html>
-<html lang="de" class="dark">
+{% extends "_app.html" %}
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Verleih - VMS</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="/static/mobile.css">
-    <meta name="csrf-token" content="{{ csrf_token() }}">
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        primary: {
-                            50: '#f5f3ff',
-                            100: '#ede9fe',
-                            200: '#ddd6fe',
-                            300: '#c4b5fd',
-                            400: '#a78bfa',
-                            500: '#8b5cf6',
-                            600: '#7c3aed',
-                            700: '#6d28d9',
-                            800: '#5b21b6',
-                            900: '#4c1d95',
-                        }
-                    }
-                }
-            }
-        }
-    </script>
-    <script>
-        if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-            document.documentElement.classList.add('dark');
-        } else {
-            document.documentElement.classList.remove('dark');
-        }
-    </script>
-    <style>
-        body {
-            font-family: 'Inter', sans-serif;
-        }
-    </style>
-    <script src="/static/theme.js"></script>
-</head>
+{% block title %}Verleih - VMS{% endblock %}
 
-<body class="bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-200 transition-colors duration-200">
-    <div class="flex h-screen overflow-hidden">
-        {% include '_sidebar.html' %}
-
-        <div class="flex flex-col flex-1 w-full min-w-0">
-            {% include '_navbar.html' %}
-
-            <main class="h-full overflow-y-auto">
+{% block content %}
                 <div class="container px-4 sm:px-6 mx-auto grid">
                     <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 my-6">
                         <h2 class="text-2xl font-semibold text-gray-700 dark:text-gray-200">Verleih</h2>
@@ -66,7 +15,7 @@
                                 Codes verschicken
                             </button>
                             <button type="button" onclick="openLocationModal()"
-                                class="inline-flex items-center justify-center w-full lg:w-auto px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg transition-colors">
+                                class="inline-flex items-center justify-center w-full lg:w-auto btn btn-primary">
                                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
                                 </svg>
@@ -87,10 +36,9 @@
                         <p class="text-sm text-gray-500 dark:text-gray-400">Lade Lagerorte…</p>
                     </div>
                 </div>
-            </main>
-        </div>
-    </div>
+{% endblock %}
 
+{% block scripts %}
     <!-- Create/Edit Location Modal -->
     <div id="locationModal" class="fixed inset-0 z-50 hidden">
         <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" onclick="closeLocationModal()"></div>
@@ -102,19 +50,19 @@
                     <div>
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Name</label>
                         <input type="text" id="locationName" placeholder="z. B. Schrank 5 oder Spind 3"
-                            class="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500">
+                            class="field">
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Code</label>
                         <input type="text" id="locationCode" placeholder="z. B. 4711"
-                            class="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500">
+                            class="field">
                     </div>
                 </div>
                 <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 sm:gap-3 mt-6">
                     <button type="button" onclick="closeLocationModal()"
-                        class="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-sm font-medium rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">Abbrechen</button>
+                        class="btn btn-secondary">Abbrechen</button>
                     <button type="button" onclick="saveLocation()"
-                        class="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg transition-colors">Speichern</button>
+                        class="btn btn-primary">Speichern</button>
                 </div>
             </div>
         </div>
@@ -131,16 +79,16 @@
                     <div>
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Verleih</label>
                         <select id="assignLoanSelect"
-                            class="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500">
+                            class="field">
                             <option value="">Verleih auswählen…</option>
                         </select>
                     </div>
                 </div>
                 <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 sm:gap-3 mt-6">
                     <button type="button" onclick="closeAssignModal()"
-                        class="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-sm font-medium rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">Abbrechen</button>
+                        class="btn btn-secondary">Abbrechen</button>
                     <button type="button" onclick="assignLoan()"
-                        class="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg transition-colors">Zuordnen</button>
+                        class="btn btn-primary">Zuordnen</button>
                 </div>
             </div>
         </div>
@@ -156,14 +104,14 @@
                     <div>
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Verleih</label>
                         <select id="sendCodesLoanSelect" onchange="onSendCodesLoanChange()"
-                            class="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500">
+                            class="field">
                             <option value="">Verleih auswählen…</option>
                         </select>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Empfänger (E-Mail)</label>
                         <input type="email" id="sendCodesEmail" placeholder="name@example.com"
-                            class="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500">
+                            class="field">
                     </div>
                     <div>
                         <span class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Diese Codes werden geteilt:</span>
@@ -177,9 +125,9 @@
                 </div>
                 <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 sm:gap-3 mt-6">
                     <button type="button" onclick="closeSendCodesModal()"
-                        class="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-sm font-medium rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">Abbrechen</button>
+                        class="btn btn-secondary">Abbrechen</button>
                     <button type="button" onclick="sendCodes()"
-                        class="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg transition-colors">Senden</button>
+                        class="btn btn-primary">Senden</button>
                 </div>
             </div>
         </div>
@@ -215,14 +163,19 @@
             allLocations = locations;
             const grid = document.getElementById('locationsGrid');
             if (!locations.length) {
-                grid.innerHTML = '<p class="text-sm text-gray-500 dark:text-gray-400">Noch keine Lagerorte. Lege den ersten an.</p>';
+                grid.innerHTML = `
+                    <div class="col-span-full text-center py-12">
+                        <svg class="w-10 h-10 mx-auto mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
+                        <p class="text-sm font-medium text-gray-700 dark:text-gray-300">Noch keine Lagerorte</p>
+                        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Lege den ersten Schrank oder Spind an, um Codes zuzuordnen.</p>
+                    </div>`;
                 return;
             }
             grid.innerHTML = locations.map(loc => {
                 const occupied = !!loc.candidate;
                 const statusBadge = occupied
-                    ? `<span class="inline-flex px-2 py-0.5 text-xs rounded bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-400">Belegt</span>`
-                    : `<span class="inline-flex px-2 py-0.5 text-xs rounded bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400">Frei</span>`;
+                    ? `<span class="badge badge--due"><span aria-hidden="true">●</span>Belegt</span>`
+                    : `<span class="badge badge--returned"><span aria-hidden="true">●</span>Frei</span>`;
                 const occupantHtml = occupied
                     ? `<div class="mt-2 text-sm text-gray-700 dark:text-gray-300">
                            <span class="text-gray-500 dark:text-gray-400">Verleih:</span>
@@ -231,10 +184,8 @@
                        </div>`
                     : '';
                 const actionBtn = occupied
-                    ? `<button type="button" onclick="unassignLocation(${loc.id})"
-                           class="px-3 py-1.5 text-xs font-medium rounded-lg border border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20">Freigeben</button>`
-                    : `<button type="button" onclick="openAssignModal(${loc.id})"
-                           class="px-3 py-1.5 text-xs font-medium rounded-lg bg-primary-600 hover:bg-primary-700 text-white">Zuordnen</button>`;
+                    ? `<button type="button" onclick="unassignLocation(${loc.id})" class="btn btn-secondary">Freigeben</button>`
+                    : `<button type="button" onclick="openAssignModal(${loc.id})" class="btn btn-primary">Zuordnen</button>`;
                 return `
                 <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
                     <div class="flex items-start justify-between">
@@ -242,7 +193,7 @@
                             <h3 class="text-base font-semibold text-gray-800 dark:text-gray-200">${escapeHtml(loc.name)}</h3>
                             <div class="mt-1 text-sm">
                                 <span class="text-gray-500 dark:text-gray-400">Code:</span>
-                                <span class="ml-1 font-mono text-gray-800 dark:text-gray-200">${loc.code ? escapeHtml(loc.code) : '–'}</span>
+                                <span class="ml-1 font-mono nums text-gray-800 dark:text-gray-200">${loc.code ? escapeHtml(loc.code) : '–'}</span>
                             </div>
                         </div>
                         ${statusBadge}
@@ -456,6 +407,4 @@
 
         fetchLocations();
     </script>
-</body>
-
-</html>
+{% endblock %}

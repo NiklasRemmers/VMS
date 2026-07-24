@@ -1,61 +1,12 @@
-<!DOCTYPE html>
-<html lang="de">
+{% extends "_app.html" %}
 
+{% block title %}Leihanfragen aus Mails - Anlagenreferat{% endblock %}
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>Leihanfragen aus Mails - Anlagenreferat</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="/static/mobile.css">
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        primary: {
-                            50: '#f5f3ff',
-                            100: '#ede9fe',
-                            200: '#ddd6fe',
-                            300: '#c4b5fd',
-                            400: '#a78bfa',
-                            500: '#8b5cf6',
-                            600: '#7c3aed',
-                            700: '#6d28d9',
-                            800: '#5b21b6',
-                            900: '#4c1d95',
-                        }
-                    }
-                }
-            }
-        }
-    </script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        body {
-            font-family: 'Inter', sans-serif;
-        }
-    </style>
-    <script src="/static/theme.js"></script>
+{% block head_extra %}
     <script src="/static/searchable_select.js"></script>
-</head>
+{% endblock %}
 
-<body class="bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
-    <div class="flex h-screen">
-
-        <!-- Sidebar -->
-        <!-- Sidebar -->
-        {% include '_sidebar.html' %}
-
-        <!-- Main Content -->
-        <div class="flex flex-col flex-1 w-full min-w-0">
-            {% include '_navbar.html' %}
-
-            <main class="h-full overflow-y-auto">
+{% block content %}
                 <div class="container px-4 sm:px-6 mx-auto py-8">
 
                     <!-- Header with Actions -->
@@ -81,7 +32,7 @@
                                 <span>Neue Anfrage</span>
                             </button>
                             <button onclick="syncEmails()" id="syncButton"
-                                class="inline-flex items-center justify-center w-full lg:w-auto px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg transition-colors duration-150">
+                                class="inline-flex items-center justify-center w-full lg:w-auto btn btn-primary">
                                 <svg id="syncIcon" class="w-4 h-4 mr-2" fill="none" stroke="currentColor"
                                     viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -555,12 +506,12 @@
                     </td>
                     <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400" data-label="Status">
                          ${c.status === 'returned' ?
-                                    '<span class="text-green-600 dark:text-green-400">Zurückgegeben</span>' :
+                                    '<span class="badge badge--returned"><span aria-hidden="true">✓</span>Zurückgegeben</span>' :
                           c.status === 'invoice_pending' ?
-                                    '<span class="text-orange-500 dark:text-orange-400">Rechnung offen</span>' :
+                                    '<span class="badge badge--due"><span aria-hidden="true">◷</span>Rechnung offen</span>' :
                           c.contract_created ?
-                                    '<span class="text-green-600 dark:text-green-400">Vertrag erstellt</span>' :
-                                    '<span class="text-gray-400">Archiviert</span>'}
+                                    '<span class="badge badge--active"><span aria-hidden="true">↗</span>Vertrag erstellt</span>' :
+                                    '<span class="badge badge--invoiced"><span aria-hidden="true">▤</span>Archiviert</span>'}
                     </td>
                 </tr>
             `).join('');
@@ -669,10 +620,9 @@
                         }
                     </script>
                 </div>
-            </main>
-        </div>
-    </div>
+{% endblock %}
 
+{% block scripts %}
     <!-- Edit Modal -->
     <div id="editModal" class="fixed inset-0 z-50 hidden">
         <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" onclick="closeEditModal()"></div>
@@ -1889,6 +1839,4 @@
             }
         }
     </script>
-</body>
-
-</html>
+{% endblock %}

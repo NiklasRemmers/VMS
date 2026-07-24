@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="de">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>{% block title %}Anlagenreferat{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/static/mobile.css">
+    <script>
+        // Single source of truth. Colours reference the CSS custom properties in
+        // the <style> below (rgb triplets so `/opacity` modifiers keep working).
+        // The neutral ramp (`gray`) is remapped to Slate; `primary` and `purple`
+        // both point at one Indigo ramp — one accent, one neutral, app-wide.
+        const ramp = (v) => `rgb(var(${v}) / <alpha-value>)`;
+        const scale = (p) => Object.fromEntries(
+            [50, 100, 200, 300, 400, 500, 600, 700, 800, 900].map(n => [n, ramp(`--${p}-${n}`)]));
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        gray: scale('n'),          // neutral → Slate
+                        primary: scale('primary'), // accent → Indigo
+                        purple: scale('primary'),  // navbar/sidebar accent → same Indigo
+                        surface: { DEFAULT: ramp('--c-surface'), 2: ramp('--c-surface-2') },
+                        ink: ramp('--c-text'),
+                        muted: ramp('--c-muted'),
+                        divider: ramp('--c-divider'),
+                        control: ramp('--c-border-control'),
+                        accent: { DEFAULT: ramp('--c-accent'), hover: ramp('--c-accent-hover'), fg: ramp('--c-accent-fg') },
+                    },
+                    fontFamily: { sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'] },
+                    borderRadius: { sm: '6px', md: '8px' },
+                }
+            }
+        }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* ── Design tokens — see docs/DESIGN_SYSTEM.md. Ramps are theme-independent;
+              semantic --c-*/--st-* switch role per theme. rgb triplets throughout. ── */
+        :root {
+            /* neutral ramp — Slate */
+            --n-50: 248 250 252;  --n-100: 241 245 249; --n-200: 226 232 240;
+            --n-300: 203 213 225; --n-400: 148 163 184; --n-500: 100 116 139;
+            --n-600: 71 85 105;   --n-700: 51 65 85;    --n-800: 30 41 59;
+            --n-900: 15 23 42;
+            /* accent ramp — Indigo */
+            --primary-50: 238 242 255;  --primary-100: 224 231 255; --primary-200: 199 210 254;
+            --primary-300: 165 180 252; --primary-400: 129 140 248; --primary-500: 99 102 241;
+            --primary-600: 79 70 229;   --primary-700: 67 56 202;   --primary-800: 55 48 163;
+            --primary-900: 49 46 129;
+
+            /* semantic — light */
+            --c-bg: var(--n-50);
+            --c-surface: 255 255 255;
+            --c-surface-2: var(--n-50);
+            --c-divider: var(--n-200);
+            --c-border-control: var(--n-500);
+            --c-text: var(--n-800);
+            --c-muted: var(--n-500);
+            --c-accent: var(--primary-600);
+            --c-accent-hover: var(--primary-700);
+            --c-accent-fg: var(--primary-600);
+            --c-focus: var(--primary-500);
+
+            /* status: text triple + tint triple (tint applied with /opacity) */
+            --st-overdue: 185 28 28;   --st-overdue-bg: 254 242 242;
+            --st-due: 180 83 9;        --st-due-bg: 255 251 235;
+            --st-active: 14 116 144;   --st-active-bg: 236 254 255;
+            --st-returned: 21 128 61;  --st-returned-bg: 240 253 244;
+            --st-invoiced: 71 85 105;  --st-invoiced-bg: 241 245 249;
+            --st-new: 100 116 139;     --st-new-bg: 248 250 252;
+
+            /* density */
+            --control-h: 2.75rem;   /* 44px — inputs, selects, buttons, rows */
+            --radius-sm: 6px; --radius-md: 8px;
+        }
+
+        .dark {
+            --c-bg: var(--n-900);
+            --c-surface: var(--n-800);
+            --c-surface-2: var(--n-900);
+            --c-divider: var(--n-700);
+            --c-border-control: var(--n-400);
+            --c-text: var(--n-100);
+            --c-muted: var(--n-400);
+            --c-accent: var(--primary-600);
+            --c-accent-hover: var(--primary-700);
+            --c-accent-fg: var(--primary-400);
+            --c-focus: var(--primary-400);
+
+            --st-overdue: 248 113 113;  --st-overdue-bg: 127 29 29;
+            --st-due: 251 191 36;       --st-due-bg: 120 53 15;
+            --st-active: 34 211 238;    --st-active-bg: 22 78 99;
+            --st-returned: 74 222 128;  --st-returned-bg: 20 83 45;
+            --st-invoiced: 148 163 184; --st-invoiced-bg: 51 65 85;
+            --st-new: 148 163 184;      --st-new-bg: 15 23 42;
+        }
+
+        body { font-family: 'Inter', ui-sans-serif, system-ui, sans-serif; }
+        [hidden] { display: none !important; }
+
+        /* Tabular figures for every number/date/amount column — the single
+           highest-value typographic rule for this tool. */
+        .nums { font-variant-numeric: tabular-nums; }
+
+        /* Global visible focus for anything that doesn't set its own ring. */
+        a:focus-visible, button:focus-visible, input:focus-visible,
+        select:focus-visible, textarea:focus-visible, [tabindex]:focus-visible,
+        [role="button"]:focus-visible {
+            outline: 2px solid rgb(var(--c-focus));
+            outline-offset: 2px;
+        }
+
+        /* ── Component layer (references tokens only). Adopt per page. ── */
+        .btn {
+            display: inline-flex; align-items: center; justify-content: center; gap: .5rem;
+            min-height: var(--control-h); padding: 0 1rem;
+            border-radius: var(--radius-md); font-size: .875rem; font-weight: 500;
+            border: 1px solid transparent; cursor: pointer;
+            transition: background-color .15s, border-color .15s, color .15s;
+        }
+        .btn:disabled { opacity: .5; cursor: not-allowed; }
+        .btn-primary { background: rgb(var(--c-accent)); color: #fff; }
+        .btn-primary:hover:not(:disabled) { background: rgb(var(--c-accent-hover)); }
+        .btn-secondary { background: rgb(var(--c-surface)); color: rgb(var(--c-text)); border-color: rgb(var(--c-border-control)); }
+        .btn-secondary:hover:not(:disabled) { background: rgb(var(--c-surface-2)); }
+        .btn-danger { background: rgb(var(--st-overdue)); color: #fff; }
+        .btn-danger:hover:not(:disabled) { filter: brightness(.92); }
+        .btn-ghost { background: transparent; color: rgb(var(--c-accent-fg)); }
+        .btn-ghost:hover:not(:disabled) { background: rgb(var(--c-accent-fg) / .1); }
+
+        .field {
+            width: 100%; min-height: var(--control-h); padding: 0 .75rem;
+            background: rgb(var(--c-surface)); color: rgb(var(--c-text));
+            border: 1px solid rgb(var(--c-border-control)); border-radius: var(--radius-sm);
+            font-size: .875rem;
+        }
+        .field::placeholder { color: rgb(var(--c-muted)); }
+        .field:focus { outline: none; border-color: rgb(var(--c-accent)); box-shadow: 0 0 0 2px rgb(var(--c-focus) / .4); }
+        .field[aria-invalid="true"] { border-color: rgb(var(--st-overdue)); }
+
+        /* Status pill: colour + icon slot + label (never colour alone). */
+        .badge {
+            display: inline-flex; align-items: center; gap: .3125rem;
+            padding: .125rem .5rem; border-radius: 9999px;
+            font-size: .6875rem; font-weight: 600; letter-spacing: .04em; text-transform: uppercase;
+            white-space: nowrap;
+        }
+        .badge--overdue  { color: rgb(var(--st-overdue));  background: rgb(var(--st-overdue-bg)  / .55); }
+        .badge--due      { color: rgb(var(--st-due));      background: rgb(var(--st-due-bg)      / .55); }
+        .badge--active   { color: rgb(var(--st-active));   background: rgb(var(--st-active-bg)   / .55); }
+        .badge--returned { color: rgb(var(--st-returned)); background: rgb(var(--st-returned-bg) / .55); }
+        .badge--invoiced { color: rgb(var(--st-invoiced)); background: rgb(var(--st-invoiced-bg) / .55); }
+        .badge--new      { color: rgb(var(--st-new));      background: transparent; border: 1px dashed rgb(var(--st-new)); }
+        .dark .badge--overdue  { background-color: rgb(var(--st-overdue-bg)  / .30); }
+        .dark .badge--due      { background-color: rgb(var(--st-due-bg)      / .30); }
+        .dark .badge--active   { background-color: rgb(var(--st-active-bg)   / .30); }
+        .dark .badge--returned { background-color: rgb(var(--st-returned-bg) / .30); }
+        .dark .badge--invoiced { background-color: rgb(var(--st-invoiced-bg) / .30); }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: .01ms !important; animation-iteration-count: 1 !important;
+                transition-duration: .01ms !important; scroll-behavior: auto !important;
+            }
+        }
+    </style>
+    <script src="/static/theme.js"></script>
+    {% block head_extra %}{% endblock %}
+</head>
+
+<body class="{% block body_class %}bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100 transition-colors duration-200{% endblock %}">
+    {% block body %}{% endblock %}
+    {% block scripts %}{% endblock %}
+</body>
+
+</html>

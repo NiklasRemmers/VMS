@@ -1,51 +1,14 @@
-<!DOCTYPE html>
-<html lang="de" class="h-full bg-gray-50 dark:bg-gray-900">
+{% extends "_app.html" %}
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>VMS - Rechnungen</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="/static/mobile.css">
+{% block title %}VMS - Rechnungen{% endblock %}
+
+{% block head_extra %}
     <script src="/static/searchable_select.js"></script>
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        purple: {
-                            50: '#f5f3ff',
-                            100: '#ede9fe',
-                            500: '#8b5cf6',
-                            600: '#7c3aed',
-                            700: '#6d28d9',
-                        }
-                    }
-                }
-            }
-        }
-    </script>
-    <script>
-        // Check local storage for dark mode preference
-        if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-            document.documentElement.classList.add('dark')
-        } else {
-            document.documentElement.classList.remove('dark')
-        }
-    </script>
-</head>
+{% endblock %}
 
-<body class="h-full font-sans antialiased text-gray-900 dark:text-gray-100 flex overflow-hidden">
+{% block main_class %}flex-1 overflow-x-hidden overflow-y-auto bg-gray-50 dark:bg-gray-900 min-h-0{% endblock %}
 
-    {% include '_sidebar.html' %}
-
-    <div class="flex-1 flex flex-col w-full h-full min-w-0">
-        {% include '_navbar.html' %}
-
-        <!-- Main Content (Scrollable Container) -->
-        <main class="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50 dark:bg-gray-900 min-h-0">
+{% block content %}
             <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-8 h-full flex flex-col">
                 
                 <!-- Toast Notifications -->
@@ -67,7 +30,7 @@
                             <!-- Skeleton Loader -->
                             <div id="invoicesLoader" class="flex items-center justify-center h-64">
                                 <div class="animate-pulse flex flex-col items-center">
-                                    <div class="h-8 w-8 bg-purple-200 rounded-full mb-4"></div>
+                                    <div class="h-8 w-8 bg-primary-200 rounded-full mb-4"></div>
                                     <div class="text-gray-500 dark:text-gray-400">Verarbeite Daten...</div>
                                 </div>
                             </div>
@@ -101,9 +64,9 @@
                     </div>
                 </div>
             </div>
-        </main>
-    </div>
+{% endblock %}
 
+{% block scripts %}
     <!-- Type Chooser Modal -->
     <div id="invoiceTypeModal" class="fixed inset-0 z-50 overflow-y-auto hidden" role="dialog" aria-modal="true">
         <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
@@ -113,7 +76,7 @@
             <div class="inline-block align-bottom bg-white dark:bg-gray-800 rounded-xl px-4 pt-5 pb-4 text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6 border border-gray-100 dark:border-gray-700">
                 <div class="flex justify-between items-center mb-2">
                     <h3 class="text-xl font-bold text-gray-900 dark:text-white">Was soll erstellt werden?</h3>
-                    <button type="button" onclick="closeInvoiceTypeModal()" class="text-gray-400 hover:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 p-2 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500">
+                    <button type="button" onclick="closeInvoiceTypeModal()" class="text-gray-400 hover:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 p-2 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
                         <span class="sr-only">Schließen</span>
                         <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -123,7 +86,7 @@
                 <p class="text-sm text-gray-500 dark:text-gray-400 mb-5" id="invTypeSubtitle">-</p>
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <button type="button" onclick="openInvoiceModal('rechnung')" class="text-left rounded-lg border border-gray-200 dark:border-gray-600 hover:border-purple-500 dark:hover:border-purple-500 hover:bg-purple-50 dark:hover:bg-purple-900/20 p-4 transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500">
+                    <button type="button" onclick="openInvoiceModal('rechnung')" class="text-left rounded-lg border border-gray-200 dark:border-gray-600 hover:border-primary-500 dark:hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/20 p-4 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500">
                         <span class="block font-medium text-gray-900 dark:text-white">Rechnung</span>
                         <span class="block text-sm text-gray-500 dark:text-gray-400 mt-1">An eine externe Empfängeranschrift.</span>
                     </button>
@@ -150,7 +113,7 @@
                 <!-- Modal Header -->
                 <div class="flex justify-between items-center mb-5 pb-4 border-b border-gray-200 dark:border-gray-700">
                     <div class="flex items-center gap-2 min-w-0">
-                        <button type="button" onclick="backToInvoiceType()" title="Typ ändern" class="text-gray-400 hover:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 p-2 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500">
+                        <button type="button" onclick="backToInvoiceType()" title="Typ ändern" class="text-gray-400 hover:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 p-2 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
                             <span class="sr-only">Zurück zur Typ-Auswahl</span>
                             <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
@@ -158,7 +121,7 @@
                         </button>
                         <h3 class="text-xl font-bold text-gray-900 dark:text-white truncate" id="invoiceModalTitle">Rechnung erstellen</h3>
                     </div>
-                    <button type="button" onclick="closeInvoiceModal()" class="text-gray-400 hover:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 p-2 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500">
+                    <button type="button" onclick="closeInvoiceModal()" class="text-gray-400 hover:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 p-2 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
                         <span class="sr-only">Schließen</span>
                         <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -186,14 +149,14 @@
                 <div class="mb-6">
                     <label for="invLaufendeNummer" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Laufende Nummer</label>
                     <input type="number" id="invLaufendeNummer"
-                        class="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-purple-500 focus:ring-purple-500 sm:text-sm px-4 py-2 border"
+                        class="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm px-4 py-2 border"
                         placeholder="Nummer" min="1">
                 </div>
 
                 <!-- Billing Address (nur Rechnung) -->
                 <div class="mb-6" id="invAdresseBlock">
                     <label for="invAdresse" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Rechnungsanschrift</label>
-                    <textarea id="invAdresse" rows="3" class="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-purple-500 focus:ring-purple-500 sm:text-sm px-4 py-2 border"></textarea>
+                    <textarea id="invAdresse" rows="3" class="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm px-4 py-2 border"></textarea>
                 </div>
 
                 <!-- Kostenstelle (nur Umbuchung) -->
@@ -223,7 +186,7 @@
                             <tfoot class="bg-gray-50 dark:bg-gray-700 font-medium">
                                 <tr>
                                     <td colspan="3" class="px-4 py-3 text-right text-gray-900 dark:text-white">Gesamtsumme:</td>
-                                    <td colspan="2" class="px-4 py-3 text-left text-gray-900 dark:text-white" id="invoiceTotal">0,00 €</td>
+                                    <td colspan="2" class="px-4 py-3 text-left text-gray-900 dark:text-white nums" id="invoiceTotal">0,00 €</td>
                                 </tr>
                             </tfoot>
                         </table>
@@ -236,12 +199,12 @@
                     <div class="flex items-end gap-3 mb-4">
                         <div class="flex-1">
                             <label for="consumableSelect" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Verbrauchsmaterial hinzufügen</label>
-                            <select id="consumableSelect" data-searchable class="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-purple-500 focus:ring-purple-500 sm:text-sm px-4 py-2 border">
+                            <select id="consumableSelect" data-searchable class="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm px-4 py-2 border">
                                 <option value="">Material wählen...</option>
                                 <!-- Loaded via API -->
                             </select>
                         </div>
-                        <button type="button" onclick="addConsumableItem()" class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 dark:focus:ring-offset-gray-800">
+                        <button type="button" onclick="addConsumableItem()" class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 dark:focus:ring-offset-gray-800">
                             Hinzufügen
                         </button>
                     </div>
@@ -259,17 +222,17 @@
                     <div class="flex flex-wrap sm:flex-nowrap items-end gap-3 mt-4">
                         <div class="flex-1 min-w-[150px]">
                             <label for="customName" class="block text-xs text-gray-500 dark:text-gray-400 mb-1">Bezeichnung</label>
-                            <input type="text" id="customName" class="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-purple-500 focus:ring-purple-500 sm:text-sm px-3 py-1.5 border">
+                            <input type="text" id="customName" class="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm px-3 py-1.5 border">
                         </div>
                         <div class="w-24">
                             <label for="customPrice" class="block text-xs text-gray-500 dark:text-gray-400 mb-1">Preis (€)</label>
-                            <input type="number" id="customPrice" step="0.01" min="0" value="0.00" class="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-purple-500 focus:ring-purple-500 sm:text-sm px-3 py-1.5 border">
+                            <input type="number" id="customPrice" step="0.01" min="0" value="0.00" class="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm px-3 py-1.5 border">
                         </div>
                         <div class="w-24">
                             <label for="customUnit" class="block text-xs text-gray-500 dark:text-gray-400 mb-1">Einheit</label>
-                            <input type="text" id="customUnit" placeholder="z.B. Stück" class="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-purple-500 focus:ring-purple-500 sm:text-sm px-3 py-1.5 border">
+                            <input type="text" id="customUnit" placeholder="z.B. Stück" class="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm px-3 py-1.5 border">
                         </div>
-                        <button type="button" onclick="addCustomItem()" class="inline-flex items-center px-3 py-1.5 border border-gray-300 dark:border-gray-600 shadow-sm text-sm font-medium rounded-md text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 dark:focus:ring-offset-gray-800">
+                        <button type="button" onclick="addCustomItem()" class="inline-flex items-center px-3 py-1.5 border border-gray-300 dark:border-gray-600 shadow-sm text-sm font-medium rounded-md text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 dark:focus:ring-offset-gray-800">
                             Plus
                         </button>
                     </div>
@@ -277,10 +240,10 @@
 
                 <!-- Action Buttons -->
                 <div class="mt-5 sm:mt-6 sm:flex sm:flex-row-reverse gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
-                    <button type="button" id="btnSendInvoice" onclick="downloadInvoice()" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-purple-600 text-base font-medium text-white hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 sm:w-auto sm:text-sm dark:focus:ring-offset-gray-800 disabled:opacity-60 disabled:cursor-not-allowed">
+                    <button type="button" id="btnSendInvoice" onclick="downloadInvoice()" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-primary-600 text-base font-medium text-white hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 sm:w-auto sm:text-sm dark:focus:ring-offset-gray-800 disabled:opacity-60 disabled:cursor-not-allowed">
                         Rechnung herunterladen
                     </button>
-                    <button type="button" onclick="closeInvoiceModal()" class="mt-3 sm:mt-0 w-full inline-flex justify-center rounded-md border border-gray-300 dark:border-gray-600 shadow-sm px-4 py-2 bg-white dark:bg-gray-700 text-base font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 sm:w-auto sm:text-sm dark:focus:ring-offset-gray-800">
+                    <button type="button" onclick="closeInvoiceModal()" class="mt-3 sm:mt-0 w-full inline-flex justify-center rounded-md border border-gray-300 dark:border-gray-600 shadow-sm px-4 py-2 bg-white dark:bg-gray-700 text-base font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 sm:w-auto sm:text-sm dark:focus:ring-offset-gray-800">
                         Abbrechen
                     </button>
                 </div>
@@ -396,7 +359,7 @@
                     let tagsHtml = '';
                     if (c.tags && c.tags.length > 0) {
                         tagsHtml = `<div class="flex flex-wrap gap-1">` + 
-                            c.tags.map(t => `<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300 border border-purple-200 dark:border-purple-800">${escapeHtml(t)}</span>`).join('') +
+                            c.tags.map(t => `<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-primary-100 text-primary-800 dark:bg-primary-900/30 dark:text-primary-300 border border-primary-200 dark:border-primary-800">${escapeHtml(t)}</span>`).join('') +
                             `</div>`;
                     } else {
                         tagsHtml = `<span class="text-xs text-gray-500">-</span>`;
@@ -417,7 +380,7 @@
                     tr.innerHTML = `
                         <td class="px-6 py-4 whitespace-nowrap cell-title">
                             <div class="flex items-center">
-                                <div class="flex-shrink-0 h-8 w-8 rounded-full bg-purple-100 dark:bg-purple-900/50 flex items-center justify-center text-purple-600 dark:text-purple-400 font-bold">
+                                <div class="flex-shrink-0 h-8 w-8 rounded-full bg-primary-100 dark:bg-primary-900/50 flex items-center justify-center text-primary-600 dark:text-primary-400 font-bold">
                                     ${escapeHtml(displayName.charAt(0))}
                                 </div>
                                 <div class="ml-4">
@@ -430,7 +393,7 @@
                         <td class="px-6 py-4 whitespace-nowrap" data-label="Tags">${tagsHtml}</td>
                         <td class="px-6 py-4 text-sm text-gray-700 dark:text-gray-300" data-label="Hinweis">${noteHtml}</td>
                         <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium cell-actions">
-                            <button onclick='chooseInvoiceType(${JSON.stringify(c).replace(/'/g, "&#39;")})' class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded shadow-sm text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500">
+                            <button onclick='chooseInvoiceType(${JSON.stringify(c).replace(/'/g, "&#39;")})' class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded shadow-sm text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
                                 Erstellen
                             </button>
                         </td>
@@ -447,7 +410,7 @@
             rechnung: {
                 label: 'Rechnung',
                 itemsHeading: 'Rechnungsposten',
-                btnClasses: ['bg-purple-600', 'hover:bg-purple-700', 'focus:ring-purple-500'],
+                btnClasses: ['bg-primary-600', 'hover:bg-primary-700', 'focus:ring-primary-500'],
             },
             umbuchung: {
                 label: 'Umbuchung',
@@ -580,7 +543,7 @@
                     <td class="px-4 py-2 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">${escapeHtml(item.name)}</td>
                     <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${formatMoney(item.price)} / ${escapeHtml(item.unit)}</td>
                     <td class="px-4 py-2 whitespace-nowrap">
-                        <input type="number" min="1" step="1" value="${item.quantity}" onchange="updateItemQuantity(${index}, this.value)" class="block w-20 rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-purple-500 focus:ring-purple-500 sm:text-sm px-2 py-1 border">
+                        <input type="number" min="1" step="1" value="${item.quantity}" onchange="updateItemQuantity(${index}, this.value)" class="block w-20 rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm px-2 py-1 border">
                     </td>
                     <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-900 dark:text-white">${formatMoney(itemTotal)}</td>
                     <td class="px-4 py-2 whitespace-nowrap text-right text-sm font-medium">
@@ -751,5 +714,4 @@
         // Init
         document.addEventListener('DOMContentLoaded', loadData);
     </script>
-</body>
-</html>
+{% endblock %}

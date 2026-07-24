@@ -1,65 +1,8 @@
-<!DOCTYPE html>
-<html lang="de" class="dark">
+{% extends "_app.html" %}
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>Anlagenreferat</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="/static/mobile.css">
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        primary: {
-                            50: '#f5f3ff',
-                            100: '#ede9fe',
-                            200: '#ddd6fe',
-                            300: '#c4b5fd',
-                            400: '#a78bfa',
-                            500: '#8b5cf6',
-                            600: '#7c3aed',
-                            700: '#6d28d9',
-                            800: '#5b21b6',
-                            900: '#4c1d95',
-                        }
-                    }
-                }
-            }
-        }
-    </script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        body {
-            font-family: 'Inter', sans-serif;
-        }
+{% block title %}Anlagenreferat{% endblock %}
 
-        [hidden] {
-            display: none !important;
-        }
-    </style>
-    <script src="/static/theme.js"></script>
-</head>
-
-<body class="bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
-    <div class="flex h-screen">
-
-        <!-- Sidebar -->
-        {% include '_sidebar.html' %}
-
-        <!-- Main Content Wrapper -->
-        <div class="flex flex-col flex-1 w-full min-w-0">
-
-            <!-- Header -->
-            {% include '_navbar.html' %}
-
-            <!-- Main Content -->
-            <main class="h-full overflow-y-auto">
+{% block content %}
                 <div class="container px-4 sm:px-6 mx-auto py-8">
 
                     <!-- Page Header -->
@@ -267,7 +210,7 @@
                                         <option value="">Kein Paket ausgewählt...</option>
                                     </select>
                                     <button type="button" id="loadPackageBtn"
-                                        class="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg transition-colors duration-150">
+                                        class="btn btn-primary">
                                         Hinzufügen
                                     </button>
                                 </div>
@@ -390,10 +333,9 @@
                     </form>
 
                 </div>
-            </main>
-        </div>
-    </div>
+{% endblock %}
 
+{% block scripts %}
     <!-- Custom Material Modal -->
     <div id="customMaterialModal" class="fixed inset-0 z-50 hidden">
         <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" id="customMaterialBackdrop"></div>
@@ -409,20 +351,20 @@
                             class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Bezeichnung
                             (Kurz)</label>
                         <input type="text" id="customMaterialName"
-                            class="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500">
+                            class="field">
                     </div>
                     <div>
                         <label for="customMaterialText"
                             class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Beschreibung
                             (für Vertrag)</label>
                         <textarea id="customMaterialText" rows="3"
-                            class="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 resize-y"></textarea>
+                            class="field resize-y"></textarea>
                     </div>
                     <div>
                         <label for="customMaterialCount"
                             class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Anzahl</label>
                         <input type="number" id="customMaterialCount" min="1" value="1"
-                            class="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500">
+                            class="field">
                     </div>
                     <div class="flex items-center">
                         <input id="saveToJson" type="checkbox"
@@ -434,11 +376,11 @@
                 </div>
                 <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 sm:gap-3 mt-6">
                     <button type="button" id="cancelCustomMaterial"
-                        class="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-sm font-medium rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                        class="btn btn-secondary">
                         Abbrechen
                     </button>
                     <button type="button" id="confirmCustomMaterial"
-                        class="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg transition-colors">
+                        class="btn btn-primary">
                         Hinzufügen
                     </button>
                 </div>
@@ -464,11 +406,11 @@
                 </div>
                 <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 sm:gap-3">
                     <button type="button" id="skipTagMapping"
-                        class="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-sm font-medium rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-150">
+                        class="btn btn-secondary duration-150">
                         Überspringen
                     </button>
                     <button type="button" id="confirmTagMapping"
-                        class="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg transition-colors duration-150">
+                        class="btn btn-primary">
                         Speichern & Hinzufügen
                     </button>
                 </div>
@@ -491,6 +433,4 @@
 
     <script src="/static/searchable_select.js"></script>
     <script src="/static/app.js?v={{ range(100000) | random }}"></script>
-</body>
-
-</html>
+{% endblock %}

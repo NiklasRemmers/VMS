@@ -1,0 +1,20 @@
+{% extends "_base.html" %}
+
+{# Application shell: sidebar + top navbar + scrollable main.
+   Pages provide {% block content %}; they own their inner container markup. #}
+
+{% block body %}
+<div class="flex h-screen overflow-hidden">
+
+    {% include '_sidebar.html' %}
+
+    <div class="flex flex-col flex-1 w-full min-w-0">
+
+        {% include '_navbar.html' %}
+
+        <main class="{% block main_class %}h-full overflow-y-auto{% endblock %}">
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+</div>
+{% endblock %}
