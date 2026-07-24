@@ -126,7 +126,7 @@
 
                 <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 sm:gap-3 mt-6">
                     <button type="button" onclick="closeSyntaxModal()"
-                        class="btn btn-primary">Schließen</button>
+                        class="btn btn-secondary">Schließen</button>
                 </div>
             </div>
         </div>
@@ -176,7 +176,7 @@
                         <td class="px-3 py-2 text-gray-500 dark:text-gray-400" data-label="Notiz">${escapeHtml(v.note || '—')}</td>
                         <td class="px-3 py-2" data-label="Status">
                             ${v.is_active
-                        ? '<span class="px-2 py-1 text-xs font-medium rounded bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">aktiv</span>'
+                        ? '<span class="badge badge--returned">aktiv</span>'
                         : `<button onclick="activateVersion(${v.id}, ${v.version})" class="text-primary-600 hover:text-primary-700 dark:text-primary-400">Aktivieren</button>`}
                         </td>
                         <td class="px-3 py-2 cell-actions">
@@ -194,15 +194,17 @@
                     </div>
                 </div>
 
-                <div class="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center hover:border-primary-500 transition-colors">
-                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">Neue ODT-Vorlage hochladen</p>
-                    <input type="text" id="note-${entry.template_type}" placeholder="Änderungsnotiz (optional)"
-                        class="w-full max-w-md mb-3 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200">
-                    <label class="inline-block btn btn-primary">
-                        Datei auswählen
-                        <input type="file" accept=".odt" class="hidden"
-                            onchange="uploadTemplate('${entry.template_type}', this)">
-                    </label>
+                <div class="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 hover:border-primary-500 transition-colors">
+                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-3 text-center">Neue ODT-Vorlage hochladen</p>
+                    <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3">
+                        <input type="text" id="note-${entry.template_type}" placeholder="Änderungsnotiz (optional)"
+                            class="field sm:max-w-md">
+                        <label class="btn btn-primary whitespace-nowrap cursor-pointer">
+                            Datei auswählen
+                            <input type="file" accept=".odt" class="hidden"
+                                onchange="uploadTemplate('${entry.template_type}', this)">
+                        </label>
+                    </div>
                 </div>
 
                 <div id="result-${entry.template_type}" class="mt-4"></div>

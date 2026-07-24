@@ -149,20 +149,20 @@
                 <div class="mb-6">
                     <label for="invLaufendeNummer" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Laufende Nummer</label>
                     <input type="number" id="invLaufendeNummer"
-                        class="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm px-4 py-2 border"
+                        class="field"
                         placeholder="Nummer" min="1">
                 </div>
 
                 <!-- Billing Address (nur Rechnung) -->
                 <div class="mb-6" id="invAdresseBlock">
                     <label for="invAdresse" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Rechnungsanschrift</label>
-                    <textarea id="invAdresse" rows="3" class="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm px-4 py-2 border"></textarea>
+                    <textarea id="invAdresse" rows="3" class="field"></textarea>
                 </div>
 
                 <!-- Kostenstelle (nur Umbuchung) -->
                 <div class="mb-6 hidden" id="invKostenstelleBlock">
                     <label for="invKostenstelle" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Kostenstelle</label>
-                    <input type="text" id="invKostenstelle" class="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-emerald-500 focus:ring-emerald-500 sm:text-sm px-4 py-2 border">
+                    <input type="text" id="invKostenstelle" class="field">
                     <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Kostenstelle, von der der Betrag zu 300 420 umgebucht wird.</p>
                 </div>
 
@@ -199,12 +199,12 @@
                     <div class="flex items-end gap-3 mb-4">
                         <div class="flex-1">
                             <label for="consumableSelect" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Verbrauchsmaterial hinzufügen</label>
-                            <select id="consumableSelect" data-searchable class="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm px-4 py-2 border">
+                            <select id="consumableSelect" data-searchable class="field">
                                 <option value="">Material wählen...</option>
                                 <!-- Loaded via API -->
                             </select>
                         </div>
-                        <button type="button" onclick="addConsumableItem()" class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 dark:focus:ring-offset-gray-800">
+                        <button type="button" onclick="addConsumableItem()" class="btn btn-primary">
                             Hinzufügen
                         </button>
                     </div>
@@ -222,17 +222,17 @@
                     <div class="flex flex-wrap sm:flex-nowrap items-end gap-3 mt-4">
                         <div class="flex-1 min-w-[150px]">
                             <label for="customName" class="block text-xs text-gray-500 dark:text-gray-400 mb-1">Bezeichnung</label>
-                            <input type="text" id="customName" class="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm px-3 py-1.5 border">
+                            <input type="text" id="customName" class="field">
                         </div>
                         <div class="w-24">
                             <label for="customPrice" class="block text-xs text-gray-500 dark:text-gray-400 mb-1">Preis (€)</label>
-                            <input type="number" id="customPrice" step="0.01" min="0" value="0.00" class="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm px-3 py-1.5 border">
+                            <input type="number" id="customPrice" step="0.01" min="0" value="0.00" class="field">
                         </div>
                         <div class="w-24">
                             <label for="customUnit" class="block text-xs text-gray-500 dark:text-gray-400 mb-1">Einheit</label>
-                            <input type="text" id="customUnit" placeholder="z.B. Stück" class="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm px-3 py-1.5 border">
+                            <input type="text" id="customUnit" placeholder="z.B. Stück" class="field">
                         </div>
-                        <button type="button" onclick="addCustomItem()" class="inline-flex items-center px-3 py-1.5 border border-gray-300 dark:border-gray-600 shadow-sm text-sm font-medium rounded-md text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 dark:focus:ring-offset-gray-800">
+                        <button type="button" onclick="addCustomItem()" class="btn btn-secondary">
                             Plus
                         </button>
                     </div>
@@ -240,10 +240,10 @@
 
                 <!-- Action Buttons -->
                 <div class="mt-5 sm:mt-6 sm:flex sm:flex-row-reverse gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
-                    <button type="button" id="btnSendInvoice" onclick="downloadInvoice()" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-primary-600 text-base font-medium text-white hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 sm:w-auto sm:text-sm dark:focus:ring-offset-gray-800 disabled:opacity-60 disabled:cursor-not-allowed">
+                    <button type="button" id="btnSendInvoice" onclick="downloadInvoice()" class="btn btn-primary w-full sm:w-auto">
                         Rechnung herunterladen
                     </button>
-                    <button type="button" onclick="closeInvoiceModal()" class="mt-3 sm:mt-0 w-full inline-flex justify-center rounded-md border border-gray-300 dark:border-gray-600 shadow-sm px-4 py-2 bg-white dark:bg-gray-700 text-base font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 sm:w-auto sm:text-sm dark:focus:ring-offset-gray-800">
+                    <button type="button" onclick="closeInvoiceModal()" class="btn btn-secondary w-full sm:w-auto mt-3 sm:mt-0">
                         Abbrechen
                     </button>
                 </div>
@@ -393,7 +393,7 @@
                         <td class="px-6 py-4 whitespace-nowrap" data-label="Tags">${tagsHtml}</td>
                         <td class="px-6 py-4 text-sm text-gray-700 dark:text-gray-300" data-label="Hinweis">${noteHtml}</td>
                         <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium cell-actions">
-                            <button onclick='chooseInvoiceType(${JSON.stringify(c).replace(/'/g, "&#39;")})' class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded shadow-sm text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+                            <button onclick='chooseInvoiceType(${JSON.stringify(c).replace(/'/g, "&#39;")})' class="btn btn-primary">
                                 Erstellen
                             </button>
                         </td>
