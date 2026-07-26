@@ -474,6 +474,24 @@
                             }
                         }
 
+                        // Nur das Aussehen je Status. Die Bezeichnung selbst liefert
+                        // der Server als `status_label` (vms/domain/models.py), damit
+                        // sie nicht in jedem Template neu formuliert wird.
+                        const STATUS_BADGE = {
+                            pending: { cls: 'badge--new', icon: '○' },
+                            processed: { cls: 'badge--active', icon: '↗' },
+                            done: { cls: 'badge--active', icon: '↗' },
+                            invoice_pending: { cls: 'badge--due', icon: '◷' },
+                            returned: { cls: 'badge--returned', icon: '✓' },
+                            invoiced: { cls: 'badge--invoiced', icon: '▤' },
+                        };
+
+                        function statusBadge(candidate) {
+                            const style = STATUS_BADGE[candidate.status] || { cls: 'badge--invoiced', icon: '▤' };
+                            const label = candidate.status_label || candidate.status || '—';
+                            return `<span class="badge ${style.cls}"><span aria-hidden="true">${style.icon}</span>${escapeHtml(label)}</span>`;
+                        }
+
                         function renderArchiveTable(items) {
                             const tbody = document.getElementById('archiveBody');
                             if (!items || items.length === 0) {
@@ -505,13 +523,7 @@
                         ${c.return_note ? `<span class="truncate max-w-xs inline-block" title="${escapeHtml(c.return_note)}">${escapeHtml(c.return_note)}</span>` : '<span class="text-gray-400">—</span>'}
                     </td>
                     <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400" data-label="Status">
-                         ${c.status === 'returned' ?
-                                    '<span class="badge badge--returned"><span aria-hidden="true">✓</span>Zurückgegeben</span>' :
-                          c.status === 'invoice_pending' ?
-                                    '<span class="badge badge--due"><span aria-hidden="true">◷</span>Rechnung offen</span>' :
-                          c.contract_created ?
-                                    '<span class="badge badge--active"><span aria-hidden="true">↗</span>Vertrag erstellt</span>' :
-                                    '<span class="badge badge--invoiced"><span aria-hidden="true">▤</span>Archiviert</span>'}
+                        ${statusBadge(c)}
                     </td>
                 </tr>
             `).join('');

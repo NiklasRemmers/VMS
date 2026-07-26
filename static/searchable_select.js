@@ -138,12 +138,15 @@
             });
         }
 
-        function open() {
+        // selectText=false, wenn das Öffnen durch Tippen ausgelöst wurde: dort
+        // würde input.select() den gerade eingegebenen Buchstaben markieren, den
+        // der nächste Tastendruck dann überschreibt.
+        function open(selectText) {
             if (isOpen) return;
             isOpen = true;
             renderList('');
             panel.classList.remove('hidden');
-            input.select();
+            if (selectText !== false) input.select();
         }
 
         function close() {
@@ -161,10 +164,10 @@
             close();
         }
 
-        input.addEventListener('focus', open);
-        input.addEventListener('click', open);
+        input.addEventListener('focus', () => open());
+        input.addEventListener('click', () => open());
         input.addEventListener('input', () => {
-            if (!isOpen) open();
+            if (!isOpen) open(false);
             renderList(input.value);
         });
 

@@ -23,7 +23,7 @@ from sqlalchemy import func, or_, false
 from vms.domain.models import (
     EmailCandidate, EmailSyncState, CandidateStatus, ACTIVE_STATUSES,
     TERMINAL_STATUSES,
-    set_candidate_status,
+    set_candidate_status, status_label,
     format_de_date, parse_flexible_date, to_iso_date,
 )
 
@@ -657,6 +657,8 @@ def get_calendar_events(range_start=None, range_end=None):
             'borderColor': color,
             'extendedProps': {
                 'status': status,
+                # Rohwert bleibt für die Einfärbung, die Vorschau zeigt das Label.
+                'status_label': status_label(status),
                 'location': c.get('veranstaltungsort'),
                 'persons': c.get('personenzahl'),
                 'name': c.get('vorname_nachname'),

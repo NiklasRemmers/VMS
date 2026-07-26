@@ -39,6 +39,26 @@ def _make_user(db_session, **overrides):
 
 
 # --------------------------------------------------------------------------
+# status_label
+# --------------------------------------------------------------------------
+
+def test_every_status_has_a_german_label():
+    from vms.domain.models import CandidateStatus, status_label
+
+    for status in CandidateStatus:
+        assert status.label == status_label(status.value)
+        # Kein durchgereichter Rohwert und kein Enum-Repr in der Anzeige.
+        assert status.label != status.value
+        assert 'CandidateStatus' not in status.label
+
+
+def test_status_label_passes_unknown_value_through_unchanged():
+    from vms.domain.models import status_label
+
+    assert status_label('kein_status') == 'kein_status'
+
+
+# --------------------------------------------------------------------------
 # set_candidate_status
 # --------------------------------------------------------------------------
 
@@ -147,3 +167,16 @@ def test_to_dict_responsible_name_is_none_when_unset(db_session, user):
 
     assert row.responsible_user_id is None
     assert row.to_dict()["responsible_name"] is None
+
+
+@pytest.mark.integration
+def test_to_dict_carries_status_label_beside_the_raw_status(db_session, user):
+    cid = _make_candidate(db_session, user["id"], status="invoiced")
+    db_session.flush()
+
+    from vms.domain.models import EmailCandidate
+    row = db_session.query(EmailCandidate).filter_by(id=cid).one()
+
+    d = row.to_dict()
+    assert d["status"] == "invoiced"
+    assert d["status_label"] == "Rechnung verschickt"

@@ -1375,6 +1375,27 @@ def test_calendar_events_color_is_gray_for_past_amber_for_pending_green_for_acti
 
 
 @pytest.mark.integration
+def test_calendar_events_carry_german_status_label_next_to_raw_status(
+        app_ctx, db_session, user):
+    from vms.clients.email_client import get_calendar_events
+
+    _make_candidate(db_session, user['id'], veranstaltungsname='Vorbereitet',
+                    datum='2999-03-01', status='processed', email_id='cal-label-processed')
+    _make_candidate(db_session, user['id'], veranstaltungsname='Offen',
+                    datum='2999-03-02', status='invoice_pending',
+                    email_id='cal-label-invoice')
+    db_session.commit()
+
+    events = get_calendar_events()
+    by_title = {e['title']: e['extendedProps'] for e in events}
+
+    # Rohwert bleibt erhalten (Einfärbung), das Label ist für die Anzeige.
+    assert by_title['Vorbereitet']['status'] == 'processed'
+    assert by_title['Vorbereitet']['status_label'] == 'Verleih vorbereitet'
+    assert by_title['Offen']['status_label'] == 'Rechnung offen'
+
+
+@pytest.mark.integration
 def test_calendar_events_skips_candidate_with_unparseable_datum(app_ctx, db_session, user):
     from vms.clients.email_client import get_calendar_events
 

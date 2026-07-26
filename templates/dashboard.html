@@ -315,7 +315,7 @@
                         <div class="text-left p-2">
                             <div class="font-bold text-sm mb-1 text-gray-800 dark:text-gray-100">${info.event.title}</div>
                             <div class="text-xs space-y-1 text-gray-600 dark:text-gray-300">
-                                <div><span class="font-semibold">Status:</span> <span class="${statusColor}">${info.event.extendedProps.status}</span></div>
+                                <div><span class="font-semibold">Status:</span> <span class="${statusColor}">${info.event.extendedProps.status_label || status}</span></div>
                                 <div><span class="font-semibold">Ort:</span> ${info.event.extendedProps.location || '-'}</div>
                                 <div><span class="font-semibold">Pers:</span> ${info.event.extendedProps.persons || '-'}</div>
                                 <div><span class="font-semibold">Name:</span> ${info.event.extendedProps.name || '-'}</div>

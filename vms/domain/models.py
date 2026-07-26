@@ -236,6 +236,32 @@ class CandidateStatus(str, Enum):
     RETURNED = 'returned'                # zurück, ohne Rechnung erledigt
     INVOICED = 'invoiced'                # Rechnung/Umbuchung verschickt
 
+    @property
+    def label(self):
+        """Deutsche Bezeichnung für die Oberfläche.
+
+        Der Rohwert ('processed', 'invoice_pending', ...) ist ein interner
+        Schlüssel und gehört nicht in die Anzeige."""
+        return _STATUS_LABELS[self]
+
+
+_STATUS_LABELS = {
+    CandidateStatus.PENDING: 'Offene Anfrage',
+    CandidateStatus.PROCESSED: 'Verleih vorbereitet',
+    CandidateStatus.DONE: 'Vertrag erstellt',
+    CandidateStatus.INVOICE_PENDING: 'Rechnung offen',
+    CandidateStatus.RETURNED: 'Zurückgegeben',
+    CandidateStatus.INVOICED: 'Rechnung verschickt',
+}
+
+
+def status_label(status):
+    """Bezeichnung zu einem Status-Rohwert; unbekannte Werte bleiben unverändert."""
+    try:
+        return CandidateStatus(status).label
+    except ValueError:
+        return status
+
 
 # Ein laufender Verleih. Diese Paarung stand vorher an vier Stellen als
 # ('processed', 'done') im Code, ohne je benannt zu werden.
@@ -332,6 +358,9 @@ class EmailCandidate(Base):
             (self.responsible.display_name or self.responsible.username)
             if self.responsible else None
         )
+        # Die Oberfläche zeigt nie den Rohstatus. Das Label kommt von hier, damit
+        # die Wortwahl nicht in jedem Template neu erfunden wird.
+        d['status_label'] = status_label(self.status)
         return d
 
 
