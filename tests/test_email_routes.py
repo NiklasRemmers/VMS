@@ -69,6 +69,32 @@ def test_archive_paginates_and_honours_limit(auth_client, user, db_session):
 
 
 @pytest.mark.route
+def test_archive_excludes_active_loan_awaiting_return(auth_client, user, db_session):
+    """Ein laufender Verleih (processed/done), dessen Datum vorbei ist, aber der
+    noch nicht als Rückgabe markiert wurde, gehört in die Rückgaben -- nicht ins
+    Archiv. Vorher zog das Archiv jeden vergangenen Vorgang unabhängig vom Status,
+    sodass ein Verleih ohne Vertrag direkt als "archiviert" erschien, ohne je
+    zurückgegeben worden zu sein."""
+    from datetime import date, timedelta
+    gestern = (date.today() - timedelta(days=2)).strftime("%d.%m.%Y")
+
+    _make_candidate(db_session, user["id"], veranstaltungsname="Noch offen",
+                    datum=gestern, status="processed", contract_created=False,
+                    email_id="arch-active-1")
+    _make_candidate(db_session, user["id"], veranstaltungsname="Zurückgegeben",
+                    datum=gestern, status="returned", email_id="arch-active-2")
+    db_session.commit()
+
+    titles = [i["veranstaltungsname"]
+              for i in auth_client.get("/api/emails/archive").get_json()["items"]]
+
+    # Der zurückgegebene (terminale) Vorgang bleibt archiviert ...
+    assert "Zurückgegeben" in titles
+    # ... der noch offene laufende Verleih nicht.
+    assert "Noch offen" not in titles
+
+
+@pytest.mark.route
 def test_archive_search_query_filters(auth_client, user, db_session):
     _make_candidate(db_session, user["id"], veranstaltungsname="Sommerfest",
                     datum="2020-01-01", status="returned", email_id="arch-a")

@@ -696,10 +696,18 @@ def get_archived_candidates(page: int = 1, limit: int = 10,
                 else_=None
             )
             
-            # Filter for past dates OR returned/problem status
+            # Filter for past dates OR returned/problem status.
+            # Ein laufender Verleih (ACTIVE_STATUSES) ist mit vergangenem Datum
+            # noch NICHT erledigt -- er wartet in den Rückgaben auf die Rückgabe.
+            # Erst der terminale Status (returned/invoiced) archiviert ihn. Ohne
+            # diesen Ausschluss erschien ein Verleih ohne Vertrag direkt im Archiv,
+            # ohne je zurückgegeben worden zu sein.
             current_date_str = func.to_char(func.current_date(), 'YYYY-MM-DD')
             q = q.filter(or_(
-                iso_date_expr < current_date_str,
+                and_(
+                    iso_date_expr < current_date_str,
+                    EmailCandidate.status.notin_([s.value for s in ACTIVE_STATUSES])
+                ),
                 EmailCandidate.status.in_([s.value for s in TERMINAL_STATUSES])
             ))
             
