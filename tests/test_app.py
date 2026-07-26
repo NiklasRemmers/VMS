@@ -408,6 +408,7 @@ def test_create_task_falls_back_to_candidate_tags_when_body_has_none(
     candidate_dict = {
         "id": candidate_id, "tags": ["Zelt", "Bierbank"], "raw_content": "",
         "veranstaltungsname": "Sommerfest",
+        "datum": "2026-08-01",
     }
     mocker.patch("vms.clients.email_client.get_candidate_by_id", return_value=candidate_dict)
     created = mocker.patch("vms.clients.kanboard_client.create_task", return_value={"id": 5})
@@ -432,7 +433,8 @@ def test_create_task_uses_explicit_description_without_deriving_from_raw(
     mocker.patch("vms.clients.email_client.get_candidate_by_id", return_value={
         "id": candidate_id, "tags": [], "raw_content": "Vor- und Nachname: ignoriert",
         "veranstaltungsname": "X",
-    })
+            "datum": "2026-08-01",
+        })
     mocker.patch("vms.clients.kanboard_client.create_task", return_value={"id": 11})
 
     resp = auth_client.post(f"/api/emails/candidates/{candidate_id}/create-task", json={
@@ -454,6 +456,7 @@ def test_create_task_derives_description_from_raw_content_when_absent(
     candidate_dict = {
         "id": candidate_id, "tags": [], "raw_content": raw,
         "veranstaltungsname": "Sommerfest",
+        "datum": "2026-08-01",
     }
     mocker.patch("vms.clients.email_client.get_candidate_by_id", return_value=candidate_dict)
     mocker.patch("vms.clients.kanboard_client.create_task", return_value={"id": 9})
@@ -477,7 +480,8 @@ def test_create_task_does_not_save_kanboard_id_when_result_has_no_id(
     candidate_id = _seed_candidate(db_session, user["id"], kanboard_task_id=None)
     mocker.patch("vms.clients.email_client.get_candidate_by_id", return_value={
         "id": candidate_id, "tags": [], "raw_content": "", "veranstaltungsname": "X",
-    })
+            "datum": "2026-08-01",
+        })
     mocker.patch("vms.clients.kanboard_client.create_task", return_value={"id": 0})
 
     resp = auth_client.post(f"/api/emails/candidates/{candidate_id}/create-task", json={})
@@ -500,7 +504,8 @@ def test_create_task_sets_responsible_user_when_present_in_body(
     candidate_id = _seed_candidate(db_session, user["id"], responsible_user_id=None)
     mocker.patch("vms.clients.email_client.get_candidate_by_id", return_value={
         "id": candidate_id, "tags": [], "raw_content": "", "veranstaltungsname": "X",
-    })
+            "datum": "2026-08-01",
+        })
     mocker.patch("vms.clients.kanboard_client.create_task", return_value={"id": 3})
 
     resp = auth_client.post(f"/api/emails/candidates/{candidate_id}/create-task", json={
@@ -521,7 +526,8 @@ def test_create_task_kanboard_failure_returns_500_and_leaves_candidate_unchanged
                                     kanboard_task_id=None)
     mocker.patch("vms.clients.email_client.get_candidate_by_id", return_value={
         "id": candidate_id, "tags": [], "raw_content": "", "veranstaltungsname": "X",
-    })
+            "datum": "2026-08-01",
+        })
     mocker.patch("vms.clients.kanboard_client.create_task", side_effect=Exception("Spalte fehlt"))
 
     resp = auth_client.post(f"/api/emails/candidates/{candidate_id}/create-task", json={})
@@ -704,3 +710,49 @@ def test_reconcile_all_rentals_returns_zero_when_lock_is_held_elsewhere(app, use
         lock_conn.execute(text("SELECT pg_advisory_unlock(:k)"),
                            {"k": app_module._ADVISORY_LOCK_KEY})
         lock_conn.close()
+
+
+# ---------------------------------------------------------------------------
+# Datumspflicht beim Anlegen eines Verleihs
+# Spec: docs/specs/vorgangslisten-und-datumspflicht.md
+# ---------------------------------------------------------------------------
+
+@pytest.mark.route
+def test_create_task_ohne_datum_gibt_400_und_bleibt_pending(
+        auth_client, user, db_session, mocker):
+    """Nur PENDING darf datumslos sein. Der Übergang zum Verleih wird abgelehnt,
+    bevor ein Kanboard-Task entsteht -- sonst bliebe ein verwaister Task zurück."""
+    candidate_id = _seed_candidate(db_session, user["id"],
+                                   status=CandidateStatus.PENDING.value,
+                                   datum=None, kanboard_task_id=None)
+    erzeugt = mocker.patch("vms.clients.kanboard_client.create_task",
+                           return_value={"id": 7})
+
+    resp = auth_client.post(f"/api/emails/candidates/{candidate_id}/create-task", json={})
+
+    assert resp.status_code == 400
+    assert "Datum" in resp.get_json()["error"]
+    erzeugt.assert_not_called()
+
+    db_session.expire_all()
+    row = db_session.query(EmailCandidate).filter_by(id=candidate_id).first()
+    assert row.status == CandidateStatus.PENDING.value
+    assert row.kanboard_task_id is None
+
+
+@pytest.mark.route
+def test_create_task_mit_datum_setzt_processed(auth_client, user, db_session, mocker):
+    candidate_id = _seed_candidate(db_session, user["id"],
+                                   status=CandidateStatus.PENDING.value,
+                                   datum=None, kanboard_task_id=None)
+    mocker.patch("vms.clients.kanboard_client.create_task", return_value={"id": 8})
+
+    resp = auth_client.post(f"/api/emails/candidates/{candidate_id}/create-task",
+                            json={"start_date": "2026-08-01"})
+
+    assert resp.status_code == 200
+
+    db_session.expire_all()
+    row = db_session.query(EmailCandidate).filter_by(id=candidate_id).first()
+    assert row.status == CandidateStatus.PROCESSED.value
+    assert row.datum == "2026-08-01"

@@ -1493,3 +1493,45 @@ def test_get_archived_candidates_db_error_returns_error_shape_without_crashing(
     assert result['total'] == 0
     assert result['pages'] == 0
     assert 'error' in result
+
+
+# ---------------------------------------------------------------------------
+# Kanboard-Import: Status hängt am Fälligkeitsdatum
+# Spec: docs/specs/vorgangslisten-und-datumspflicht.md
+# ---------------------------------------------------------------------------
+
+@pytest.mark.integration
+def test_kanboard_task_ohne_datum_wird_pending_importiert(app_ctx, db_session, user, mocker):
+    """Ein Verleih ohne Datum darf nicht entstehen. Statt den Task zu verwerfen,
+    landet er als Anfrage in 'Offen', wo das Datum nachgepflegt wird."""
+    from vms.clients.email_client import sync_with_kanboard
+    from vms.domain.models import CandidateStatus, EmailCandidate
+
+    mocker.patch("vms.clients.kanboard_client.get_leihanfragen_tasks", return_value=[
+        {"id": 4711, "title": "Ohne Termin", "description": "", "date_due": "0",
+         "parsed_data": {}, "tags": []},
+    ])
+
+    result = sync_with_kanboard(user["id"])
+
+    assert result["created"] == 1
+    row = db_session.query(EmailCandidate).filter_by(kanboard_task_id=4711).one()
+    assert row.status == CandidateStatus.PENDING.value
+
+
+@pytest.mark.integration
+def test_kanboard_task_mit_datum_bleibt_processed(app_ctx, db_session, user, mocker):
+    from vms.clients.email_client import sync_with_kanboard
+    from vms.domain.models import CandidateStatus, EmailCandidate
+
+    mocker.patch("vms.clients.kanboard_client.get_leihanfragen_tasks", return_value=[
+        {"id": 4712, "title": "Mit Termin", "description": "",
+         "date_due": "1785283200", "parsed_data": {}, "tags": []},
+    ])
+
+    result = sync_with_kanboard(user["id"])
+
+    assert result["created"] == 1
+    row = db_session.query(EmailCandidate).filter_by(kanboard_task_id=4712).one()
+    assert row.status == CandidateStatus.PROCESSED.value
+    assert row.datum

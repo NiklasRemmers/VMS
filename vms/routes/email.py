@@ -12,11 +12,19 @@ from flask import Blueprint, jsonify, render_template, request
 import vms.clients.kanboard_client as kanboard_client
 from vms.auth import login_required, current_user
 from vms.domain.models import (
-    ACTIVE_STATUSES, TERMINAL_STATUSES, CandidateStatus,
+    TERMINAL_STATUSES, CandidateStatus,
     format_de_date, parse_flexible_date, to_iso_date, to_local,
+)
+from vms.domain.vorgang import (
+    DatumErforderlich, Zielliste, massgebliches_enddatum, require_datum, zielliste,
 )
 
 email_bp = Blueprint('email', __name__)
+
+
+def _zielliste(c, heute):
+    """Zielliste eines Kandidaten-Dicts -- die eine Einsortierungsregel."""
+    return zielliste(c.get('status'), c.get('datum'), c.get('end_date'), heute)
 
 
 def _decorate_candidate_dates(c, normalize_datum=False):
@@ -40,23 +48,6 @@ def _decorate_candidate_dates(c, normalize_datum=False):
     if c.get('end_date'):
         c['end_date_display'] = format_de_date(c['end_date'])
     return parsed_date, parsed_end
-
-
-def massgebliches_enddatum(parsed_date, parsed_end):
-    """Der Tag, an dem ein Verleih endet -- maßgeblich für "vorbei?".
-
-    Gibt es ein Enddatum, zählt das. Gibt es keines, zählt das Startdatum.
-    Bewusst nicht pauschal eines von beiden: get_returns wertete vorher
-    "Start ODER Ende vergangen" aus und zeigte dadurch mehrtägige Verleihe
-    schon in den Rückgaben an, während sie noch liefen.
-
-    Ein Enddatum vor dem Startdatum ist Datenmüll und wird ignoriert, damit ein
-    Zahlendreher einen Vorgang nicht vorzeitig verschwinden lässt.
-    """
-    if parsed_end is not None and (parsed_date is None or parsed_end >= parsed_date):
-        return parsed_end
-    return parsed_date
-
 
 
 @email_bp.route('/emails')
@@ -87,15 +78,15 @@ def emails():
     processed_candidates = []
     
     for c in all_candidates:
-        # User requested to hide past requests from ALL tables
-        # Keep if date is None (unknown) or >= today
-        if c['parsed_date'] and c['parsed_date'] < today:
-            continue
-
-        if c['status'] in ACTIVE_STATUSES:
-            processed_candidates.append(c)
-        else:
+        # Eine Regel für beide Tabellen (vms/domain/vorgang.py). Vorher teilte
+        # dieser Block nur in ACTIVE/Rest, wodurch zurückgegebene und fakturierte
+        # Vorgänge unter "Offene Anfragen" landeten, bis das erste Nachladen sie
+        # entfernte.
+        ziel = _zielliste(c, today)
+        if ziel is Zielliste.OFFEN:
             open_candidates.append(c)
+        elif ziel is Zielliste.ERLEDIGT:
+            processed_candidates.append(c)
 
 
 
@@ -187,12 +178,11 @@ def email_list_html():
     processed_candidates = []
     
     for c in all_candidates:
-        if c['parsed_date'] and c['parsed_date'] < today:
-            continue
-        if c['status'] in ACTIVE_STATUSES:
-            processed_candidates.append(c)
-        else:
+        ziel = _zielliste(c, today)
+        if ziel is Zielliste.OFFEN:
             open_candidates.append(c)
+        elif ziel is Zielliste.ERLEDIGT:
+            processed_candidates.append(c)
 
     open_candidates.sort(key=lambda x: x['parsed_date'] or date.max)
     processed_candidates.sort(key=lambda x: x['parsed_date'] or date.max)
@@ -288,44 +278,43 @@ def get_paged_candidates():
     from vms.clients.email_client import get_candidates
     from datetime import datetime, date
     
-    status_param = request.args.get('status', 'pending')
+    # `liste` statt des früheren `status`: gefiltert wird nach der Zielliste, und
+    # die deckt sich nicht mit einer Statusmenge (ein laufender Verleih und ein
+    # fälliger sind beide 'processed', gehören aber in verschiedene Tabellen).
+    liste = request.args.get('liste', Zielliste.OFFEN.value)
     limit = request.args.get('limit', 5, type=int)
     offset = request.args.get('offset', 0, type=int)
-    direction = request.args.get('direction', 'future')
-    
-    statuses = [s.strip() for s in status_param.split(',')]
+
+    try:
+        ziel = Zielliste(liste)
+    except ValueError:
+        return jsonify({'error': f'Unbekannte Liste: {liste}'}), 400
+
     all_candidates = get_candidates(status_filter='ALL')
     today = date.today()
-    
+
     filtered = []
     for c in all_candidates:
-        if c.get('status') not in statuses:
-            continue
         if not c.get('tags'):
             c['tags'] = []
-        
+
         c['parsed_date'], _ = _decorate_candidate_dates(c)
-        
-        if direction == 'future':
-            if c['parsed_date'] and c['parsed_date'] < today:
-                continue
-        
-        # Conflict detection for open candidates
-        if 'pending' in statuses:
-            c['has_conflict'] = False
-        
+
+        if _zielliste(c, today) is not ziel:
+            continue
+
         filtered.append(c)
-    
+
     filtered.sort(key=lambda x: x.get('parsed_date') or date.max)
-    
-    # Conflict detection
-    if 'pending' in statuses:
+
+    # Terminkollisionen sind nur bei noch offenen Anfragen eine Aussage.
+    if ziel is Zielliste.OFFEN:
         date_counts = {}
         for c in filtered:
             if c.get('datum'):
                 date_counts[c['datum']] = date_counts.get(c['datum'], 0) + 1
         for c in filtered:
-            c['has_conflict'] = c.get('datum') and date_counts.get(c['datum'], 0) > 1
+            c['has_conflict'] = bool(c.get('datum')) and date_counts.get(c['datum'], 0) > 1
     
     total = len(filtered)
     page_items = filtered[offset:offset + limit]
@@ -357,18 +346,14 @@ def get_returns():
     
     returns = []
     for c in all_candidates:
-        if c.get('status') not in ACTIVE_STATUSES:
-            continue
         if not c.get('tags'):
             c['tags'] = []
-        
-        parsed_date, parsed_end_date = _decorate_candidate_dates(c)
-        
-        ende = massgebliches_enddatum(parsed_date, parsed_end_date)
-        # <= today, nicht < today: ein Verleih, dessen Leihzeitraum am heutigen
-        # Tag endet, ist heute zur Rückgabe fällig und gehört heute in die Liste --
-        # nicht erst ab morgen.
-        if ende is not None and ende <= today:
+
+        _decorate_candidate_dates(c)
+
+        # Der Endtag gehört noch zum Verleih: ein Verleih, der heute endet, wird
+        # erst ab morgen zur Rückgabe. Die Grenze liegt in vorgang.zielliste.
+        if _zielliste(c, today) is Zielliste.RUECKGABEN:
             returns.append(c)
     
     # Sort oldest first
@@ -484,9 +469,20 @@ def update_email_candidate(candidate_id):
     import json
     
     data = request.get_json()
-    
+
     # Check if linked to Kanboard -> Update Kanboard Task
     candidate = get_candidate_by_id(candidate_id)
+
+    # Das Datum eines Verleihs darf nicht nachträglich geleert werden. Geprüft
+    # wird vor dem Kanboard-Push, damit dort nichts hängen bleibt, was lokal
+    # abgelehnt wird. Ein leerer start_date-String passiert den None-Filter
+    # unten -- deshalb hier und nicht dort.
+    if candidate is not None and 'start_date' in data:
+        try:
+            require_datum(candidate.get('status'), data.get('start_date'))
+        except DatumErforderlich as e:
+            return jsonify({'error': str(e)}), 400
+
     if candidate and candidate.get('kanboard_task_id'):
         try:
             task_id = candidate['kanboard_task_id']
@@ -545,6 +541,14 @@ def create_manual_candidate_route():
         return jsonify({'error': 'Bitte mindestens Name oder Veranstaltung angeben'}), 400
 
     due_date = data.get('start_date')
+
+    # Ein manuell angelegter Vorgang ist sofort ein Verleih ('processed') und
+    # braucht daher ein Datum. Geprüft vor dem Kanboard-Aufruf, sonst bliebe bei
+    # Ablehnung ein verwaister Task zurück.
+    try:
+        require_datum(CandidateStatus.PROCESSED, due_date)
+    except DatumErforderlich as e:
+        return jsonify({'error': str(e)}), 400
 
     try:
         # Create the Kanboard task first so we never leave an orphan candidate.

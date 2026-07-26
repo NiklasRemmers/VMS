@@ -149,11 +149,16 @@ def test_returns_shows_a_loan_once_its_end_date_has_passed(auth_client, user, db
 
 
 @pytest.mark.route
-def test_returns_shows_a_loan_ending_today(auth_client, user, db_session):
-    """Ein Verleih, dessen Leihzeitraum am heutigen Tag endet, steht heute in den
-    Rückgaben -- die Rückgabe ist heute fällig. Vorher prüfte get_returns
-    `ende < today` (strikt) und zeigte einen heute endenden Verleih erst ab morgen;
-    über sein vergangenes Startdatum stand er derweil nur im Archiv."""
+def test_returns_excludes_a_loan_ending_today(auth_client, user, db_session):
+    """Der Endtag gehört noch zum Verleih: er endet heute, also ist er heute noch
+    nicht zurückzugeben, sondern erst ab morgen.
+
+    Kehrt die frühere Regel (`ende <= today`) bewusst um -- siehe
+    docs/specs/vorgangslisten-und-datumspflicht.md. Solange nach dem Startdatum
+    gefiltert wurde, war der Verleih an seinem Endtag aus "Erledigte Anfragen"
+    verschwunden, weshalb er in den Rückgaben stehen musste, um überhaupt
+    sichtbar zu sein. Diese Krücke entfällt: er steht jetzt dort, wo er hingehört.
+    """
     from datetime import date, timedelta
     start = (date.today() - timedelta(days=2)).strftime("%d.%m.%Y")
     heute = date.today().strftime("%Y-%m-%d")
@@ -163,9 +168,11 @@ def test_returns_shows_a_loan_ending_today(auth_client, user, db_session):
                     contract_created=False, email_id="ret-today")
     db_session.commit()
 
-    resp = auth_client.get("/api/emails/returns")
+    rueckgaben = auth_client.get("/api/emails/returns")
+    erledigt = auth_client.get("/api/emails/candidates/paged?liste=erledigt&limit=50")
 
-    assert [c["veranstaltungsname"] for c in resp.get_json()["items"]] == ["Endet heute"]
+    assert [c["veranstaltungsname"] for c in rueckgaben.get_json()["items"]] == []
+    assert [c["veranstaltungsname"] for c in erledigt.get_json()["items"]] == ["Endet heute"]
 
 
 @pytest.mark.route
@@ -428,3 +435,159 @@ def test_return_candidate_without_json_body_returns_400(auth_client, user, db_se
     resp = auth_client.post(f"/api/emails/candidates/{cid}/return")
 
     assert resp.status_code == 400
+
+
+# ---------------------------------------------------------------------------
+# Vorgangslisten & Datumspflicht
+# Spec: docs/specs/vorgangslisten-und-datumspflicht.md
+# ---------------------------------------------------------------------------
+
+def _tag(versatz):
+    """ISO-Datum relativ zu heute.
+
+    Bewusst relativ statt per freeze_time: die Routen lesen `date.today()`, und
+    eingefrorene Zeit macht die flask-login-Session der Testclients ungültig.
+    Die Tagesgrenzen selbst sind in tests/test_vorgang.py rein abgedeckt -- hier
+    wird nur die Verdrahtung geprüft.
+    """
+    from datetime import date, timedelta
+    return (date.today() + timedelta(days=versatz)).isoformat()
+
+
+def _seed_alle_lagen(db_session, user_id):
+    """Ein Vorgang je Zielliste, plus die drei Fälle, die vorher falsch lagen.
+
+    Namen sind eindeutig, damit im gerenderten HTML eindeutig geprüft werden
+    kann, wo ein Vorgang auftaucht.
+    """
+    from vms.domain.models import CandidateStatus as S
+
+    lagen = {
+        "Offen Zukunft":      dict(status=S.PENDING.value, datum=_tag(+6)),
+        "Verfallene Anfrage": dict(status=S.PENDING.value, datum=_tag(-25)),
+        "Laufender Verleih":  dict(status=S.PROCESSED.value, datum=_tag(-1),
+                                   end_date=_tag(+1)),
+        "Endtag Heute":       dict(status=S.PROCESSED.value, datum=_tag(0)),
+        "Rueckgabe Faellig":  dict(status=S.DONE.value, datum=_tag(-6),
+                                   end_date=_tag(-1)),
+        "Offene Rechnung":    dict(status=S.INVOICE_PENDING.value, datum=_tag(-25)),
+        "Storniert Zukunft":  dict(status=S.RETURNED.value, datum=_tag(+20)),
+        "Fakturiert Alt":     dict(status=S.INVOICED.value, datum=_tag(-25)),
+    }
+    for i, (name, felder) in enumerate(lagen.items()):
+        _make_candidate(db_session, user_id, veranstaltungsname=name,
+                        email_id=f"lage-{i}", **felder)
+    db_session.commit()
+
+
+def _namen(payload):
+    return {c["veranstaltungsname"] for c in payload}
+
+
+@pytest.mark.route
+def test_paged_offen_liefert_nur_offene_anfragen(auth_client, user, db_session):
+    _seed_alle_lagen(db_session, user["id"])
+
+    resp = auth_client.get("/api/emails/candidates/paged?liste=offen&limit=50")
+
+    assert resp.status_code == 200
+    assert _namen(resp.get_json()["items"]) == {"Offen Zukunft"}
+
+
+@pytest.mark.route
+def test_paged_erledigt_enthaelt_laufenden_verleih(auth_client, user, db_session):
+    """Der laufende Mehrtagesverleih fiel vorher heraus, weil nach dem
+    Startdatum gefiltert wurde."""
+    _seed_alle_lagen(db_session, user["id"])
+
+    resp = auth_client.get("/api/emails/candidates/paged?liste=erledigt&limit=50")
+
+    assert resp.status_code == 200
+    assert _namen(resp.get_json()["items"]) == {"Laufender Verleih", "Endtag Heute"}
+
+
+@pytest.mark.route
+def test_returns_beginnt_erst_am_tag_nach_ende(auth_client, user, db_session):
+    """Der Endtag gehört noch zum Verleih -- 'Endtag Heute' ist noch keine
+    Rückgabe, 'Rueckgabe Faellig' (Ende gestern) schon."""
+    _seed_alle_lagen(db_session, user["id"])
+
+    resp = auth_client.get("/api/emails/returns?limit=50")
+
+    assert resp.status_code == 200
+    assert _namen(resp.get_json()["items"]) == {"Rueckgabe Faellig"}
+
+
+@pytest.mark.route
+def test_archiv_enthaelt_nur_abgeschlossenes_und_verfallenes(auth_client, user, db_session):
+    """Kein Datums-Zweig mehr: die offene Rechnung und der laufende Verleih
+    gehören nicht ins Archiv, die verfallene Anfrage schon."""
+    _seed_alle_lagen(db_session, user["id"])
+
+    resp = auth_client.get("/api/emails/archive?limit=50")
+
+    assert resp.status_code == 200
+    assert _namen(resp.get_json()["items"]) == {
+        "Verfallene Anfrage", "Storniert Zukunft", "Fakturiert Alt",
+    }
+
+
+@pytest.mark.route
+def test_erstrender_zeigt_abgeschlossene_nicht_als_offen(auth_client, user, db_session):
+    """Der Server-Erstrender teilte nur in ACTIVE/Rest -- dadurch stand ein
+    zurückgegebener Vorgang mit Zukunftsdatum unter 'Offene Anfragen', bis das
+    erste Nachladen ihn entfernte."""
+    _seed_alle_lagen(db_session, user["id"])
+
+    resp = auth_client.get("/emails")
+
+    assert resp.status_code == 200
+    assert "Storniert Zukunft" not in resp.get_data(as_text=True)
+    assert "Laufender Verleih" in resp.get_data(as_text=True)
+
+
+# --- Datumspflicht an den Schreibrouten ------------------------------------
+
+@pytest.mark.route
+def test_manuelles_anlegen_ohne_datum_gibt_400(auth_client, user, db_session, mocker):
+    """Kein Kanboard-Task, kein Kandidat -- die Prüfung läuft vor dem Anlegen,
+    damit kein verwaister Task entsteht."""
+    from vms.domain.models import EmailCandidate
+    erzeugt = mocker.patch("vms.clients.kanboard_client.create_task",
+                           return_value={"id": 99})
+
+    resp = auth_client.post("/api/emails/candidates/create", json={
+        "veranstaltungsname": "Ohne Datum",
+    })
+
+    assert resp.status_code == 400
+    assert "Datum" in resp.get_json()["error"]
+    erzeugt.assert_not_called()
+    assert db_session.query(EmailCandidate).count() == 0
+
+
+@pytest.mark.route
+def test_datum_eines_verleihs_darf_nicht_geleert_werden(auth_client, user, db_session):
+    from vms.domain.models import CandidateStatus, EmailCandidate
+    cid = _make_candidate(db_session, user["id"], status=CandidateStatus.PROCESSED.value,
+                          datum="2026-08-01", email_id="clear-1")
+    db_session.commit()
+
+    resp = auth_client.put(f"/api/emails/candidates/{cid}", json={"start_date": ""})
+
+    assert resp.status_code == 400
+    db_session.expire_all()
+    assert db_session.query(EmailCandidate).filter_by(id=cid).one().datum == "2026-08-01"
+
+
+@pytest.mark.route
+def test_datum_einer_offenen_anfrage_darf_leer_bleiben(auth_client, user, db_session):
+    from vms.domain.models import CandidateStatus
+    cid = _make_candidate(db_session, user["id"], status=CandidateStatus.PENDING.value,
+                          datum=None, email_id="clear-2")
+    db_session.commit()
+
+    resp = auth_client.put(f"/api/emails/candidates/{cid}",
+                           json={"veranstaltungsname": "Noch unklar"})
+
+    assert resp.status_code == 200

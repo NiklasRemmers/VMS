@@ -331,7 +331,17 @@ def create_task_from_candidate(candidate_id):
         description = extract_form_section(raw) if raw else ''
     
     due_date = data.get('start_date') or candidate.get('datum')
-    
+
+    # Hier wird aus einer Anfrage ein Verleih ('processed'), und ein Verleih
+    # braucht ein Datum. Vor dem Kanboard-Aufruf geprüft, damit bei Ablehnung
+    # kein verwaister Task entsteht.
+    from vms.domain.vorgang import DatumErforderlich, require_datum
+    from vms.domain.models import CandidateStatus
+    try:
+        require_datum(CandidateStatus.PROCESSED, due_date)
+    except DatumErforderlich as e:
+        return jsonify({'error': str(e)}), 400
+
     try:
         # Create Task
         result = kanboard_client.create_task(

@@ -1535,7 +1535,7 @@
                         tbodyId: 'openTbody',
                         initialOffset: openCount,
                         initialHasMore: openTotal > 5,
-                        url: (offset) => `/api/emails/candidates/paged?status=pending&limit=${SCROLL_PAGE_SIZE}&offset=${offset}&direction=future`,
+                        url: (offset) => `/api/emails/candidates/paged?liste=offen&limit=${SCROLL_PAGE_SIZE}&offset=${offset}`,
                         renderRow: renderOpenRow
                     });
 
@@ -1549,7 +1549,7 @@
                             tbodyId: 'processedTbody',
                             initialOffset: processedCount,
                             initialHasMore: processedTotal > 5,
-                            url: (offset) => `/api/emails/candidates/paged?status=processed,done&limit=${SCROLL_PAGE_SIZE}&offset=${offset}&direction=future`,
+                            url: (offset) => `/api/emails/candidates/paged?liste=erledigt&limit=${SCROLL_PAGE_SIZE}&offset=${offset}`,
                             rowClass: 'hover:bg-gray-50 dark:hover:bg-gray-700/50 opacity-75',
                             renderRow: renderProcessedRow
                         });
@@ -1668,7 +1668,7 @@
             tbodyId: 'openTbody',
             initialOffset: openInitialCount,
             initialHasMore: {{ 'true' if open_candidates|length > 5 else 'false' }},
-            url: (offset) => `/api/emails/candidates/paged?status=pending&limit=${SCROLL_PAGE_SIZE}&offset=${offset}&direction=future`,
+            url: (offset) => `/api/emails/candidates/paged?liste=offen&limit=${SCROLL_PAGE_SIZE}&offset=${offset}`,
             renderRow: renderOpenRow
         });
 
@@ -1681,7 +1681,7 @@
                 tbodyId: 'processedTbody',
                 initialOffset: processedInitialCount,
                 initialHasMore: {{ 'true' if processed_candidates|length > 5 else 'false' }},
-                url: (offset) => `/api/emails/candidates/paged?status=processed,done&limit=${SCROLL_PAGE_SIZE}&offset=${offset}&direction=future`,
+                url: (offset) => `/api/emails/candidates/paged?liste=erledigt&limit=${SCROLL_PAGE_SIZE}&offset=${offset}`,
                 rowClass: 'hover:bg-gray-50 dark:hover:bg-gray-700/50 opacity-75',
                 renderRow: renderProcessedRow
             });

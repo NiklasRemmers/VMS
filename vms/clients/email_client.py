@@ -11,14 +11,14 @@ from email.utils import parsedate_to_datetime
 import os
 import re
 import uuid
-from datetime import datetime, timezone, timedelta
+from datetime import date, datetime, timezone, timedelta
 import base64
 from typing import List, Dict, Optional, Any
 from vms.infra.security import decrypt_value
 from vms.domain.database import get_session, get_user_settings
 import json
 import vms.clients.kanboard_client as kanboard_client
-from sqlalchemy import func, or_, and_, text, desc, case, false
+from sqlalchemy import func, or_, false
 
 from vms.domain.models import (
     EmailCandidate, EmailSyncState, CandidateStatus, ACTIVE_STATUSES,
@@ -564,13 +564,18 @@ def sync_with_kanboard(user_id: int):
                 # New, unlinked Kanboard task -> pull it in as a new candidate.
                 # This stays the entry channel for fresh requests.
                 datum = kanboard_client.kanboard_date_due_to_iso(task.get('date_due', ''))
+                # Ein Verleih ohne Datum darf nicht entstehen. Statt den Task zu
+                # verwerfen, kommt er als Anfrage herein -- dort ist datumslos
+                # erlaubt und das Datum wird beim Bearbeiten nachgepflegt.
+                status = (CandidateStatus.PROCESSED if parse_flexible_date(datum)
+                          else CandidateStatus.PENDING)
                 try:
                     candidate = EmailCandidate(
                         user_id=user_id,
                         kanboard_task_id=tid,
                         subject=task.get('title'),
                         raw_content=task.get('description'),
-                        status=CandidateStatus.PROCESSED.value,
+                        status=status.value,
                         vorname_nachname=parsed.get('vorname_nachname'),
                         anschrift=parsed.get('rechnungsanschrift', ''),
                         email_address=parsed.get('email_address'),
@@ -668,41 +673,35 @@ def get_calendar_events(range_start=None, range_end=None):
 def get_archived_candidates(page: int = 1, limit: int = 10,
                             search_query: str = None, date_filter: str = None,
                             tag_filter: str = None) -> Dict:
-    """Get archived (past) candidates with pagination/filtering (shared across all users)."""
+    """Archivierte Vorgänge (abgeschlossen oder verfallen) mit Paginierung.
+
+    Was ins Archiv gehört, entscheidet allein `vorgang.zielliste`: abgeschlossen
+    (returned/invoiced) oder eine verfallene Anfrage, deren Termin verstrichen
+    ist. Vorher stand hier ein zweiter, abweichender Datumsvergleich in SQL --
+    zwei strikte Regexe, die die von `parse_flexible_date` akzeptierten Formate
+    nicht kannten und dadurch andere Zeilen trafen als jede andere Liste. Er zog
+    außerdem laufende Verleihe und offene Rechnungen mit ins Archiv.
+
+    SQL grenzt nur noch auf die überhaupt archivierbaren Stati ein und wendet die
+    Such-/Datums-/Tag-Filter an; Zielliste, Sortierung und Paginierung entscheiden
+    danach in Python -- wie in den übrigen Listen dieses Moduls.
+    """
+    from vms.domain.vorgang import Zielliste, zielliste
+
     offset = (page - 1) * limit
-    
+
     try:
+        if page <= 0 or limit <= 0:
+            raise ValueError(f"Ungültige Paginierung: page={page}, limit={limit}")
+
+        heute = datetime.now().date()
+
         with get_session() as s:
-            # Base query: all candidates (shared)
-            q = s.query(EmailCandidate)
-            
-            # SAFE DATE PARSING using string manipulation
-            # We normalize everything to 'YYYY-MM-DD' string for comparison/sorting
-            
-            # Expression for DD.MM.YYYY -> YYYY-MM-DD
-            # substr(d, 7, 4) || '-' || substr(d, 4, 2) || '-' || substr(d, 1, 2)
-            de_to_iso = func.concat(
-                func.substr(EmailCandidate.datum, 7, 4), '-',
-                func.substr(EmailCandidate.datum, 4, 2), '-',
-                func.substr(EmailCandidate.datum, 1, 2)
-            )
-            
-            # CASE to select the normalized ISO string
-            # Check for DD.MM.YYYY (length 10, dots at 3 and 6) 
-            # or just regex. Regex is safest for format check.
-            iso_date_expr = case(
-                (EmailCandidate.datum.op('~')(r'^\d{2}\.\d{2}\.\d{4}$'), de_to_iso),
-                (EmailCandidate.datum.op('~')(r'^\d{4}-\d{2}-\d{2}$'), EmailCandidate.datum),
-                else_=None
-            )
-            
-            # Filter for past dates OR returned/problem status
-            current_date_str = func.to_char(func.current_date(), 'YYYY-MM-DD')
-            q = q.filter(or_(
-                iso_date_expr < current_date_str,
-                EmailCandidate.status.in_([s.value for s in TERMINAL_STATUSES])
-            ))
-            
+            # Grobfilter: nur diese Stati können überhaupt im Archiv landen.
+            archivierbar = [st.value for st in TERMINAL_STATUSES]
+            archivierbar.append(CandidateStatus.PENDING.value)
+            q = s.query(EmailCandidate).filter(EmailCandidate.status.in_(archivierbar))
+
             # Apply filters
             if search_query:
                 term = f"%{search_query}%"
@@ -732,17 +731,24 @@ def get_archived_candidates(page: int = 1, limit: int = 10,
                     
             if tag_filter:
                 q = q.filter(EmailCandidate.tags.contains([tag_filter]))
-                
-            # Get total count
-            total = q.count()
-            
-            # Order by normalized date string descending
-            q = q.order_by(iso_date_expr.desc().nulls_last())
-            q = q.offset(offset).limit(limit)
-            
+
+            # Die eigentliche Archiv-Entscheidung, zusammen mit dem Sortier-
+            # schlüssel: `datum` wird unten für die Anzeige überschrieben.
+            archiviert = [
+                (parse_flexible_date(row.datum), row.to_dict())
+                for row in q.all()
+                if zielliste(row.status, row.datum, row.end_date, heute)
+                is Zielliste.ARCHIV
+            ]
+
+            # Neueste zuerst, Undatierte ans Ende.
+            archiviert.sort(key=lambda p: (p[0] is not None, p[0] or date.min),
+                            reverse=True)
+
+            total = len(archiviert)
+
             results = []
-            for row in q.all():
-                d = row.to_dict()
+            for _, d in archiviert[offset:offset + limit]:
                 if d.get('tags') and isinstance(d['tags'], str):
                     try:
                         d['tags'] = json.loads(d['tags'])
@@ -750,14 +756,14 @@ def get_archived_candidates(page: int = 1, limit: int = 10,
                         d['tags'] = []
                 elif not d.get('tags'):
                     d['tags'] = []
-                
+
                 for key in ['received_at', 'created_at', 'returned_at']:
                     if d.get(key) and hasattr(d[key], 'isoformat'):
                         d[key] = d[key].isoformat()
                 d['datum'] = format_de_date(d.get('datum'))
                 d['end_date_display'] = format_de_date(d.get('end_date'))
                 results.append(d)
-                
+
             return {
                 'items': results,
                 'total': total,
