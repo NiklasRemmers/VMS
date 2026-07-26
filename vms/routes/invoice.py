@@ -6,6 +6,9 @@ from vms.domain.models import (
     claim_sequential_number, release_sequential_number, parse_flexible_date,
 )
 from vms.domain.database import get_session
+from vms.domain.rechnungsabbruch import (
+    RechnungsabbruchUnzulaessig, plan_rechnungsabbruch,
+)
 from vms.infra.template_store import load_template
 from datetime import datetime, timezone, date
 import os
@@ -240,6 +243,49 @@ def api_download_invoice():
             'X-Laufende-Nummer': str(laufende_nummer),
         },
     )
+
+
+@invoice_bp.route('/api/invoices/candidates/<int:candidate_id>/cancel', methods=['POST'])
+@login_required
+def cancel_invoice(candidate_id):
+    """Nimm die Rechnungsabsicht zurück: der Vorgang gilt als bloß eingezählt.
+
+    Die Regeln liegen in domain/rechnungsabbruch.py; hier wird nur übersetzt.
+    Wie beim Rückgabe-Endpunkt liegt die Fehlerbehandlung *außerhalb* des
+    with-Blocks: get_session committet bei normalem Blockende, ein return von
+    innen würde eine abgelehnte Änderung festschreiben.
+    """
+    import vms.clients.kanboard_client as kanboard_client
+
+    notiz = (request.get_json(silent=True) or {}).get('note')
+
+    try:
+        with get_session() as s:
+            row = s.query(EmailCandidate).filter_by(id=candidate_id).first()
+            if row is None:
+                return jsonify({'error': 'Kandidat nicht gefunden'}), 404
+
+            plan = plan_rechnungsabbruch(
+                status=row.status,
+                nummer_typ=row.nummer_typ,
+                laufende_nummer=row.laufende_nummer,
+                bestehende_notiz=row.return_note,
+                notiz=notiz,
+            )
+
+            row.status = plan.status
+            row.return_note = plan.return_note
+            row.nummer_typ = plan.nummer_typ
+            row.laufende_nummer = plan.laufende_nummer
+            if plan.freizugebende_nummer is not None:
+                release_sequential_number(s, *plan.freizugebende_nummer)
+    except RechnungsabbruchUnzulaessig as e:
+        return jsonify({'error': str(e)}), 409
+
+    # 'returned' ist terminal -- der verknüpfte Task wird geschlossen.
+    kanboard_client.reconcile_candidate_by_id(current_user.id, candidate_id)
+
+    return jsonify({'success': True})
 
 
 # Aus app.py hierher gezogen: der Vorschlag gehört zum Rechnungsvorgang,

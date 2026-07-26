@@ -67,6 +67,8 @@
 {% endblock %}
 
 {% block scripts %}
+    {% include '_confirm_modal.html' %}
+
     <!-- Type Chooser Modal -->
     <div id="invoiceTypeModal" class="fixed inset-0 z-50 overflow-y-auto hidden" role="dialog" aria-modal="true">
         <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
@@ -393,14 +395,49 @@
                         <td class="px-6 py-4 whitespace-nowrap" data-label="Tags">${tagsHtml}</td>
                         <td class="px-6 py-4 text-sm text-gray-700 dark:text-gray-300" data-label="Hinweis">${noteHtml}</td>
                         <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium cell-actions">
-                            <button onclick='chooseInvoiceType(${JSON.stringify(c).replace(/'/g, "&#39;")})' class="btn btn-primary">
-                                Erstellen
-                            </button>
+                            <div class="inline-flex gap-2">
+                                <button onclick='cancelInvoice(${c.id}, ${JSON.stringify(displayName)})' class="btn btn-secondary">
+                                    Schließen
+                                </button>
+                                <button onclick='chooseInvoiceType(${JSON.stringify(c).replace(/'/g, "&#39;")})' class="btn btn-primary">
+                                    Erstellen
+                                </button>
+                            </div>
                         </td>
                     `;
                     tbody.appendChild(tr);
                 });
             }
+        }
+
+        // Doch keine Rechnung: der Vorgang geht in den Zustand, den „nur
+        // eingezählt" von Anfang an erzeugt hätte. Die Rückgabe selbst
+        // (Rückgabedatum, Lagerplätze) bleibt unangetastet.
+        async function cancelInvoice(candidateId, name) {
+            showConfirmDialog(
+                'Ohne Rechnung schließen',
+                `Für „${name}" wird keine Rechnung erstellt. Der Vorgang gilt dann als eingezählt und wandert ins Archiv.`,
+                async () => {
+                    try {
+                        const resp = await fetch(`/api/invoices/candidates/${candidateId}/cancel`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({}),
+                        });
+                        if (!resp.ok) {
+                            const err = await resp.json().catch(() => ({}));
+                            showToast(err.error || 'Vorgang konnte nicht geschlossen werden.', 'error');
+                            return;
+                        }
+                        showToast('Vorgang ohne Rechnung geschlossen.', 'success');
+                        loadData();
+                    } catch (err) {
+                        console.error('Failed to cancel invoice', err);
+                        showToast('Vorgang konnte nicht geschlossen werden.', 'error');
+                    }
+                },
+                { confirmText: 'Schließen', type: 'warning' }
+            );
         }
 
         // Modal Logic

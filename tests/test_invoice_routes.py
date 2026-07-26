@@ -769,3 +769,261 @@ def test_send_email_with_attachment_is_removed():
     Aufrufer und ist mit dessen Wegfall toter Code."""
     import vms.auth as auth
     assert not hasattr(auth, "send_email_with_attachment")
+
+
+# --------------------------------------------------------------------------
+# POST /api/invoices/candidates/<id>/cancel -- „doch keine Rechnung erstellen".
+# Wahrheitsquelle: docs/specs/rechnung-doch-nicht-erstellen.md.
+#
+# Die Regeln selbst (welcher Status abbrechbar ist, wann die Nummer freigegeben
+# wird, wie die Notiz behandelt wird) liegen rein in vms/domain/rechnungsabbruch.py
+# und sind in tests/test_rechnungsabbruch.py gepinnt. Hier: die Verdrahtung --
+# Persistenz, Nummernkreis, Kanboard, HTTP-Vertrag.
+# --------------------------------------------------------------------------
+
+def _cancel_url(candidate_id):
+    return f"/api/invoices/candidates/{candidate_id}/cancel"
+
+
+def _set_counter(db_session, number_type, last_number):
+    """Setze den Zählerstand eines Nummernkreises auf einen bekannten Wert."""
+    from vms.domain.models import SequentialNumber
+    db_session.add(SequentialNumber(number_type=number_type, last_number=last_number))
+    db_session.flush()
+
+
+def _counter(db_session, number_type):
+    from vms.domain.models import SequentialNumber
+    row = db_session.query(SequentialNumber).filter_by(number_type=number_type).first()
+    return None if row is None else row.last_number
+
+
+@pytest.mark.route
+def test_cancel_invoice_setzt_status_returned(
+        auth_client, user, db_session, mock_kanboard):
+    """Kriterium 10: der Vorgang landet im Zustand aus „nur eingezählt"."""
+    from vms.domain.models import EmailCandidate, CandidateStatus
+
+    cid = _make_candidate(db_session, user["id"], status="invoice_pending")
+    db_session.commit()
+
+    resp = auth_client.post(_cancel_url(cid), json={})
+
+    assert resp.status_code == 200
+    db_session.expire_all()
+    row = db_session.query(EmailCandidate).filter_by(id=cid).one()
+    assert row.status == CandidateStatus.RETURNED.value
+
+
+@pytest.mark.route
+def test_cancel_invoice_gibt_laufende_nummer_frei(
+        auth_client, user, db_session, mock_kanboard):
+    """Kriterium 11: aus invoice_pending ist nie ein Dokument entstanden -- die
+    reservierte Nummer geht in den Kreis zurück, statt eine Lücke zu lassen."""
+    from vms.domain.models import EmailCandidate
+
+    _set_counter(db_session, "rechnung", 12)
+    cid = _make_candidate(db_session, user["id"], status="invoice_pending",
+                          laufende_nummer="12", nummer_typ="rechnung")
+    db_session.commit()
+
+    resp = auth_client.post(_cancel_url(cid), json={})
+
+    assert resp.status_code == 200
+    db_session.expire_all()
+    row = db_session.query(EmailCandidate).filter_by(id=cid).one()
+    assert row.laufende_nummer is None
+    assert row.nummer_typ is None
+    assert _counter(db_session, "rechnung") == 11
+
+
+@pytest.mark.route
+def test_cancel_invoice_aus_invoiced_behaelt_nummer_und_zaehler(
+        auth_client, user, db_session, mock_kanboard):
+    """Kriterium 12: das PDF existiert und trägt die Nummer -- sie darf nie ein
+    zweites Mal vergeben werden und bleibt dem Vorgang zugeordnet."""
+    from vms.domain.models import EmailCandidate, CandidateStatus
+
+    _set_counter(db_session, "rechnung", 12)
+    cid = _make_candidate(db_session, user["id"], status="invoiced",
+                          laufende_nummer="12", nummer_typ="rechnung")
+    db_session.commit()
+
+    resp = auth_client.post(_cancel_url(cid), json={})
+
+    assert resp.status_code == 200
+    db_session.expire_all()
+    row = db_session.query(EmailCandidate).filter_by(id=cid).one()
+    assert row.status == CandidateStatus.RETURNED.value
+    assert row.laufende_nummer == "12"
+    assert row.nummer_typ == "rechnung"
+    assert _counter(db_session, "rechnung") == 12
+
+
+@pytest.mark.route
+def test_cancel_invoice_laesst_rueckgabe_unveraendert(
+        auth_client, user, db_session, mock_kanboard):
+    """Kriterium 13: das Einzählen ist bereits passiert. Der Abbruch nimmt nur
+    die Rechnungsabsicht zurück -- Rückgabezeitpunkt und Lagerplätze bleiben."""
+    from datetime import datetime, timezone
+    from vms.domain.models import EmailCandidate, StorageLocation
+
+    eingezaehlt_am = datetime(2024, 6, 1, 10, 30, tzinfo=timezone.utc)
+    cid = _make_candidate(db_session, user["id"], status="invoice_pending",
+                          returned_at=eingezaehlt_am,
+                          return_note="Alles vollständig zurück")
+    belegt = StorageLocation(name="Schrank 9", candidate_id=None)
+    db_session.add(belegt)
+    db_session.commit()
+
+    resp = auth_client.post(_cancel_url(cid), json={})
+
+    assert resp.status_code == 200
+    db_session.expire_all()
+    row = db_session.query(EmailCandidate).filter_by(id=cid).one()
+    assert row.returned_at == eingezaehlt_am
+    assert row.return_note == "Alles vollständig zurück"
+    assert db_session.query(StorageLocation).filter_by(id=belegt.id).one().candidate_id is None
+
+
+@pytest.mark.route
+def test_cancel_invoice_entfernt_vorgang_aus_rechnungsliste(
+        auth_client, user, db_session, mock_kanboard):
+    """Kriterium 14: der Rechnungen-Tab zeigt nur invoice_pending. Nach dem
+    Abbruch ist der Vorgang dort weg -- das ist der sichtbare Zweck."""
+    cid = _make_candidate(db_session, user["id"], status="invoice_pending")
+    db_session.commit()
+    vorher = auth_client.get("/api/invoices/candidates").get_json()
+    assert cid in [c["id"] for c in vorher]
+
+    auth_client.post(_cancel_url(cid), json={})
+
+    nachher = auth_client.get("/api/invoices/candidates").get_json()
+    assert cid not in [c["id"] for c in nachher]
+
+
+@pytest.mark.route
+def test_cancel_invoice_schliesst_kanboard_task(
+        auth_client, user, db_session, mock_kanboard):
+    """Kriterium 15: `returned` ist terminal -- der verknüpfte Task wird
+    geschlossen, wie beim direkten Einzählen."""
+    mock_kanboard.side_effect = [
+        {"id": 77, "is_active": 1},  # getTask (close_task)
+        True,                        # closeTask
+    ]
+    cid = _make_candidate(db_session, user["id"], status="invoice_pending",
+                          kanboard_task_id=77)
+    db_session.commit()
+
+    resp = auth_client.post(_cancel_url(cid), json={})
+
+    assert resp.status_code == 200
+    aufgerufene_methoden = [call.args[1] for call in mock_kanboard.call_args_list]
+    assert "closeTask" in aufgerufene_methoden
+
+
+@pytest.mark.route
+def test_cancel_invoice_unbekannte_id_404(auth_client, user, mock_kanboard):
+    """Kriterium 16."""
+    resp = auth_client.post(_cancel_url(999999), json={})
+
+    assert resp.status_code == 404
+    assert "error" in resp.get_json()
+
+
+@pytest.mark.route
+@pytest.mark.parametrize("status", ["pending", "processed", "done"])
+def test_cancel_invoice_unzulaessiger_status_409(
+        auth_client, user, db_session, mock_kanboard, status):
+    """Kriterium 17: ein Verleih, der noch gar nicht zurück ist, hat keine
+    Rechnungsabsicht zurückzunehmen."""
+    from vms.domain.models import EmailCandidate
+
+    cid = _make_candidate(db_session, user["id"], status=status)
+    db_session.commit()
+
+    resp = auth_client.post(_cancel_url(cid), json={})
+
+    assert resp.status_code == 409
+    assert "error" in resp.get_json()
+    db_session.expire_all()
+    assert db_session.query(EmailCandidate).filter_by(id=cid).one().status == status
+
+
+@pytest.mark.route
+def test_cancel_invoice_zweiter_aufruf_409(
+        auth_client, user, db_session, mock_kanboard):
+    """Kriterium 18: bewusst nicht idempotent -- der zweite Aufruf hat nichts
+    zurückzunehmen, und ein stilles OK würde eine Fehlbedienung verdecken.
+    Wichtig ist vor allem, dass er den Zähler nicht ein zweites Mal senkt."""
+    from vms.domain.models import EmailCandidate, CandidateStatus
+
+    _set_counter(db_session, "rechnung", 12)
+    cid = _make_candidate(db_session, user["id"], status="invoice_pending",
+                          laufende_nummer="12", nummer_typ="rechnung")
+    db_session.commit()
+    assert auth_client.post(_cancel_url(cid), json={}).status_code == 200
+
+    resp = auth_client.post(_cancel_url(cid), json={})
+
+    assert resp.status_code == 409
+    db_session.expire_all()
+    assert db_session.query(EmailCandidate).filter_by(id=cid).one().status \
+        == CandidateStatus.RETURNED.value
+    assert _counter(db_session, "rechnung") == 11
+
+
+@pytest.mark.route
+def test_cancel_invoice_ohne_login_aendert_nichts(client, user, db_session):
+    """Kriterium 19: `/api/`-Pfade antworten mit 401 JSON statt umzuleiten
+    (auth.py:318) -- eine Umleitung auf die Login-HTML-Seite wäre für einen
+    fetch-Aufruf nicht auswertbar."""
+    from vms.domain.models import EmailCandidate
+
+    cid = _make_candidate(db_session, user["id"], status="invoice_pending")
+    db_session.commit()
+
+    resp = client.post(_cancel_url(cid), json={})
+
+    assert resp.status_code == 401
+    assert "error" in resp.get_json()
+    db_session.expire_all()
+    assert db_session.query(EmailCandidate).filter_by(id=cid).one().status \
+        == "invoice_pending"
+
+
+@pytest.mark.route
+def test_cancel_invoice_ohne_body_funktioniert(
+        auth_client, user, db_session, mock_kanboard):
+    """Kriterium 20: die Notiz ist optional, ein leerer Body darf keine 500
+    auslösen (vgl. das `or {}`-Fallback im Rückgabe-Endpunkt)."""
+    from vms.domain.models import EmailCandidate, CandidateStatus
+
+    cid = _make_candidate(db_session, user["id"], status="invoice_pending")
+    db_session.commit()
+
+    resp = auth_client.post(_cancel_url(cid))
+
+    assert resp.status_code == 200
+    db_session.expire_all()
+    assert db_session.query(EmailCandidate).filter_by(id=cid).one().status \
+        == CandidateStatus.RETURNED.value
+
+
+@pytest.mark.route
+def test_cancel_invoice_notiz_ersetzt_return_note(
+        auth_client, user, db_session, mock_kanboard):
+    """Ergänzung zu Kriterium 7: die Notiz kommt auch wirklich durch die Route
+    hindurch in der Zeile an."""
+    from vms.domain.models import EmailCandidate
+
+    cid = _make_candidate(db_session, user["id"], status="invoice_pending",
+                          return_note="Alles vollständig zurück")
+    db_session.commit()
+
+    resp = auth_client.post(_cancel_url(cid), json={"note": "Doch nichts abzurechnen"})
+
+    assert resp.status_code == 200
+    db_session.expire_all()
+    row = db_session.query(EmailCandidate).filter_by(id=cid).one()
+    assert row.return_note == "Doch nichts abzurechnen"
