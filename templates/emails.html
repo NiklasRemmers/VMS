@@ -3,7 +3,7 @@
 {% block title %}Leihanfragen aus Mails - Anlagenreferat{% endblock %}
 
 {% block head_extra %}
-    <script src="/static/searchable_select.js"></script>
+    <script src="{{ asset('searchable_select.js') }}"></script>
 {% endblock %}
 
 {% block content %}
@@ -607,8 +607,6 @@
 
                             // Hide/Show Buttons
                             document.getElementById('saveTaskBtn').style.display = isReadOnly ? 'none' : 'inline-flex';
-                            const unmarkBtn = document.getElementById('unmarkDoneBtn');
-                            if (unmarkBtn) unmarkBtn.style.display = 'none'; // Always hide in read-only
 
                             // Tag removal buttons
                             const removeBtns = modal.querySelectorAll('#selectedTagsContainer button');
@@ -752,10 +750,6 @@
                         class="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-sm font-medium rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700">
                         Abbrechen
                     </button>
-                    <button type="button" onclick="unmarkDone()" id="unmarkDoneBtn"
-                        class="hidden px-4 py-2 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 text-sm font-medium rounded-lg hover:bg-red-200 dark:hover:bg-red-900/50">
-                        Vertrag nicht erstellen
-                    </button>
                     <button type="button" onclick="saveTask()" id="saveTaskBtn"
                         class="btn btn-primary">
                         Task erstellen
@@ -805,29 +799,6 @@
                     </button>
                     <button onclick="confirmMarkDone()"
                         class="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700">
-                        Bestätigen
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Unmark Done Confirmation Modal -->
-    <div id="unmarkDoneModal" class="fixed inset-0 z-50 hidden">
-        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" onclick="closeUnmarkDoneModal()"></div>
-        <div class="relative flex items-center justify-center min-h-screen p-3 sm:p-4 pointer-events-none">
-            <div
-                class="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-sm w-full max-h-[90vh] overflow-y-auto p-4 sm:p-6 border border-gray-200 dark:border-gray-700 pointer-events-auto">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">Vertrag nicht erstellen?</h3>
-                <p class="text-gray-600 dark:text-gray-400 mb-6">Möchtest du diese Anfrage wirklich ändern? Der Status
-                    wird auf "Bearbeitet" zurückgesetzt.</p>
-                <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 sm:gap-3">
-                    <button onclick="closeUnmarkDoneModal()"
-                        class="btn btn-secondary">
-                        Abbrechen
-                    </button>
-                    <button onclick="confirmUnmarkDone()"
-                        class="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700">
                         Bestätigen
                     </button>
                 </div>
@@ -899,7 +870,6 @@
     </div>
 
     <script>
-        let currentCandidateContractCreated = false;
         let deleteCandidateId = null;
 
         let currentCandidateDate = null;
@@ -1131,7 +1101,6 @@
             currentCandidateId = null;
             currentCandidateStatus = null;
             currentCandidateDate = null;
-            currentCandidateContractCreated = false;
 
             // Clear all fields
             document.getElementById('editName').value = '';
@@ -1153,7 +1122,6 @@
             // Modal chrome
             document.getElementById('editModalTitle').textContent = 'Leihanfrage erstellen';
             document.getElementById('saveTaskBtn').textContent = 'Anfrage erstellen';
-            document.getElementById('unmarkDoneBtn').classList.add('hidden');
 
             document.getElementById('editModal').classList.remove('hidden');
         }
@@ -1221,16 +1189,6 @@
                 // Filter tag dropdown based on already-used tags for this date
                 updateTagDropdownOptions();
 
-                // Toggle "Unmark Done" button based on contract_created
-                const unmarkBtn = document.getElementById('unmarkDoneBtn');
-                currentCandidateContractCreated = candidate.contract_created;
-
-                if (currentCandidateContractCreated) {
-                    unmarkBtn.classList.remove('hidden');
-                } else {
-                    unmarkBtn.classList.add('hidden');
-                }
-
                 document.getElementById('editModal').classList.remove('hidden');
 
             } catch (error) {
@@ -1273,36 +1231,6 @@
                     showFlash(newStatus ? 'Vertrag als erstellt markiert.' : 'Markierung "Vertrag erstellt" entfernt.', 'success');
                 } else {
                     showFlash('Aktion fehlgeschlagen', 'error');
-                }
-            } catch (error) {
-                showFlash('Fehler: ' + error.message, 'error');
-            }
-        }
-
-        function unmarkDone() {
-            document.getElementById('unmarkDoneModal').classList.remove('hidden');
-        }
-
-        function closeUnmarkDoneModal() {
-            document.getElementById('unmarkDoneModal').classList.add('hidden');
-        }
-
-        async function confirmUnmarkDone() {
-            if (!currentCandidateId) return;
-
-            try {
-                const response = await fetch(`/api/emails/candidates/${currentCandidateId}/mark-processed`, {
-                    method: 'PUT',
-                    headers: { 'X-CSRFToken': csrfToken }
-                });
-
-                if (response.ok) {
-                    showFlash('Markierung entfernt.', 'success');
-                    closeUnmarkDoneModal();
-                    closeEditModal();
-                    refreshEmailList();
-                } else {
-                    showFlash('Fehler beim Entfernen der Markierung', 'error');
                 }
             } catch (error) {
                 showFlash('Fehler: ' + error.message, 'error');

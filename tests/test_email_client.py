@@ -1391,7 +1391,7 @@ def test_calendar_events_carry_german_status_label_next_to_raw_status(
 
     # Rohwert bleibt erhalten (Einfärbung), das Label ist für die Anzeige.
     assert by_title['Vorbereitet']['status'] == 'processed'
-    assert by_title['Vorbereitet']['status_label'] == 'Verleih vorbereitet'
+    assert by_title['Vorbereitet']['status_label'] == 'Anfrage bearbeitet'
     assert by_title['Offen']['status_label'] == 'Rechnung offen'
 
 

@@ -58,6 +58,14 @@ from vms.domain.models import CandidateStatus, ACTIVE_STATUSES
 from vms.domain.models import parse_flexible_date, to_iso_date, format_de_date
 app.add_template_filter(_format_de_date, name='de_date')
 
+# {{ asset('app.js') }} statt "/static/app.js": hängt eine Inhalts-Version an, weil
+# Nginx /static/ als `immutable` cacht und ein Fix den Browser sonst tagelang nicht
+# erreicht (vms/infra/assets.py).
+from vms.infra.assets import asset_url as _asset_url
+app.add_template_global(
+    lambda filename: _asset_url(filename, app.static_folder), name='asset'
+)
+
 # Trust X-Forwarded-* headers from reverse proxy (Nginx)
 # This is required so Flask correctly sees HTTPS and client IPs
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)

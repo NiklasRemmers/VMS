@@ -431,6 +431,6 @@
         </div>
     </div>
 
-    <script src="/static/searchable_select.js"></script>
-    <script src="/static/app.js?v={{ range(100000) | random }}"></script>
+    <script src="{{ asset('searchable_select.js') }}"></script>
+    <script src="{{ asset('app.js') }}"></script>
 {% endblock %}

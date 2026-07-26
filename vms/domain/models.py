@@ -230,7 +230,7 @@ class CandidateStatus(str, Enum):
     Literalstellen kann dadurch schrittweise erfolgen.
     """
     PENDING = 'pending'                  # importiert, noch nicht gesichtet
-    PROCESSED = 'processed'              # gesichtet, Verleih vorbereitet
+    PROCESSED = 'processed'              # gesichtet, Anfrage bearbeitet
     DONE = 'done'                        # Leihvertrag erzeugt
     INVOICE_PENDING = 'invoice_pending'  # zurück, Rechnung/Umbuchung offen
     RETURNED = 'returned'                # zurück, ohne Rechnung erledigt
@@ -247,7 +247,7 @@ class CandidateStatus(str, Enum):
 
 _STATUS_LABELS = {
     CandidateStatus.PENDING: 'Offene Anfrage',
-    CandidateStatus.PROCESSED: 'Verleih vorbereitet',
+    CandidateStatus.PROCESSED: 'Anfrage bearbeitet',
     CandidateStatus.DONE: 'Vertrag erstellt',
     CandidateStatus.INVOICE_PENDING: 'Rechnung offen',
     CandidateStatus.RETURNED: 'Zurückgegeben',
