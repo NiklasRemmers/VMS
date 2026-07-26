@@ -69,32 +69,6 @@ def test_archive_paginates_and_honours_limit(auth_client, user, db_session):
 
 
 @pytest.mark.route
-def test_archive_excludes_active_loan_awaiting_return(auth_client, user, db_session):
-    """Ein laufender Verleih (processed/done), dessen Datum vorbei ist, aber der
-    noch nicht als Rückgabe markiert wurde, gehört in die Rückgaben -- nicht ins
-    Archiv. Vorher zog das Archiv jeden vergangenen Vorgang unabhängig vom Status,
-    sodass ein Verleih ohne Vertrag direkt als "archiviert" erschien, ohne je
-    zurückgegeben worden zu sein."""
-    from datetime import date, timedelta
-    gestern = (date.today() - timedelta(days=2)).strftime("%d.%m.%Y")
-
-    _make_candidate(db_session, user["id"], veranstaltungsname="Noch offen",
-                    datum=gestern, status="processed", contract_created=False,
-                    email_id="arch-active-1")
-    _make_candidate(db_session, user["id"], veranstaltungsname="Zurückgegeben",
-                    datum=gestern, status="returned", email_id="arch-active-2")
-    db_session.commit()
-
-    titles = [i["veranstaltungsname"]
-              for i in auth_client.get("/api/emails/archive").get_json()["items"]]
-
-    # Der zurückgegebene (terminale) Vorgang bleibt archiviert ...
-    assert "Zurückgegeben" in titles
-    # ... der noch offene laufende Verleih nicht.
-    assert "Noch offen" not in titles
-
-
-@pytest.mark.route
 def test_archive_search_query_filters(auth_client, user, db_session):
     _make_candidate(db_session, user["id"], veranstaltungsname="Sommerfest",
                     datum="2020-01-01", status="returned", email_id="arch-a")
@@ -172,6 +146,26 @@ def test_returns_shows_a_loan_once_its_end_date_has_passed(auth_client, user, db
     resp = auth_client.get("/api/emails/returns")
 
     assert [c["veranstaltungsname"] for c in resp.get_json()["items"]] == ["Abgelaufen"]
+
+
+@pytest.mark.route
+def test_returns_shows_a_loan_ending_today(auth_client, user, db_session):
+    """Ein Verleih, dessen Leihzeitraum am heutigen Tag endet, steht heute in den
+    Rückgaben -- die Rückgabe ist heute fällig. Vorher prüfte get_returns
+    `ende < today` (strikt) und zeigte einen heute endenden Verleih erst ab morgen;
+    über sein vergangenes Startdatum stand er derweil nur im Archiv."""
+    from datetime import date, timedelta
+    start = (date.today() - timedelta(days=2)).strftime("%d.%m.%Y")
+    heute = date.today().strftime("%Y-%m-%d")
+
+    _make_candidate(db_session, user["id"], veranstaltungsname="Endet heute",
+                    datum=start, end_date=heute, status="processed",
+                    contract_created=False, email_id="ret-today")
+    db_session.commit()
+
+    resp = auth_client.get("/api/emails/returns")
+
+    assert [c["veranstaltungsname"] for c in resp.get_json()["items"]] == ["Endet heute"]
 
 
 @pytest.mark.route

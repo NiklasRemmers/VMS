@@ -365,7 +365,10 @@ def get_returns():
         parsed_date, parsed_end_date = _decorate_candidate_dates(c)
         
         ende = massgebliches_enddatum(parsed_date, parsed_end_date)
-        if ende is not None and ende < today:
+        # <= today, nicht < today: ein Verleih, dessen Leihzeitraum am heutigen
+        # Tag endet, ist heute zur Rückgabe fällig und gehört heute in die Liste --
+        # nicht erst ab morgen.
+        if ende is not None and ende <= today:
             returns.append(c)
     
     # Sort oldest first
