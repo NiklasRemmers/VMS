@@ -8,11 +8,13 @@ from flask_login import login_required, current_user
 import os
 import bcrypt
 from datetime import datetime, timezone
+from vms.clients.email_client import get_imap_connection
 from werkzeug.utils import secure_filename
+from vms.clients.kanboard_client import get_columns
 from vms.infra.security import encrypt_value, EncryptionError
 from vms.infra.kms import encrypt_binary, decrypt_binary
 from vms.auth import ProfileForm, PasswordForm
-from vms.domain.database import get_session
+from vms.domain.database import get_session, get_user_settings
 import base64
 import io
 from vms.domain.models import User as UserModel, UserSettings
@@ -40,6 +42,44 @@ def get_settings():
             })
 
         return jsonify(row.to_dict())
+
+
+@settings_bp.route('/api/settings/kanboard/status', methods=['GET'])
+@login_required
+def get_kanboard_status():
+    with get_session() as s:
+        row = s.query(UserSettings).filter_by(user_id=current_user.id).first()
+        if not row:
+            return jsonify({'kanboard_status': 'unconfigured'})
+        
+        try:
+            settings = get_user_settings(current_user.id)
+            if not settings:
+                return jsonify({'kanboard_status': 'unconfigured'})
+            kanboard_cols = get_columns(current_user.id)
+            return jsonify({'kanboard_status': True})
+        except Exception as e:
+            return jsonify({'kanboard_status': 'error', 'error_message': str(e)})
+
+
+@settings_bp.route('/api/settings/email/status', methods=['GET'])
+@login_required
+def get_email_status():
+    with get_session() as s:
+        row = s.query(UserSettings).filter_by(user_id=current_user.id).first()
+
+        if not row:
+            return jsonify({'email_status': 'unconfigured'})
+        
+        try:
+            settings = get_user_settings(current_user.id)
+            if not settings:
+                return jsonify({'email_status': 'unconfigured'})
+            imap_conn, user = get_imap_connection(settings)
+            imap_conn.logout()
+            return jsonify({'email_status': 'connected'})
+        except Exception as e:
+            return jsonify({'email_status': 'error', 'error_message': str(e)})
 
 
 @settings_bp.route('/api/settings/email/manual', methods=['POST'])
