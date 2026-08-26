@@ -10,6 +10,7 @@ import bcrypt
 from datetime import datetime, timezone
 from vms.clients.email_client import get_imap_connection
 from werkzeug.utils import secure_filename
+from vms.clients.kanboard_client import get_columns
 from vms.infra.security import encrypt_value, EncryptionError
 from vms.infra.kms import encrypt_binary, decrypt_binary
 from vms.auth import ProfileForm, PasswordForm
